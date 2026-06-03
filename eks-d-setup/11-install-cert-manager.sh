@@ -33,3 +33,17 @@ kubectl wait --for=condition=available deployment/cert-manager-webhook -n cert-m
 
 echo "✓ cert-manager installed"
 kubectl get pods -n cert-manager
+
+# Approve pending kubelet serving CSRs — cert-manager webhook registration
+# causes the kubelet to generate a new serving CSR; must be approved for
+# webhook TLS to work. Retry loop handles the timing gap.
+echo "Approving pending kubelet serving CSRs..."
+for i in $(seq 1 10); do
+  PENDING=$(kubectl get csr --no-headers 2>/dev/null | awk '/Pending/{print $1}')
+  if [ -n "$PENDING" ]; then
+    echo "$PENDING" | xargs kubectl certificate approve
+    echo "✓ CSRs approved"
+    break
+  fi
+  [ "$i" -eq 10 ] && echo "Warning: no pending CSRs found after 30s" || sleep 3
+done
