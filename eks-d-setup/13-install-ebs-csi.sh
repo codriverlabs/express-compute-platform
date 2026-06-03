@@ -23,8 +23,6 @@ helm upgrade --install aws-ebs-csi-driver "$CHART" \
   --set controller.serviceAccount.create=true \
   --set controller.k8sTagClusterId="$CLUSTER_NAME" \
   --set controller.replicaCount=1 \
-  --set controller.extraEnv[0].name=AWS_REGION \
-  --set controller.extraEnv[0].value="$AWS_REGION" \
   --wait
 
 # Tag the current instance for EBS CSI cluster scoping
