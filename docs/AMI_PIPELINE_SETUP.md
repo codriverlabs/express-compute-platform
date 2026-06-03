@@ -8,7 +8,7 @@ attestation with KMS, and generates an SPDX SBOM of the installed filesystem.
 
 ```
 GitHub Actions (OIDC)
-  └─ assume eks-dx-packer-ci (IAM role)
+  └─ assume eks-d-xpress-packer-ci (IAM role)
        ├─ Packer builds EC2 builder instance
        │    └─ temporary instance profile (ECR pull-through access)
        ├─ syft generates SBOM → downloaded as artifact
@@ -33,7 +33,7 @@ The script creates:
 | Resource | Name/Path |
 |---|---|
 | IAM OIDC provider | `token.actions.githubusercontent.com` |
-| IAM role | `eks-dx-packer-ci` |
+| IAM role | `eks-d-xpress-packer-ci` |
 | KMS signing key | `alias/eks-d-xpress-ami-signing` (RSA 4096, SIGN_VERIFY) |
 | SSM parameter | `/eks-d-xpress/infra/kms/ami-signing-key-arn` |
 
@@ -42,11 +42,11 @@ At the end the script prints the values to add to GitHub:
 | GitHub setting | Value |
 |---|---|
 | Variable `AWS_REGION` | e.g. `us-east-1` |
-| Secret `AWS_PACKER_ROLE_ARN` | `arn:aws:iam::ACCOUNT:role/eks-dx-packer-ci` |
+| Secret `AWS_PACKER_ROLE_ARN` | `arn:aws:iam::ACCOUNT:role/eks-d-xpress-packer-ci` |
 
 ## IAM least-privilege model
 
-### GitHub Actions role (`eks-dx-packer-ci`)
+### GitHub Actions role (`eks-d-xpress-packer-ci`)
 
 Packer requires broad EC2 permissions by design (it creates instances, volumes,
 snapshots, security groups, key pairs). The role is scoped to the minimum

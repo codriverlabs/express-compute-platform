@@ -14,7 +14,7 @@ set -euo pipefail
 GITHUB_ORG="${GITHUB_ORG:?set GITHUB_ORG}"
 GITHUB_REPO="${GITHUB_REPO:-eks-d-xpress}"
 AWS_REGION="${AWS_REGION:?set AWS_REGION}"
-ROLE_NAME="eks-dx-packer-ci"
+ROLE_NAME="eks-d-xpress-packer-ci"
 KEY_ALIAS="alias/eks-d-xpress-ami-signing"
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -76,7 +76,7 @@ ROLE_ARN=$(aws iam get-role --role-name "${ROLE_NAME}" --query 'Role.Arn' --outp
 # ── 3. Inline policy ───────────────────────────────────────────────────────
 echo "==> Attaching least-privilege policy..."
 aws iam put-role-policy --role-name "${ROLE_NAME}" \
-  --policy-name "eks-dx-packer-build" \
+  --policy-name "eks-d-xpress-packer-build" \
   --policy-document "$(cat <<EOF
 {
   "Version": "2012-10-17",
@@ -114,8 +114,8 @@ aws iam put-role-policy --role-name "${ROLE_NAME}" \
         "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRole"
       ],
       "Resource": [
-        "arn:aws:iam::${ACCOUNT_ID}:instance-profile/packer-*",
-        "arn:aws:iam::${ACCOUNT_ID}:role/packer-*"
+        "arn:aws:iam::${ACCOUNT_ID}:instance-profile/packer_*",
+        "arn:aws:iam::${ACCOUNT_ID}:role/packer_*"
       ]
     },
     {
