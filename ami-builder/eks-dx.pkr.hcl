@@ -34,8 +34,8 @@ source "amazon-ebs" "x86_64" {
     most_recent = true
   }
 
-  ami_name        = "eks-dx-x86_64-${var.ami_version}"
-  ami_description = "EKS-DX ${var.kubernetes_version} x86_64 - ${var.ami_version}"
+  ami_name        = "eks-d-xpress-x86_64-${var.ami_version}"
+  ami_description = "EKS-D-Xpress ${var.kubernetes_version} x86_64 - ${var.ami_version}"
   ssh_username    = "ec2-user"
 
   metadata_options {
@@ -52,13 +52,13 @@ source "amazon-ebs" "x86_64" {
   }
 
   run_tags = {
-    Name     = "eks-dx-builder-x86_64"
+    Name     = "eks-d-xpress-builder-x86_64"
     Platform = "eks-d-xpress"
     ManagedBy = "Packer"
   }
 
   tags = {
-    Name              = "eks-dx-x86_64-${var.ami_version}"
+    Name              = "eks-d-xpress-x86_64-${var.ami_version}"
     Platform          = "eks-d-xpress"
     Project           = var.project_name
     KubernetesVersion = var.kubernetes_version
@@ -98,8 +98,8 @@ source "amazon-ebs" "arm64" {
     most_recent = true
   }
 
-  ami_name        = "eks-dx-arm64-${var.ami_version}"
-  ami_description = "EKS-DX ${var.kubernetes_version} arm64 - ${var.ami_version}"
+  ami_name        = "eks-d-xpress-arm64-${var.ami_version}"
+  ami_description = "EKS-D-Xpress ${var.kubernetes_version} arm64 - ${var.ami_version}"
   ssh_username    = "ec2-user"
 
   metadata_options {
@@ -116,13 +116,13 @@ source "amazon-ebs" "arm64" {
   }
 
   run_tags = {
-    Name      = "eks-dx-builder-arm64"
+    Name      = "eks-d-xpress-builder-arm64"
     Platform  = "eks-d-xpress"
     ManagedBy = "Packer"
   }
 
   tags = {
-    Name              = "eks-dx-arm64-${var.ami_version}"
+    Name              = "eks-d-xpress-arm64-${var.ami_version}"
     Platform          = "eks-d-xpress"
     Project           = var.project_name
     KubernetesVersion = var.kubernetes_version
