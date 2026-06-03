@@ -1,75 +1,44 @@
 # EKS-D Component Versions
 
-## Version Compatibility Matrix
+Pinned versions from the official EKS-D release manifests. Not all components are rebuilt for each Kubernetes version — only when changes are required.
 
-EKS-D reuses compatible component versions across releases. Not all components are rebuilt for each Kubernetes version - only when changes are required.
+## Version Matrix
 
-### EKS-D 1.35.9 Component Versions
+| Component | 1.35 (`eks-1-35-9`) | 1.36 (`eks-1-36-2`) |
+|-----------|---------------------|---------------------|
+| **Core Kubernetes** | | |
+| kube-apiserver | v1.35.4 | v1.36.0 |
+| kube-controller-manager | v1.35.4 | v1.36.0 |
+| kube-scheduler | v1.35.4 | v1.36.0 |
+| kubelet | v1.35.4 | v1.36.0 |
+| pause | v1.35.4 | v1.36.0 |
+| kube-proxy | v1.35.4 | v1.36.0 |
+| etcd | v3.5.21 | v3.5.21 |
+| **Authentication** | | |
+| aws-iam-authenticator | v0.7.13 | v0.7.15 |
+| **Add-ons** | | |
+| coredns | v1.14.2 | v1.14.2 |
+| metrics-server | v0.7.2 | v0.7.2 |
+| **CSI Sidecars** | | |
+| external-attacher | v4.9.0 | v4.9.0 |
+| external-provisioner | v5.3.0 | v5.3.0 |
+| external-resizer | v1.14.0 | v1.14.0 |
+| external-snapshotter | v8.3.0 | v8.3.0 |
+| node-driver-registrar | v2.14.0 | v2.14.0 |
+| livenessprobe | v2.16.0 | v2.16.0 |
+| **Networking** | | |
+| cni-plugins | v1.7.1 | v1.7.1 |
+| aws-vpc-cni | v1.19.0 | — (managed add-on) |
+| aws-ebs-csi-driver | v1.38.0 | — (managed add-on) |
 
-| Component | Version | Image Tag | Notes |
-|-----------|---------|-----------|-------|
-| **Core Kubernetes** | | | |
-| kube-apiserver | v1.35.4 | `eks-1-35-9` | ✅ Rebuilt for 1.35 |
-| kube-controller-manager | v1.35.4 | `eks-1-35-9` | ✅ Rebuilt for 1.35 |
-| kube-scheduler | v1.35.4 | `eks-1-35-9` | ✅ Rebuilt for 1.35 |
-| kubelet | v1.35.4 | `eks-1-35-9` | ✅ Rebuilt for 1.35 |
-| pause | v1.35.4 | `eks-1-35-9` | ✅ Rebuilt for 1.35 |
-| **Authentication** | | | |
-| aws-iam-authenticator | v0.7.13 | `eks-1-35-9` | ✅ Rebuilt for 1.35 |
-| **Add-ons** | | | |
-| metrics-server | v0.7.2 | `eks-1-35-9` | ⚠️ Reused version (compatible) |
-| coredns | v1.14.2 | `eks-1-35-9` | ✅ Rebuilt for 1.35 |
-| **CNI & Storage** | | | |
-| aws-vpc-cni | v1.19.0 | `eks-1-35-9` | ✅ Rebuilt for 1.35 |
-| aws-ebs-csi-driver | v1.38.0 | `eks-1-35-9` | ✅ Rebuilt for 1.35 |
-
-### EKS-D 1.36.2 Component Versions
-
-| Component | Version | Image Tag | Notes |
-|-----------|---------|-----------|-------|
-| **Core Kubernetes** | | | |
-| kube-apiserver | v1.36.0 | `eks-1-36-2` | ✅ Rebuilt for 1.36 |
-| kube-controller-manager | v1.36.0 | `eks-1-36-2` | ✅ Rebuilt for 1.36 |
-| kube-scheduler | v1.36.0 | `eks-1-36-2` | ✅ Rebuilt for 1.36 |
-| kubelet | v1.36.0 | `eks-1-36-2` | ✅ Rebuilt for 1.36 |
-| pause | v1.36.0 | `eks-1-36-2` | ✅ Rebuilt for 1.36 |
-| **Authentication** | | | |
-| aws-iam-authenticator | v0.7.15 | `eks-1-36-2` | ✅ Rebuilt for 1.36 |
-| **Add-ons** | | | |
-| metrics-server | v0.7.2 | `eks-1-36-2` | ⚠️ Reused version (compatible) |
-| coredns | v1.14.2 | `eks-1-36-2` | ✅ Rebuilt for 1.36 |
-| **CNI & Storage** | | | |
-| aws-vpc-cni | — | — | Managed add-on, not in EKS-D manifest |
-| aws-ebs-csi-driver | — | — | Managed add-on, not in EKS-D manifest |
-
-## Why Some Components Keep Older Tags
-
-**This is normal and expected behavior:**
-
-1. **Compatibility**: Components like metrics-server v0.7.2 are fully compatible with Kubernetes 1.35/1.36
-2. **Efficiency**: AWS doesn't rebuild components unnecessarily 
-3. **Stability**: Reusing tested versions reduces risk
-4. **Official**: These versions are specified in the official EKS-D release manifest
+> `aws-vpc-cni` and `aws-ebs-csi-driver` are EKS managed add-ons and are not part of the EKS-D release manifest.
 
 ## Verification
 
-To verify component versions for any EKS-D release:
-
 ```bash
-# Download the official manifest
 curl -s https://distro.eks.amazonaws.com/kubernetes-1-35/kubernetes-1-35-eks-9.yaml
 curl -s https://distro.eks.amazonaws.com/kubernetes-1-36/kubernetes-1-36-eks-2.yaml
-
-# Check specific component
-curl -s https://distro.eks.amazonaws.com/kubernetes-1-35/kubernetes-1-35-eks-9.yaml | grep -A5 -B5 metrics-server
 ```
-
-## Customer Impact
-
-- ✅ **Functionality**: All components work correctly regardless of tag version
-- ✅ **Security**: All images receive security updates through their respective channels
-- ✅ **Support**: AWS supports the exact versions specified in the release manifest
-- ⚠️ **Monitoring**: Some monitoring tools may flag "version mismatches" - this is expected
 
 ## References
 
