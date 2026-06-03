@@ -5,7 +5,7 @@
 # Requires: TENANT_ID, AWS_REGION (from cluster.env)
 # Optional: EKS_DX_TENANTS_TABLE (defaults to eks-dx-tenants)
 
-EKS_DX_TENANTS_TABLE="${EKS_DX_TENANTS_TABLE:-eks-dx-tenants}"
+EKS_DX_TENANTS_TABLE="${EKS_DX_TENANTS_TABLE:-eks-d-xpress-tenants}"
 
 # Update progress in DynamoDB. Called by boot scripts at each step.
 # Usage: update_progress <state> <phase> <progress_percent>
