@@ -17,24 +17,19 @@ helm upgrade --install aws-cloud-controller-manager "$CHART" \
   --set nodeSelector."node-role\.kubernetes\.io/control-plane"="" \
   --set tolerations[0].key="node-role.kubernetes.io/control-plane" \
   --set tolerations[0].effect="NoSchedule" \
+  --set tolerations[1].key="node.cloudprovider.kubernetes.io/uninitialized" \
+  --set tolerations[1].effect="NoSchedule" \
   --set args[0]=--v=2 \
   --set args[1]=--cloud-provider=aws \
   --set args[2]=--configure-cloud-routes=false \
   --set args[3]=--cluster-name="${CLUSTER_NAME}" \
+  --set hostNetworking=true \
   --wait
 
-# The chart doesn't support hostNetwork via values — patch directly.
-# Required so the pod can reach IMDS at 169.254.169.254 (link-local).
-kubectl patch daemonset aws-cloud-controller-manager -n kube-system \
-  --patch '{"spec":{"template":{"spec":{"hostNetwork":true}}}}'
+echo "Waiting for AWS Cloud Provider to be ready..."
+kubectl rollout status daemonset/aws-cloud-controller-manager -n kube-system --timeout=60s
 
 echo "✓ AWS Cloud Provider installed"
-
-# Wait for cloud controller manager to be ready
-echo "Waiting for cloud controller manager to be ready (timeout: 30s)..."
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=aws-cloud-controller-manager -n kube-system --timeout=30s || {
-  echo "Warning: Cloud controller manager timeout, but it may still become ready"
-}
 
 # Wait for cloud controller manager to initialize the node
 echo "Waiting for cloud controller manager to initialize node..."
