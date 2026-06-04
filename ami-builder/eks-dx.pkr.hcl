@@ -186,6 +186,12 @@ build {
     direction   = "download"
   }
 
+  provisioner "file" {
+    source      = "/tmp/sbom.spdx.json"
+    destination = "${path.root}/sbom-${source.name}-${var.ami_version}.spdx.json"
+    direction   = "download"
+  }
+
   post-processor "manifest" {
     output     = "packer-manifest.json"
     strip_path = true
