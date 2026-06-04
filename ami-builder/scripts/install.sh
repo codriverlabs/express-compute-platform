@@ -64,6 +64,14 @@ sudo install -o root -g root -m 0755 /tmp/eks-dx /usr/local/bin/eks-dx
 rm -f /tmp/eks-dx
 echo "✓ eks-dx CLI installed"
 
+echo "==> Installing syft (SBOM generator)..."
+SYFT_URL="https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_${ARCH}.tar.gz"
+curl -sL "$SYFT_URL" -o /tmp/syft.tar.gz
+tar -xzf /tmp/syft.tar.gz -C /tmp syft
+sudo install -o root -g root -m 0755 /tmp/syft /usr/local/bin/syft
+rm -f /tmp/syft.tar.gz /tmp/syft
+echo "✓ syft ${SYFT_VERSION} installed"
+
 echo "==> Baking canonical install-eks-dx-pod-identity.sh into AMI..."
 sudo mkdir -p /opt/eks-d/scripts
 EKS_DX_INSTALL_URL="https://github.com/plasticity-of-cloud/eks-dx-control-plane/releases/download/v${EKS_DX_CONTROL_PLANE_VERSION}/install-eks-dx-pod-identity-${EKS_DX_CONTROL_PLANE_VERSION}.sh"
