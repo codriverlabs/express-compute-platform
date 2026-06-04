@@ -215,18 +215,6 @@ rm -f /tmp/eks-d-release.yaml /tmp/kubeadm /tmp/kubelet /tmp/kubectl /tmp/kubead
 
 echo "✓ EKS-D installed"
 
-# Approve kubelet serving CSR (serverTLSBootstrap generates a CSR with node private IP as SAN)
-echo "Approving kubelet serving certificate CSR..."
-for i in $(seq 1 30); do
-  PENDING=$(kubectl get csr -o jsonpath='{range .items[?(@.status.conditions==null)]}{.metadata.name}{"\n"}{end}' 2>/dev/null | head -1)
-  if [ -n "$PENDING" ]; then
-    kubectl certificate approve "$PENDING"
-    echo "✓ Approved kubelet serving CSR: $PENDING"
-    break
-  fi
-  [ "$i" -eq 30 ] && echo "Warning: No pending kubelet CSR found after 30s"
-  sleep 1
-done
 
 # Copy admin.conf for root so all subsequent scripts can use kubectl without --kubeconfig
 mkdir -p /root/.kube
