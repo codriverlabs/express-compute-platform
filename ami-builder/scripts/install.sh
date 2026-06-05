@@ -119,9 +119,6 @@ bash "${SCRIPT_DIR}/02-install-docker.sh"
 echo "==> Installing Helm..."
 bash "${SCRIPT_DIR}/04-install-helm.sh"
 
-echo "==> Installing EKS-D binaries..."
-bash "${EKS_D_SETUP_DIR}/07-install-eks-d.sh"
-
 # Configure containerd with EKS-D pause image (release manifest already downloaded by 06)
 echo "==> Configuring containerd..."
 bash "${SCRIPT_DIR}/00-configure-containerd.sh"
