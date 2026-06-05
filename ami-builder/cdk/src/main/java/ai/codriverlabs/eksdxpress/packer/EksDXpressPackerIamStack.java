@@ -1,4 +1,4 @@
-package cloud.plasticity.eksdx.packer;
+package ai.codriverlabs.eksdxpress.packer;
 
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.Stack;
