@@ -9,7 +9,7 @@ echo "EKS-DX AMI Cleanup"
 echo "=========================================="
 
 # Get all EKS-DX AMIs
-AMIS=$(aws ec2 describe-images --owners self --filters "Name=name,Values=eks-dx-*" --query "Images[*].{ImageId:ImageId,Name:Name,CreationDate:CreationDate}" --output json)
+AMIS=$(aws ec2 describe-images --owners self --filters "Name=name,Values=eks-d-xpress-*" --query "Images[*].{ImageId:ImageId,Name:Name,CreationDate:CreationDate}" --output json)
 
 if [ "$(echo "$AMIS" | jq length)" -eq 0 ]; then
   echo "No EKS-DX AMIs found to delete."
