@@ -142,10 +142,15 @@ EKSD_K8S_TAG=$(grep "kubernetes/kube-apiserver" /tmp/eks-d-release.yaml | grep "
 EKSD_ETCD_TAG=$(grep "etcd-io/etcd" /tmp/eks-d-release.yaml | grep "uri:" | head -1 | sed 's/.*://')
 EKSD_COREDNS_TAG=$(grep "coredns/coredns" /tmp/eks-d-release.yaml | grep "uri:" | head -1 | sed 's/.*://')
 
-# Source cluster.env for pre-computed values (NODE_IP, AWS_REGION, AWS_ACCOUNT_ID)
+# Source cluster.env for pre-computed values (NODE_IP, AWS_REGION, AWS_ACCOUNT_ID, POD_SUBNET)
 # NODE_IP is deterministically assigned by TenantEc2Service — no IMDS lookup needed
 [ -f /opt/eks-d/cluster.env ] && source /opt/eks-d/cluster.env
 PRIVATE_IP="${NODE_IP:-$(hostname -I | awk '{print $1}')}"
+
+if [ -z "${POD_SUBNET:-}" ]; then
+  echo "Error: POD_SUBNET not set in /opt/eks-d/cluster.env"
+  exit 1
+fi
 
 # AWS_REGION / AWS_ACCOUNT_ID already in cluster.env; fall back to IMDS only if missing
 if [ -z "${AWS_REGION:-}" ] || [ -z "${AWS_ACCOUNT_ID:-}" ]; then
@@ -167,6 +172,7 @@ kubernetesVersion: ${EKSD_K8S_TAG}
 controlPlaneEndpoint: ${PRIVATE_IP}
 networking:
   serviceSubnet: 10.96.0.0/12
+  podSubnet: "${POD_SUBNET}"
 dns:
   imageRepository: public.ecr.aws/eks-distro/coredns
   imageTag: ${EKSD_COREDNS_TAG}
