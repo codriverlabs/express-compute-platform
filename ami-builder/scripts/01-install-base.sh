@@ -13,6 +13,6 @@ sudo systemctl disable update-motd.timer 2>/dev/null || true
 # Must be masked (not just disabled) so udev/systemd can't trigger it on ENI hotplug
 # before the boot script reaches the CNI install step.
 echo "Masking ec2-net-utils..."
-sudo systemctl mask policy-routes@.service refresh-policy-routes@.timer 2>/dev/null || true
+sudo systemctl mask ec2-net-utils.service policy-routes@.service refresh-policy-routes@.timer 2>/dev/null || true
 
 echo "✓ Base system updated"
