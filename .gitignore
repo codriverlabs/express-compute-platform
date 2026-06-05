@@ -3,3 +3,4 @@ ami-manifest-entries.json
 ami-manifest-*.json
 packer-build-*.log
 ami-builder/sbom-*.spdx.json
+ami-builder/cdk/target/
