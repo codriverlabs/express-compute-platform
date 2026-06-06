@@ -110,6 +110,20 @@ PUBLIC_ECR_CACHE="${ECR_REGISTRY}/public-ecr"
 K8S_REGISTRY_CACHE="${ECR_REGISTRY}/registry-k8s-io"
 echo "    ✓ ECR registry: ${ECR_REGISTRY}"
 
+echo "==> Baking Kubernetes kernel networking settings..."
+cat <<'EOF' | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+sudo modprobe overlay
+sudo modprobe br_netfilter
+cat <<'EOF' | sudo tee /etc/sysctl.d/99-k8s.conf
+net.ipv4.ip_forward = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+sudo sysctl --system
+
 echo "==> Installing base system..."
 bash "${SCRIPT_DIR}/01-install-base.sh"
 
