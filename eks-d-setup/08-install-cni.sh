@@ -1,6 +1,17 @@
 #!/bin/bash
 set -e
 
+# Ensure EC2 API is reachable — IPAMD calls DescribeNetworkInterfaces on startup.
+echo "Waiting for EC2 API reachability..."
+for i in $(seq 1 15); do
+  curl -s --connect-timeout 2 "https://ec2.${AWS_REGION}.amazonaws.com" >/dev/null 2>&1 && {
+    echo "✓ EC2 API reachable (${AWS_REGION})"
+    break
+  }
+  [ "$i" -eq 15 ] && echo "Warning: EC2 API not confirmed after 15s, proceeding anyway"
+  sleep 1
+done
+
 # ec2-net-utils is masked at AMI build time (policy-routes@.service, refresh-policy-routes@.timer).
 # Clean up any stale state from before masking (secondary /32 addresses and ip rules).
 echo "Cleaning up any stale ec2-net-utils state..."
