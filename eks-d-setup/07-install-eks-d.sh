@@ -97,6 +97,10 @@ rm -f /tmp/kubeadm-config.yaml
 echo "✓ EKS-D installed"
 kubectl get nodes
 
+# Remove loop plugin from CoreDNS — false positive with VPC CNI SNAT on single-node
+kubectl get cm coredns -n kube-system -o yaml | sed "/^[[:space:]]*loop$/d" | kubectl apply -f -
+echo "✓ CoreDNS loop plugin removed"
+
 # Wait for kube-proxy to program ClusterIP iptables rules before CNI install.
 echo "Waiting for kube-proxy to program service routing rules..."
 KUBE_SVC_IP=$(kubectl get svc kubernetes -o jsonpath='{.spec.clusterIP}')
