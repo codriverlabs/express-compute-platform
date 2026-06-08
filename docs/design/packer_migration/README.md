@@ -22,7 +22,7 @@ Only the orchestration layer changes. All shell scripts are reused as-is.
 
 ```
 ami-builder/
-├── eks-dx.pkr.hcl          ← replaces main.tf + variables.tf
+├── eks-d-xpress.packer.hcl          ← replaces main.tf + variables.tf
 └── scripts/                ← unchanged
     ├── install.sh
     └── discover-eks-d.sh
@@ -34,7 +34,7 @@ ami-builder/
 
 ## Packer HCL structure
 
-### `ami-builder/eks-dx.pkr.hcl`
+### `ami-builder/eks-d-xpress.packer.hcl`
 
 ```hcl
 packer {
@@ -155,7 +155,7 @@ Packer doesn't expose the AMI ID directly in `shell-local`. The clean pattern:
 Replace the Terraform block with:
 
 ```bash
-packer init "${AMI_BUILDER_DIR}/eks-dx.pkr.hcl"
+packer init "${AMI_BUILDER_DIR}/eks-d-xpress.packer.hcl"
 
 packer build \
   -var "aws_region=${AWS_REGION}" \
@@ -163,7 +163,7 @@ packer build \
   -var "instance_type=${INSTANCE_TYPE}" \
   -var "kubernetes_version=${KUBERNETES_VERSION:-1.35}" \
   -var "ami_version=${AMI_VERSION}" \
-  "${AMI_BUILDER_DIR}/eks-dx.pkr.hcl"
+  "${AMI_BUILDER_DIR}/eks-d-xpress.packer.hcl"
 ```
 
 No `terraform init`, no `terraform destroy`, no state file, no key pair management
@@ -209,5 +209,5 @@ unzip packer_1.11.2_linux_amd64.zip
 sudo mv packer /usr/local/bin/
 
 # Install amazon plugin (done automatically by packer init)
-packer init ami-builder/eks-dx.pkr.hcl
+packer init ami-builder/eks-d-xpress.packer.hcl
 ```

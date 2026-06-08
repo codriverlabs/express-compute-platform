@@ -21,7 +21,7 @@ build: packer-init
 	  -var "aws_region=$(AWS_REGION)" \
 	  -var "kubernetes_version=$(KUBERNETES_VERSION)" \
 	  -var "ami_version=$(AMI_VERSION)" \
-	  "$(DIR)eks-dx.pkr.hcl"
+	  "$(DIR)eks-d-xpress.packer.hcl"
 
 stage:
 	@mkdir -p "$(DIR)files"
@@ -37,7 +37,7 @@ stage:
 	done
 
 packer-init: ensure-packer
-	packer init "$(DIR)eks-dx.pkr.hcl"
+	packer init "$(DIR)eks-d-xpress.packer.hcl"
 
 ensure-packer:
 	@command -v packer >/dev/null 2>&1 || { \
