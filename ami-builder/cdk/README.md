@@ -24,10 +24,10 @@ sequenceDiagram
     STS-->>GHA: Temporary credentials (15min–1h)
 
     GHA->>Packer: Run packer build
-    Packer->>EC2: RunInstances (region-locked)
-    EC2-->>Packer: Instance ready
+    Packer->>EC2: RunInstances (c6a.large / c6g.large, region-locked)
+    EC2-->>Packer: Instance ready (with temporary instance profile packer_*)
     Packer->>EC2: CreateImage / CreateSnapshot
-    Packer->>EC2: TerminateInstances (tag: CreatedBy=packer)
+    Packer->>EC2: TerminateInstances (tag: ManagedBy=Packer)
     EC2-->>Packer: AMI registered
     Packer->>Packer: Sign AMI manifest (KMS RSA-4096)
     Packer-->>GHA: AMI ID + attestation
@@ -45,16 +45,26 @@ sequenceDiagram
 
 ## Least-privilege design
 
-Three constraints that were missing from the original `setup-iam.sh`:
-
 **1. Destructive EC2 actions are tag-scoped**
-`TerminateInstances`, `DeleteSnapshot`, `DeleteVolume`, etc. require `aws:ResourceTag/CreatedBy = packer`. Packer tags its own resources on creation, so this only allows cleanup of resources Packer owns — not arbitrary instances in the account.
+`TerminateInstances`, `DeleteSnapshot`, `DeleteVolume`, etc. require `aws:ResourceTag/ManagedBy = Packer`. Packer sets this tag via `run_tags` in the HCL on creation, so cleanup is only allowed on resources Packer owns.
 
 **2. Write actions are region-locked**
-`RunInstances`, `CreateImage`, and similar write actions carry an `aws:RequestedRegion` condition matching the deployment region. A compromised token cannot spin up instances in other regions.
+`CreateImage`, `CreateKeyPair`, `CreateSnapshot` etc. carry an `aws:RequestedRegion` condition matching the deployment region. A compromised token cannot operate in other regions.
 
-**3. IAM role creation is boundary-gated**
-`iam:CreateRole` and `iam:PutRolePolicy` are only allowed when `iam:PermissionsBoundary` is set to `eks-d-xpress-packer-boundary`. Without this, Packer could create a role with `AdministratorAccess` and assume it — a privilege escalation path.
+**3. `RunInstances` is instance-type constrained**
+`ec2:RunInstances` is scoped to `c6a.large` (x86_64) and `c6g.large` (arm64) — the exact types declared in `eks-d-xpress.packer.hcl`. Packer cannot launch arbitrary instance sizes.
+
+**4. IAM role creation is boundary-gated**
+`iam:CreateRole` and `iam:PutRolePolicy` require `iam:PermissionsBoundary = eks-d-xpress-packer-boundary`. Without this, Packer could create a role with `AdministratorAccess` and assume it — a privilege escalation path.
+
+**5. Temporary instance profile (`packer_*`)**
+Packer uses `temporary_iam_instance_profile_policy_document` in the HCL to create a short-lived instance profile (named `packer_*`) attached to the builder EC2. The CI role has `iam:CreateInstanceProfile` and `iam:PassRole` scoped to `packer_*` only. The profile grants the builder instance exactly:
+- ECR pull-through cache access (`GetAuthorizationToken`, `BatchCheckLayerAvailability`, `BatchGetImage`, `GetDownloadUrlForLayer`, `CreateRepository`, `BatchImportUpstreamImage`)
+- SSM read for `/eks-d-xpress/*` parameters
+- `sts:GetCallerIdentity` (needed by `install.sh` to resolve account/region)
+
+**6. ECR pull on the CI role**
+The CI role itself also has ECR pull permissions (`ecr:GetAuthorizationToken` + `BatchCheckLayerAvailability`, `GetDownloadUrlForLayer`, `BatchGetImage`) scoped to the deployment account's repositories, separate from the builder instance profile.
 
 ## Deploying
 
@@ -63,8 +73,25 @@ cd ami-builder/cdk
 export CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
 export CDK_DEFAULT_REGION=us-east-1
 mvn -q compile
-cdk deploy EksDXpressPackerIamGithubStack
+cdk deploy EksDXpressPackerIamGithubStack \
+  -c githubOrg=plasticity-of-cloud \
+  -c githubRepo=eks-d-xpress
 ```
 
-After deploy, set `AWS_PACKER_ROLE_ARN` in the GitHub repo to the role ARN output.
-No other secrets are needed.
+## GitHub Actions integration
+
+Add to your workflow:
+
+```yaml
+permissions:
+  id-token: write
+  contents: read
+
+steps:
+  - uses: aws-actions/configure-aws-credentials@v4
+    with:
+      role-to-assume: arn:aws:iam::<account>:role/eks-d-xpress-packer-ci
+      aws-region: us-east-1
+```
+
+No static credentials or GitHub secrets needed — the OIDC token is issued automatically by GitHub Actions.
