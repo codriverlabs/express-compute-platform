@@ -143,6 +143,24 @@ public class EksDXpressPackerIamStack extends Stack {
                         "iam:PermissionsBoundary", packerBoundary.getManagedPolicyArn())))
                 .build());
 
+        // ECR — pull-through cache auth (needed by install.sh at build time)
+        packerRole.addToPolicy(PolicyStatement.Builder.create()
+                .sid("PackerECRAuth")
+                .effect(Effect.ALLOW)
+                .actions(List.of("ecr:GetAuthorizationToken"))
+                .resources(List.of("*"))
+                .build());
+
+        packerRole.addToPolicy(PolicyStatement.Builder.create()
+                .sid("PackerECRPull")
+                .effect(Effect.ALLOW)
+                .actions(List.of(
+                        "ecr:BatchCheckLayerAvailability",
+                        "ecr:GetDownloadUrlForLayer",
+                        "ecr:BatchGetImage"))
+                .resources(List.of("arn:aws:ecr:" + region + ":" + account + ":repository/*"))
+                .build());
+
         // SSM — restricted to this project's parameter namespace
         packerRole.addToPolicy(PolicyStatement.Builder.create()
                 .sid("AMIManifestSSM")
