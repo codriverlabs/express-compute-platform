@@ -32,7 +32,8 @@ VERSIONS_ENV="${SCRIPT_DIR}/component-versions.env"
 [ -f "$VERSIONS_ENV" ] && source "$VERSIONS_ENV"
 : "${EKS_DX_CONTROL_PLANE_VERSION:?component-versions.env missing or EKS_DX_CONTROL_PLANE_VERSION not set}"
 echo "EKS_DX_CONTROL_PLANE_VERSION=${EKS_DX_CONTROL_PLANE_VERSION}" | sudo tee -a /opt/eks-d/version.env
-export EKS_DX_CONTROL_PLANE_VERSION
+echo "INSTALL_EKS_DX=${INSTALL_EKS_DX:-false}" | sudo tee -a /opt/eks-d/version.env
+export EKS_DX_CONTROL_PLANE_VERSION INSTALL_EKS_DX
 
 # Pre-install EKS-D binaries (kubeadm, kubelet, kubectl) to avoid downloading at boot
 echo "==> Pre-installing EKS-D binaries..."
@@ -203,8 +204,12 @@ helm pull jetstack/cert-manager --version "v1.17.1" --destination /tmp || true
 sudo mv /tmp/cert-manager-*.tgz /opt/eks-d/charts/ 2>/dev/null || true
 
 echo "==> Pre-pulling EKS-DX Pod Identity charts..."
-helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-dx-pod-identity-webhook --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
-helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-dx-auth-proxy --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
+if [[ "${INSTALL_EKS_DX:-false}" == "true" ]]; then
+  helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-dx-pod-identity-webhook --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
+  helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-dx-auth-proxy --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
+else
+  echo "  Skipping EKS-DX charts (INSTALL_EKS_DX=false)"
+fi
 
 echo "==> Pre-pulling eks-pod-identity-agent chart..."
 git clone --depth=1 https://github.com/aws/eks-pod-identity-agent.git /tmp/eks-pod-identity-agent-repo || true
@@ -398,9 +403,13 @@ fi
 
 # Pre-pull EKS-DX Pod Identity images
 echo "==> Pulling EKS-DX Pod Identity images..."
-sudo ctr -n k8s.io images pull ghcr.io/plasticity-of-cloud/eks-dx-auth-proxy:${EKS_DX_CONTROL_PLANE_VERSION} || true
-sudo ctr -n k8s.io images pull ghcr.io/plasticity-of-cloud/eks-dx-pod-identity-webhook:${EKS_DX_CONTROL_PLANE_VERSION} || true
-sudo ctr -n k8s.io images pull 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/eks-pod-identity-agent:latest || true
+if [[ "${INSTALL_EKS_DX:-false}" == "true" ]]; then
+  sudo ctr -n k8s.io images pull ghcr.io/plasticity-of-cloud/eks-dx-auth-proxy:${EKS_DX_CONTROL_PLANE_VERSION} || true
+  sudo ctr -n k8s.io images pull ghcr.io/plasticity-of-cloud/eks-dx-pod-identity-webhook:${EKS_DX_CONTROL_PLANE_VERSION} || true
+  sudo ctr -n k8s.io images pull 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/eks-pod-identity-agent:latest || true
+else
+  echo "  Skipping EKS-DX images (INSTALL_EKS_DX=false)"
+fi
 
 # Install eks-dx-boot systemd service (starts cluster bootstrap at multi-user.target)
 echo "==> Installing eks-dx-boot.service..."

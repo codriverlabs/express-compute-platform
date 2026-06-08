@@ -11,6 +11,11 @@ set -eo pipefail
 [ -f /opt/eks-d/cluster.env ]  && source /opt/eks-d/cluster.env
 [ -f /opt/eks-d/version.env ]  && source /opt/eks-d/version.env
 
+if [[ "${INSTALL_EKS_DX:-false}" != "true" ]]; then
+  echo "Skipping EKS-DX Pod Identity (INSTALL_EKS_DX != true)"
+  exit 0
+fi
+
 if [ -z "${EKS_DX_ENDPOINT:-}" ]; then
   echo "Skipping EKS-DX Pod Identity (EKS_DX_ENDPOINT not set)"
   exit 0
