@@ -52,11 +52,11 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::864899852480:role/eks-d-xpress-packer-ci
-          aws-region: ${{ secrets.AWS_REGION || vars.AWS_REGION }}
+          aws-region: us-east-1
 
       - name: Build AMI
         env:
-          AWS_REGION: ${{ secrets.AWS_REGION || vars.AWS_REGION }}
+          AWS_REGION: us-east-1
         run: |
           make -C ami-builder build \
             AWS_REGION="$AWS_REGION" \
@@ -68,7 +68,7 @@ jobs:
 
       - name: Sign AMI
         env:
-          AWS_REGION: ${{ secrets.AWS_REGION || vars.AWS_REGION }}
+          AWS_REGION: us-east-1
         run: |
           AMI_VERSION=$(date +%Y%m%d-%H%M)
           make -C ami-builder sign AWS_REGION="$AWS_REGION" AMI_VERSION="$AMI_VERSION"
