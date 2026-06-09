@@ -248,6 +248,32 @@ echo "==> Pre-downloading manifests..."
 sudo mkdir -p /opt/eks-d/manifests
 sudo curl -sL "https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.20.4/config/master/aws-k8s-cni.yaml" \
   -o /opt/eks-d/manifests/aws-vpc-cni.yaml
+
+# Tune IPAMD warm pool for single-node workstation: reduces cold-start from ~30s to ~2s.
+# WARM_ENI_TARGET=0 — don't pre-allocate a full spare ENI
+# WARM_IP_TARGET=1  — keep only 1 spare IP ready
+# MINIMUM_IP_TARGET=1 — floor of 1 IP; IPAMD declares healthy as soon as this is met
+python3 - /opt/eks-d/manifests/aws-vpc-cni.yaml <<'PYEOF'
+import sys, re
+content = open(sys.argv[1]).read()
+content = re.sub(r'(- name: WARM_ENI_TARGET\s*\n\s*value:) "1"', r'\1 "0"', content)
+content = re.sub(
+    r'(- name: WARM_ENI_TARGET\n\s+value: "0")',
+    '- name: WARM_IP_TARGET\n              value: "1"\n            - name: MINIMUM_IP_TARGET\n              value: "1"\n            \\1',
+    content
+)
+open(sys.argv[1], 'w').write(content)
+PYEOF
+sudo chown root:root /opt/eks-d/manifests/aws-vpc-cni.yaml
+echo "✓ VPC CNI manifest patched (WARM_IP_TARGET=1, MINIMUM_IP_TARGET=1, WARM_ENI_TARGET=0)"
+
+# Unmask policy-routes@.service — VPC CNI IPAMD relies on per-interface policy
+# routing rules that this service creates for secondary IPs. Without it, IPAMD's
+# health check on :50051 retries until its own internal routing setup succeeds (~30s).
+# Note: ec2-net-utils.service (legacy v1) remains masked — only the v2 policy-routes@ is needed.
+sudo systemctl unmask policy-routes@.service refresh-policy-routes@.timer 2>/dev/null || true
+echo "✓ policy-routes@.service unmasked"
+
 # Note: CoreDNS is installed automatically by kubeadm init — no separate manifest needed
 
 # Pre-bake CNI binaries from the VPC CNI init container image so the init

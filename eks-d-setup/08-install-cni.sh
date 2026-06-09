@@ -12,23 +12,12 @@ for i in $(seq 1 15); do
   sleep 1
 done
 
-# ec2-net-utils is masked at AMI build time (policy-routes@.service, refresh-policy-routes@.timer).
-# Clean up any stale state from before masking (secondary /32 addresses and ip rules).
-echo "Cleaning up any stale ec2-net-utils state..."
-sudo rm -f /run/systemd/network/70-ens*.network.d/ec2net_alias.conf
-sudo networkctl reload 2>/dev/null || true
-for iface in $(ip -o link show | awk -F: '/ens/{print $2}' | tr -d ' '); do
-  ip -4 addr show dev "$iface" scope global | grep '/32' | awk '{print $2}' | while read addr; do
-    sudo ip addr del "$addr" dev "$iface" 2>/dev/null || true
-  done
-done
-ip rule show | grep "proto static" | while read line; do
-  prio=$(echo "$line" | cut -d: -f1)
-  rule=$(echo "$line" | sed "s/^[0-9]*:\t//")
-  sudo ip rule del priority "$prio" $rule 2>/dev/null || true
-done
+# policy-routes@.service (amazon-ec2-net-utils v2) is unmasked at AMI build time.
+# It provides per-interface policy routing rules that IPAMD relies on for secondary IPs.
+# Clean up any stale state that may exist before it activates.
+echo "Cleaning up any stale routing state..."
 sudo ip route flush cache 2>/dev/null || true
-echo "✓ ec2-net-utils state clean"
+echo "✓ routing state clean"
 
 echo "Installing AWS VPC CNI v1.20.4..."
 
