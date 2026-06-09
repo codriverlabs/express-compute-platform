@@ -267,13 +267,6 @@ PYEOF
 sudo chown root:root /opt/eks-d/manifests/aws-vpc-cni.yaml
 echo "✓ VPC CNI manifest patched (WARM_IP_TARGET=1, MINIMUM_IP_TARGET=1, WARM_ENI_TARGET=0)"
 
-# Unmask policy-routes@.service — VPC CNI IPAMD relies on per-interface policy
-# routing rules that this service creates for secondary IPs. Without it, IPAMD's
-# health check on :50051 retries until its own internal routing setup succeeds (~30s).
-# Note: ec2-net-utils.service (legacy v1) remains masked — only the v2 policy-routes@ is needed.
-sudo systemctl unmask policy-routes@.service refresh-policy-routes@.timer 2>/dev/null || true
-echo "✓ policy-routes@.service unmasked"
-
 # Note: CoreDNS is installed automatically by kubeadm init — no separate manifest needed
 
 # Pre-bake CNI binaries from the VPC CNI init container image so the init
