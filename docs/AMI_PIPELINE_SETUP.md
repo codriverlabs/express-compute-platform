@@ -72,7 +72,7 @@ Narrow to a specific branch for production accounts:
 }
 ```
 
-### Builder instance profile (inline in `eks-d-xpress.packer.hcl`)
+### Builder instance profile (inline in `eks-d-xpress.pkr.hcl`)
 
 The temporary EC2 instance that packer SSHes into only receives:
 - ECR pull-through cache access (read-only)

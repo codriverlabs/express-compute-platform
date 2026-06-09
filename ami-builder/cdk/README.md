@@ -52,7 +52,7 @@ sequenceDiagram
 `CreateImage`, `CreateKeyPair`, `CreateSnapshot` etc. carry an `aws:RequestedRegion` condition matching the deployment region. A compromised token cannot operate in other regions.
 
 **3. `RunInstances` is instance-type constrained**
-`ec2:RunInstances` is scoped to `c6a.large` (x86_64) and `c6g.large` (arm64) — the exact types declared in `eks-d-xpress.packer.hcl`. Packer cannot launch arbitrary instance sizes.
+`ec2:RunInstances` is scoped to `c6a.large` (x86_64) and `c6g.large` (arm64) — the exact types declared in `eks-d-xpress.pkr.hcl`. Packer cannot launch arbitrary instance sizes.
 
 **4. IAM role creation is boundary-gated**
 `iam:CreateRole` and `iam:PutRolePolicy` require `iam:PermissionsBoundary = eks-d-xpress-packer-boundary`. Without this, Packer could create a role with `AdministratorAccess` and assume it — a privilege escalation path.
