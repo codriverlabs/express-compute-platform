@@ -51,7 +51,7 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_PACKER_ROLE_ARN }}
+          role-to-assume: arn:aws:iam::864899852480:role/eks-d-xpress-packer-ci
           aws-region: ${{ secrets.AWS_REGION || vars.AWS_REGION }}
 
       - name: Build AMI
