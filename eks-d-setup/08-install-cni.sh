@@ -12,13 +12,6 @@ for i in $(seq 1 15); do
   sleep 1
 done
 
-# policy-routes@.service (amazon-ec2-net-utils v2) is unmasked at AMI build time.
-# It provides per-interface policy routing rules that IPAMD relies on for secondary IPs.
-# Clean up any stale state that may exist before it activates.
-echo "Cleaning up any stale routing state..."
-sudo ip route flush cache 2>/dev/null || true
-echo "✓ routing state clean"
-
 echo "Installing AWS VPC CNI v1.20.4..."
 
 # If CNI binaries aren't pre-baked in the AMI, extract them from the init container
