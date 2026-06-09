@@ -137,7 +137,8 @@ public class EksDXpressPackerIamStack extends Stack {
                         "iam:PassRole",
                         "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile",
                         "iam:AddRoleToInstanceProfile", "iam:RemoveRoleFromInstanceProfile",
-                        "iam:GetInstanceProfile", "iam:GetRole"))
+                        "iam:GetInstanceProfile", "iam:GetRole",
+                        "iam:TagInstanceProfile"))
                 .resources(List.of(
                         "arn:aws:iam::" + account + ":instance-profile/packer*",
                         "arn:aws:iam::" + account + ":role/packer*"))
