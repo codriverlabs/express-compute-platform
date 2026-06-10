@@ -41,7 +41,7 @@ helm upgrade --install amazon-cloudwatch-observability "$CHART" \
   --set k8sMode=K8S \
   --set manager.applicationSignals.autoMonitor.restartPods=false \
   --set-json 'agent.config={"logs":{"metrics_collected":{"kubernetes":{"enhanced_container_insights":false,"kubelet_https_verify":false}}}}' \
-  --wait
+  --wait --timeout=60s
 
 echo "✓ CloudWatch agent installed"
 kubectl get pods -n amazon-cloudwatch
