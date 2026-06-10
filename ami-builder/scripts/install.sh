@@ -322,7 +322,7 @@ echo "==> Extracting and pulling images from Karpenter chart..."
 KARPENTER_CHART=$(ls /opt/eks-d-setup/charts/karpenter-*.tgz 2>/dev/null | head -1)
 if [ -n "$KARPENTER_CHART" ]; then
   helm template karpenter "$KARPENTER_CHART" 2>/dev/null | \
-    grep -oP '(?:image|value):\s*\K[^\s"]+' | grep 'public\.ecr\.aws' | sort -u | while read img; do
+    python3 "${SCRIPT_DIR}/extract-images.py" | grep 'public\.ecr\.aws' | sort -u | while read img; do
       echo "  Pulling: $img"
       sudo ctr -n k8s.io images pull "$img" || true
     done
@@ -333,15 +333,8 @@ fi
 echo "==> Extracting and pulling images from cloud-provider-aws chart..."
 CLOUD_PROVIDER_CHART=$(ls /opt/eks-d-setup/charts/aws-cloud-controller-manager-*.tgz 2>/dev/null | head -1)
 if [ -n "$CLOUD_PROVIDER_CHART" ]; then
-  cat > /tmp/extract_images.py << 'PYEOF'
-import sys, re
-for line in sys.stdin:
-    m = re.search(r"image:\s*[\"']?([a-zA-Z0-9._/-]+:[a-zA-Z0-9._/-]+)[\"']?", line)
-    if m:
-        print(m.group(1))
-PYEOF
   helm template aws-cloud-controller-manager "$CLOUD_PROVIDER_CHART" 2>/dev/null | \
-    python3 /tmp/extract_images.py | sort -u | while read img; do
+    python3 "${SCRIPT_DIR}/extract-images.py" | sort -u | while read img; do
       cache_img=$(echo "$img" | sed \
         -e "s|public.ecr.aws/|${PUBLIC_ECR_CACHE}/|" \
         -e "s|registry.k8s.io/|${K8S_REGISTRY_CACHE}/|")
@@ -355,7 +348,7 @@ echo "==> Extracting and pulling images from EBS CSI chart..."
 EBS_CSI_CHART=$(ls /opt/eks-d-setup/charts/aws-ebs-csi-driver-*.tgz 2>/dev/null | head -1)
 if [ -n "$EBS_CSI_CHART" ]; then
   helm template aws-ebs-csi-driver "$EBS_CSI_CHART" 2>/dev/null | \
-    grep -oP 'image:\s*\K[^\s]+' | grep -Ev 'windows|nvidia|neuron|dcgm-exporter|kubekins-e2e|e2e-test' | sort -u | while read img; do
+    python3 "${SCRIPT_DIR}/extract-images.py" | grep -Ev 'windows|nvidia|neuron|dcgm-exporter|kubekins-e2e|e2e-test' | sort -u | while read img; do
       cache_img=$(echo "$img" | sed "s|public.ecr.aws/|${PUBLIC_ECR_CACHE}/|")
       echo "  Pulling: $cache_img"
       sudo ctr -n k8s.io images pull --user "${ECR_CTR_USER}" "$cache_img" || true
@@ -367,7 +360,7 @@ fi
 echo "==> Extracting and pulling images from VPC CNI manifest..."
 if [ -f /opt/eks-d/manifests/aws-vpc-cni.yaml ]; then
   VPC_CNI_ECR_TOKEN=$(aws ecr get-login-password --region us-west-2)
-  grep -oP 'image:\s*\K[^\s]+' /opt/eks-d/manifests/aws-vpc-cni.yaml | sort -u | while read img; do
+  python3 "${SCRIPT_DIR}/extract-images.py" < /opt/eks-d/manifests/aws-vpc-cni.yaml | sort -u | while read img; do
     echo "  Pulling: $img"
     sudo ctr -n k8s.io images pull --user "AWS:${VPC_CNI_ECR_TOKEN}" "$img" || true
   done
@@ -405,17 +398,9 @@ fi
 echo "==> Extracting and pulling images from CloudWatch Observability chart..."
 CW_CHART=$(ls /opt/eks-d-setup/charts/amazon-cloudwatch-observability-*.tgz 2>/dev/null | head -1)
 if [ -n "$CW_CHART" ]; then
-  cat > /tmp/extract_images_cw.py << 'PYEOF'
-import sys, re
-SKIP = re.compile(r'windows|nvidia|neuron|dcgm-exporter|kubekins-e2e')
-for line in sys.stdin:
-    m = re.search(r"image:\s*[\"']?([a-zA-Z0-9._/-]+:[a-zA-Z0-9._/-]+)[\"']?", line)
-    if m and not SKIP.search(m.group(1)):
-        print(m.group(1))
-PYEOF
   helm template amazon-cloudwatch-observability "$CW_CHART" \
     --set clusterName=build --set region=us-east-1 2>/dev/null | \
-    python3 /tmp/extract_images_cw.py | sort -u | while read img; do
+    python3 "${SCRIPT_DIR}/extract-images.py" | grep -Ev 'windows|nvidia|neuron|dcgm-exporter|kubekins-e2e' | sort -u | while read img; do
       cache_img=$(echo "$img" | sed "s|public.ecr.aws/|${PUBLIC_ECR_CACHE}/|")
       echo "  Pulling: $cache_img"
       sudo ctr -n k8s.io images pull --user "${ECR_CTR_USER}" "$cache_img" || true
@@ -428,7 +413,7 @@ CERT_MANAGER_CHART=$(ls /opt/eks-d-setup/charts/cert-manager-*.tgz 2>/dev/null |
 QUAY_CACHE="${ECR_REGISTRY}/quay-io"
 if [ -n "$CERT_MANAGER_CHART" ]; then
   helm template cert-manager "$CERT_MANAGER_CHART" --set crds.enabled=true 2>/dev/null | \
-    grep -oP 'image:\s*\K[^\s]+' | grep 'quay\.io' | sort -u | while read img; do
+    python3 "${SCRIPT_DIR}/extract-images.py" | grep 'quay\.io' | sort -u | while read img; do
       cache_img=$(echo "$img" | sed "s|quay.io/|${QUAY_CACHE}/|")
       echo "  Pulling: $cache_img"
       sudo ctr -n k8s.io images pull --user "${ECR_CTR_USER}" "$cache_img" || true
