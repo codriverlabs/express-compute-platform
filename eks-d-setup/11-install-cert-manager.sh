@@ -21,13 +21,10 @@ helm upgrade --install cert-manager "$CHART" \
   --namespace cert-manager \
   --create-namespace \
   --set crds.enabled=true \
-  --wait --timeout=60s
+  --timeout=60s
 
-# Verify cert-manager is ready
-kubectl wait --for=condition=available deployment/cert-manager -n cert-manager --timeout=60s || {
-  echo "Warning: cert-manager not ready within timeout"
-}
-kubectl wait --for=condition=available deployment/cert-manager-webhook -n cert-manager --timeout=60s || {
+# Only wait for the webhook — it's the slowest component (TLS cert generation).
+kubectl wait --for=condition=available deployment/cert-manager-webhook -n cert-manager --timeout=40s || {
   echo "Warning: cert-manager-webhook not ready within timeout"
 }
 

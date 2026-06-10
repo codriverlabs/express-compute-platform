@@ -213,6 +213,7 @@ sudo cp -r "${EKS_D_SETUP_DIR}"/* /opt/eks-d-setup/
 sudo chmod +x /opt/eks-d-setup/*.sh
 
 # Pre-download Helm charts and manifests FIRST (needed for image discovery)
+sudo mkdir -p /opt/eks-d-setup/charts
 echo "==> Pre-pulling cert-manager chart..."
 helm repo add jetstack https://charts.jetstack.io --force-update
 helm pull jetstack/cert-manager --version "v1.17.1" --destination /tmp || true
@@ -241,7 +242,6 @@ helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-d
 helm repo update
 helm pull aws-cloud-controller-manager/aws-cloud-controller-manager --destination /tmp || true
 helm pull aws-ebs-csi-driver/aws-ebs-csi-driver --destination /tmp || true
-sudo mkdir -p /opt/eks-d-setup/charts
 sudo mv /tmp/karpenter-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
 sudo mv /tmp/aws-cloud-controller-manager-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
 sudo mv /tmp/aws-ebs-csi-driver-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
@@ -460,6 +460,12 @@ sudo sed -i '/ swap /d' /etc/fstab 2>/dev/null || true
 # Clean up helm ECR session — workstations use the ECR credential provider instead
 echo "==> Cleaning up temporary ECR credentials..."
 helm registry logout "${ECR_REGISTRY}" 2>/dev/null || true
+
+# Unpack all pulled images into the snapshotter so containerd doesn't do it at runtime
+echo "==> Unpacking images into snapshotter..."
+sudo ctr -n k8s.io images list -q | while read img; do
+  sudo ctr -n k8s.io run --rm "$img" "warmup-$(echo "$img" | md5sum | cut -c1-8)" true 2>/dev/null || true
+done
 
 echo ""
 echo "==> AMI build complete!"
