@@ -63,11 +63,13 @@ fi
 echo "Step 4/10: Installing AWS VPC CNI..."
 update_progress "provisioning" "Installing VPC CNI" 50
 bash "${SCRIPT_DIR}/08-install-cni.sh"
+update_progress "provisioning" "VPC CNI installed" 55
 
 # Step 5: AWS Cloud Controller Manager
 echo "Step 5/10: Installing AWS Cloud Provider..."
-update_progress "provisioning" "Installing cloud provider" 60
+update_progress "provisioning" "Installing cloud provider" 58
 bash "${SCRIPT_DIR}/09-install-cloud-provider.sh"
+update_progress "provisioning" "Cloud provider installed" 62
 
 # Step 6: Untaint control plane
 echo "Step 6/10: Configuring control plane node..."
