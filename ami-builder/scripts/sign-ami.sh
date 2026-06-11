@@ -28,13 +28,14 @@ manifest_path, key_arn, ami_version = sys.argv[1], sys.argv[2], sys.argv[3]
 entries = json.load(open(manifest_path))
 
 for e in entries:
-    attestation = json.dumps({
+    attestation_obj = {
         "ami_id":             e["ami_id"],
         "arch":               e["arch"],
         "kubernetes_version": e["kubernetes_version"],
         "ami_version":        ami_version,
         "timestamp":          datetime.datetime.utcnow().isoformat() + "Z",
-    }, sort_keys=True)
+    }
+    attestation = json.dumps(attestation_obj, sort_keys=True)
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w") as f:
         f.write(attestation)
@@ -71,6 +72,7 @@ for e in entries:
         "--tags",
         f"Key=SigningKeyArn,Value={key_arn}",
         "Key=Signed,Value=true",
+        f"Key=SigningTimestamp,Value={attestation_obj['timestamp']}",
     ], check=True)
 
     print(f"✓ Signed {e['ami_id']} ({e['arch']}) → SSM /eks-d-xpress/infra/ami/{e['arch']}/{e['kubernetes_version']}/signature")
