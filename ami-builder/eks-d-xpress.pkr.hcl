@@ -164,6 +164,11 @@ build {
   }
 
   provisioner "file" {
+    source      = "${path.root}/../node-pools"
+    destination = "/tmp/node-pools"
+  }
+
+  provisioner "file" {
     source      = "${path.root}/files/ecr-credential-provider-${source.name == "x86_64" ? "amd64" : "arm64"}"
     destination = "/tmp/ecr-credential-provider"
   }

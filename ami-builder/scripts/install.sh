@@ -212,6 +212,14 @@ sudo mkdir -p /opt/eks-d-setup
 sudo cp -r "${EKS_D_SETUP_DIR}"/* /opt/eks-d-setup/
 sudo chmod +x /opt/eks-d-setup/*.sh
 
+# Copy node-pools chart and configure-nodepools.sh to AMI
+echo "==> Installing Karpenter node-pools..."
+sudo mkdir -p /opt/eks-d-setup/karpenter
+sudo cp -r /tmp/node-pools/chart /opt/eks-d-setup/karpenter/
+sudo cp /tmp/node-pools/configure-nodepools.sh /opt/eks-d-setup/karpenter/
+sudo chmod +x /opt/eks-d-setup/karpenter/configure-nodepools.sh
+echo "✓ Karpenter node-pools chart and configure-nodepools.sh installed to /opt/eks-d-setup/karpenter/"
+
 # Pre-download Helm charts and manifests FIRST (needed for image discovery)
 sudo mkdir -p /opt/eks-d-setup/charts
 echo "==> Pre-pulling cert-manager chart..."
