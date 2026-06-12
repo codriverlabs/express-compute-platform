@@ -309,15 +309,30 @@ if [ -n "$CNI_INIT_IMG" ]; then
   CNI_REGISTRY=$(echo "$CNI_INIT_IMG" | cut -d/ -f1)
   CNI_ECR_REGION=$(echo "$CNI_REGISTRY" | grep -oP '(?<=\.ecr\.)[^.]+(?=\.amazonaws)')
   CNI_ECR_REGION="${CNI_ECR_REGION:-us-west-2}"
-  aws ecr get-login-password --region "$CNI_ECR_REGION" 2>/dev/null | \
-    docker login --username AWS --password-stdin "$CNI_REGISTRY" 2>/dev/null || true
+  ECR_CNI_TOKEN=$(aws ecr get-login-password --region "$CNI_ECR_REGION" 2>/dev/null)
   sudo mkdir -p /opt/cni/bin
-  docker pull "$CNI_INIT_IMG" && \
-  docker create --name cni-prebake "$CNI_INIT_IMG" && \
-    sudo docker cp cni-prebake:/opt/cni/bin/. /opt/cni/bin/ && \
-    docker rm cni-prebake && \
-    echo "✓ CNI binaries baked to /opt/cni/bin ($(ls /opt/cni/bin | wc -l) files)" || \
-    { docker rm -f cni-prebake 2>/dev/null; echo "Warning: CNI pre-bake failed — will extract at boot"; }
+  if sudo ctr -n k8s.io images pull --user "AWS:${ECR_CNI_TOKEN}" "$CNI_INIT_IMG"; then
+    # Mount a snapshot to extract /opt/cni/bin without running the container
+    CTR_SNAPSHOT="cni-prebake-$$"
+    sudo ctr -n k8s.io snapshots prepare "$CTR_SNAPSHOT" \
+      "$(sudo ctr -n k8s.io images list -q name=="$CNI_INIT_IMG" 2>/dev/null | head -1)" 2>/dev/null || true
+    CTR_MNT=$(sudo ctr -n k8s.io snapshots mounts /tmp/cni-mnt-$$ "$CTR_SNAPSHOT" 2>/dev/null | head -1)
+    if [ -n "$CTR_MNT" ]; then
+      sudo mkdir -p /tmp/cni-mnt-$$
+      eval "sudo $CTR_MNT"
+      sudo cp -a /tmp/cni-mnt-$$/opt/cni/bin/. /opt/cni/bin/ 2>/dev/null || true
+      sudo umount /tmp/cni-mnt-$$ 2>/dev/null || true
+      sudo rm -rf /tmp/cni-mnt-$$
+      sudo ctr -n k8s.io snapshots rm "$CTR_SNAPSHOT" 2>/dev/null || true
+    else
+      # Fallback: run the init container briefly and copy via task
+      sudo ctr -n k8s.io run --rm --mount type=bind,src=/opt/cni/bin,dst=/host/opt/cni/bin,options=rbind:rw \
+        "$CNI_INIT_IMG" cni-prebake-$$ sh -c "cp -a /opt/cni/bin/. /host/opt/cni/bin/" 2>/dev/null || true
+    fi
+    echo "✓ CNI binaries baked to /opt/cni/bin ($(ls /opt/cni/bin | wc -l) files)"
+  else
+    echo "Warning: CNI pre-bake failed — will extract at boot"
+  fi
 else
   echo "Warning: could not determine CNI init image — /opt/cni/bin not pre-baked"
 fi
@@ -435,7 +450,7 @@ if [ -n "$CW_CHART" ]; then
     done
 fi
 
-# Render cert-manager chart and extract images (quay.io — pulled through ECR pull-through cache)
+# Render cert-manager chart and extract images (quay.io — via ECR pull-through cache prefix "quay-io")
 echo "==> Extracting and pulling images from cert-manager chart..."
 CERT_MANAGER_CHART=$(ls /opt/eks-d-setup/charts/cert-manager-*.tgz 2>/dev/null | head -1)
 QUAY_CACHE="${ECR_REGISTRY}/quay-io"

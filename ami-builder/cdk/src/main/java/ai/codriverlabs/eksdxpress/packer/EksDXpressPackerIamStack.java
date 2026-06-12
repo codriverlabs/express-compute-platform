@@ -171,7 +171,11 @@ public class EksDXpressPackerIamStack extends Stack {
                 .actions(List.of(
                         "ecr:BatchCheckLayerAvailability",
                         "ecr:GetDownloadUrlForLayer",
-                        "ecr:BatchGetImage"))
+                        "ecr:BatchGetImage",
+                        // Required for ECR pull-through cache: auto-create the repo on first pull
+                        // and import the upstream layer(s) into it
+                        "ecr:CreateRepository",
+                        "ecr:BatchImportUpstreamImage"))
                 .resources(List.of("arn:aws:ecr:" + region + ":" + account + ":repository/*"))
                 .build());
 
