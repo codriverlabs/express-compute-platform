@@ -111,6 +111,9 @@ echo "Step 10/10: Installing CloudWatch agent..."
 CLUSTER_NAME="${CLUSTER_NAME}" bash "${SCRIPT_DIR}/16-install-cloudwatch.sh"
 update_progress "provisioning" "CloudWatch installed" 95
 
+# Deferred CloudWatch validation — operator has had time to reconcile by now
+bash "${SCRIPT_DIR}/17-monitor-cloudwatch-rollout.sh"
+
 echo ""
 echo "=========================================="
 echo "✓ EKS-D cluster setup complete!"
