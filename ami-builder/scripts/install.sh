@@ -277,23 +277,30 @@ sudo curl -sL "https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.20.4/
 # when both are set (AWS VPC CNI docs). They must be absent for prefix delegation
 # to work. WARM_ENI_TARGET is also disabled — prefix mode only needs one ENI.
 python3 - /opt/eks-d/manifests/aws-vpc-cni.yaml <<'PYEOF'
-import sys, re
-content = open(sys.argv[1]).read()
+import sys, yaml
 
-# Remove any existing WARM_IP_TARGET / MINIMUM_IP_TARGET env entries (they override prefix targets)
-content = re.sub(r'\s*- name: WARM_IP_TARGET\n\s+value: "[^"]*"', '', content)
-content = re.sub(r'\s*- name: MINIMUM_IP_TARGET\n\s+value: "[^"]*"', '', content)
+path = sys.argv[1]
+with open(path) as f:
+    docs = list(yaml.safe_load_all(f))
 
-# Set WARM_ENI_TARGET=0 (prefix mode only needs one ENI)
-content = re.sub(r'(- name: WARM_ENI_TARGET\s*\n\s*value:) "[^"]*"', r'\1 "0"', content)
+REMOVE_VARS = {"WARM_IP_TARGET", "MINIMUM_IP_TARGET"}
+SET_VARS = {"ENABLE_PREFIX_DELEGATION": "true", "WARM_PREFIX_TARGET": "1", "WARM_ENI_TARGET": "0"}
 
-# Inject prefix delegation env vars before WARM_ENI_TARGET
-content = re.sub(
-    r'(- name: WARM_ENI_TARGET\n\s+value: "0")',
-    '- name: ENABLE_PREFIX_DELEGATION\n              value: "true"\n            - name: WARM_PREFIX_TARGET\n              value: "1"\n            \\1',
-    content
-)
-open(sys.argv[1], 'w').write(content)
+for doc in docs:
+    if not isinstance(doc, dict) or doc.get("kind") != "DaemonSet":
+        continue
+    for container in doc["spec"]["template"]["spec"].get("containers", []):
+        env = [e for e in container.get("env", []) if e.get("name") not in REMOVE_VARS]
+        seen = set()
+        for e in env:
+            if e.get("name") in SET_VARS:
+                e["value"] = SET_VARS[e["name"]]
+                seen.add(e["name"])
+        env += [{"name": k, "value": v} for k, v in SET_VARS.items() if k not in seen]
+        container["env"] = env
+
+with open(path, "w") as f:
+    yaml.dump_all(docs, f, default_flow_style=False, allow_unicode=True)
 PYEOF
 sudo chown root:root /opt/eks-d/manifests/aws-vpc-cni.yaml
 echo "✓ VPC CNI manifest patched (ENABLE_PREFIX_DELEGATION=true, WARM_PREFIX_TARGET=1, WARM_ENI_TARGET=0)"
