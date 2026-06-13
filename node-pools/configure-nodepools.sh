@@ -53,8 +53,8 @@ echo "  Node variant      : $NODE_VARIANT"
 echo "  EKS-Optimized AMI : $AMI_ID (k8s 1.${K8S_MINOR} ${ARCH})"
 
 # Discover AWS resources
-# Instance profile follows the same naming convention as the role
-INSTANCE_PROFILE="${TENANT_ID}-eks-dx-${ARCH}"
+# Instance profile follows the naming convention from TenantIamService
+INSTANCE_PROFILE="eks-d-xpress-tenant-${TENANT_ID}-instance-role"
 
 SUBNET_ID=$(aws ec2 describe-subnets \
   --filters "Name=tag:Developer,Values=${TENANT_ID}" "Name=tag:SubnetType,Values=Private" \
