@@ -224,8 +224,11 @@ echo "✓ Karpenter node-pools chart and configure-nodepools.sh installed to /op
 sudo mkdir -p /opt/eks-d-setup/charts
 echo "==> Pre-pulling cert-manager chart..."
 helm repo add jetstack https://charts.jetstack.io --force-update
-helm pull jetstack/cert-manager --version "v1.17.1" --destination /tmp || true
+helm pull jetstack/cert-manager --version "${CERT_MANAGER_VERSION}" --destination /tmp || true
 sudo mv /tmp/cert-manager-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
+
+echo "==> Pre-pulling kubectl image for kubelet-csr-approver..."
+sudo ctr -n k8s.io images pull "${K8S_REGISTRY_CACHE}/kubectl:v1.32.0" --user "${ECR_CTR_USER}" || true
 
 echo "==> Pre-pulling EKS-DX Pod Identity charts..."
 if [[ "${INSTALL_EKS_DX:-false}" == "true" ]]; then

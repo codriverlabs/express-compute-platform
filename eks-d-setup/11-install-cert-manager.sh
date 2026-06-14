@@ -5,7 +5,11 @@ set -e
 # Required by: CloudWatch Observability webhooks, custom admission webhooks,
 # and future EKS Pod Identity Agent integration.
 
-CERT_MANAGER_VERSION="v1.17.1"
+# Source component versions (single source of truth for all component versions)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VERSIONS_ENV="${SCRIPT_DIR}/../ami-builder/scripts/component-versions.env"
+[ -f "$VERSIONS_ENV" ] && source "$VERSIONS_ENV"
+: "${CERT_MANAGER_VERSION:?CERT_MANAGER_VERSION not set — component-versions.env missing or incomplete}"
 
 echo "Installing cert-manager ${CERT_MANAGER_VERSION}..."
 
