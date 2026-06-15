@@ -3,6 +3,7 @@ package ai.codriverlabs.eksdxpress.packer;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.Tags;
 import software.amazon.awscdk.services.iam.CfnInstanceProfile;
 import software.amazon.awscdk.services.iam.CfnOIDCProvider;
 import software.amazon.awscdk.services.iam.Effect;
@@ -240,6 +241,7 @@ public class EksDXpressPackerIamStack extends Stack {
                 .keyUsage(KeyUsage.SIGN_VERIFY)
                 .alias("eks-d-xpress-ami-signing")
                 .build();
+        Tags.of(signingKey).add("Usage", "eks-d-xpress-ami-signing");
         signingKey.applyRemovalPolicy(RemovalPolicy.RETAIN);
 
         // ── SSM — key ARN for pipeline reference ──────────────────────────────
