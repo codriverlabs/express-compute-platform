@@ -234,6 +234,7 @@ echo "==> Pre-pulling EKS-DX Pod Identity charts..."
 if [[ "${INSTALL_EKS_DX:-false}" == "true" ]]; then
   helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-dx-pod-identity-webhook --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
   helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-dx-auth-proxy --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
+  helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-dx-karpenter-support --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
 else
   echo "  Skipping EKS-DX charts (INSTALL_EKS_DX=false)"
 fi

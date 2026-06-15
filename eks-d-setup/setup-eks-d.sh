@@ -119,12 +119,17 @@ update_progress "provisioning" "CloudWatch installed" 95
 # Deferred CloudWatch validation — operator has had time to reconcile by now
 bash "${SCRIPT_DIR}/17-monitor-cloudwatch-rollout.sh"
 
+# Step 18: EKS-DX Karpenter Support (EC2NodeClass webhook + ValidationSucceeded controller)
+# Requires: cert-manager (step 11), Karpenter CRDs (step 15). No external dependencies.
+echo "Step 18: Installing eks-dx-karpenter-support..."
+bash "${SCRIPT_DIR}/18-install-eks-dx-karpenter-support.sh"
+update_progress "provisioning" "eks-dx-karpenter-support installed" 98
+
 echo ""
 echo "=========================================="
 echo "✓ EKS-D cluster setup complete!"
 echo "=========================================="
 echo "  kubectl get nodes"
 echo "  kubectl get pods -A"
-echo "  cd ../node-pools && ./configure-nodepools.sh ${TENANT_ID}"
 
 report_ready
