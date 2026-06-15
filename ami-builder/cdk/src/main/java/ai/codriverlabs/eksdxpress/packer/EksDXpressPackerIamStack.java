@@ -134,16 +134,14 @@ public class EksDXpressPackerIamStack extends Stack {
                 .conditions(Map.of("StringEquals", Map.of("aws:RequestedRegion", region)))
                 .build());
 
-        // EC2 destructive — scoped to resources Packer tagged on creation
+        // EC2 destructive — scoped to resources Packer tagged on creation (AMIs/snapshots/volumes)
         packerRole.addToPolicy(PolicyStatement.Builder.create()
-                .sid("PackerEC2Destructive")
+                .sid("PackerEC2DestructiveTagged")
                 .effect(Effect.ALLOW)
                 .actions(List.of(
                         "ec2:StopInstances", "ec2:TerminateInstances",
-                        "ec2:DeleteKeyPair", "ec2:DeleteSecurityGroup",
                         "ec2:DeleteSnapshot", "ec2:DeleteVolume",
                         "ec2:DetachVolume", "ec2:AttachVolume",
-                        "ec2:AuthorizeSecurityGroupIngress",
                         "ec2:ModifyImageAttribute", "ec2:ModifyInstanceAttribute",
                         "ec2:ModifySnapshotAttribute", "ec2:DeregisterImage"))
                 .resources(List.of("*"))
@@ -151,22 +149,48 @@ public class EksDXpressPackerIamStack extends Stack {
                         Map.of("aws:ResourceTag/ManagedBy", "Packer")))
                 .build());
 
-        // EC2 write — region-locked; constrained to builder instance types
+        // EC2 destructive — keypair and security group cleanup; Packer names them with
+        // "packer_" prefix but they are not tagged at creation time so tag conditions
+        // cannot be used here
+        packerRole.addToPolicy(PolicyStatement.Builder.create()
+                .sid("PackerEC2DestructiveEphemeral")
+                .effect(Effect.ALLOW)
+                .actions(List.of(
+                        "ec2:DeleteKeyPair", "ec2:DeleteSecurityGroup",
+                        "ec2:AuthorizeSecurityGroupIngress"))
+                .resources(List.of("*"))
+                .build());
+
+        // EC2 write — region-locked; RunInstances requires permissions on all associated
+        // resource types (subnet, SG, key-pair, volume, network-interface, image)
         packerRole.addToPolicy(PolicyStatement.Builder.create()
                 .sid("PackerEC2RunInstances")
                 .effect(Effect.ALLOW)
                 .actions(List.of("ec2:RunInstances"))
-                .resources(List.of("arn:aws:ec2:" + region + ":" + account + ":instance/*"))
-                .conditions(Map.of("StringLike",
-                        Map.of("ec2:InstanceType", List.of("c6a.large", "c6g.large"))))
+                .resources(List.of(
+                        "arn:aws:ec2:" + region + ":" + account + ":instance/*",
+                        "arn:aws:ec2:" + region + ":" + account + ":subnet/*",
+                        "arn:aws:ec2:" + region + ":" + account + ":security-group/*",
+                        "arn:aws:ec2:" + region + ":" + account + ":key-pair/*",
+                        "arn:aws:ec2:" + region + ":" + account + ":volume/*",
+                        "arn:aws:ec2:" + region + ":" + account + ":network-interface/*",
+                        "arn:aws:ec2:" + region + "::image/*"))
                 .build());
 
-        // IAM — CI role only needs to pass the pre-created builder instance role to EC2
+        // IAM — CI role needs to look up the instance profile, pass its role, and
+        // read the role itself. GetInstanceProfile is what Packer calls first.
         packerRole.addToPolicy(PolicyStatement.Builder.create()
                 .sid("PackerIAMPassRole")
                 .effect(Effect.ALLOW)
                 .actions(List.of("iam:PassRole", "iam:GetRole"))
                 .resources(List.of(builderInstanceRole.getRoleArn()))
+                .build());
+
+        packerRole.addToPolicy(PolicyStatement.Builder.create()
+                .sid("PackerIAMGetInstanceProfile")
+                .effect(Effect.ALLOW)
+                .actions(List.of("iam:GetInstanceProfile"))
+                .resources(List.of(builderInstanceProfile.getAttrArn()))
                 .build());
 
         // ECR — pull-through cache auth (needed by install.sh at build time)
