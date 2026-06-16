@@ -45,7 +45,11 @@ fi
 [[ -z "${EKS_DX_CONTROL_PLANE_VERSION:-}" ]] && err "EKS_DX_CONTROL_PLANE_VERSION is required — set it explicitly or ensure /opt/eks-d/version.env is present"
 
 CHART_DIR="${CHART_DIR:-/opt/eks-d-setup/charts}"
-GHCR_REGISTRY="ghcr.io/plasticity-of-cloud"
+
+# shellcheck source=../ami-builder/scripts/component-versions.env
+# shellcheck disable=SC1091
+[[ -f /opt/eks-d/component-versions.env ]] && source /opt/eks-d/component-versions.env
+GHCR_EKS_D_XPRESS_REGISTRY="${GHCR_EKS_D_XPRESS_REGISTRY:-ghcr.io/plasticity-of-cloud}"
 
 log "EKS-DX Pod Identity installation"
 log "  Cluster:  ${CLUSTER_NAME}"
@@ -61,7 +65,7 @@ chart_ref() {
   if [[ -n "$tgz" ]]; then
     echo "$tgz"
   else
-    echo "oci://${GHCR_REGISTRY}/helm/${name} --version ${EKS_DX_CONTROL_PLANE_VERSION}"
+    echo "oci://${GHCR_EKS_D_XPRESS_REGISTRY}/helm/${name} --version ${EKS_DX_CONTROL_PLANE_VERSION}"
   fi
 }
 
