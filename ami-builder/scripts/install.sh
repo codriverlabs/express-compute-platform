@@ -232,9 +232,9 @@ sudo ctr -n k8s.io images pull "${K8S_REGISTRY_CACHE}/kubectl:v1.32.0" --user "$
 
 echo "==> Pre-pulling EKS-DX Pod Identity charts..."
 if [[ "${INSTALL_EKS_DX:-false}" == "true" ]]; then
-  helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-dx-pod-identity-webhook --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
-  helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-dx-auth-proxy --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
-  helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-dx-karpenter-support --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
+  helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-d-xpress-pod-identity-webhook --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
+  helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-d-xpress-auth-proxy --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
+  helm pull oci://ghcr.io/plasticity-of-cloud/helm/eks-d-xpress-karpenter-support --version "${EKS_DX_CONTROL_PLANE_VERSION}" --destination /tmp || true
 else
   echo "  Skipping EKS-DX charts (INSTALL_EKS_DX=false)"
 fi
@@ -259,8 +259,9 @@ helm pull aws-ebs-csi-driver/aws-ebs-csi-driver --destination /tmp || true
 sudo mv /tmp/karpenter-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
 sudo mv /tmp/aws-cloud-controller-manager-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
 sudo mv /tmp/aws-ebs-csi-driver-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
-sudo mv /tmp/eks-dx-auth-proxy-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
-sudo mv /tmp/eks-dx-pod-identity-webhook-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
+sudo mv /tmp/eks-d-xpress-auth-proxy-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
+sudo mv /tmp/eks-d-xpress-pod-identity-webhook-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
+sudo mv /tmp/eks-d-xpress-karpenter-support-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
 sudo mv /tmp/eks-pod-identity-agent-*.tgz /opt/eks-d-setup/charts/ 2>/dev/null || true
 
 echo "==> Pre-pulling CloudWatch Observability Helm chart..."
@@ -479,8 +480,8 @@ fi
 # Pre-pull EKS-DX Pod Identity images
 echo "==> Pulling EKS-DX Pod Identity images..."
 if [[ "${INSTALL_EKS_DX:-false}" == "true" ]]; then
-  sudo ctr -n k8s.io images pull ghcr.io/plasticity-of-cloud/eks-dx-auth-proxy:${EKS_DX_CONTROL_PLANE_VERSION} || true
-  sudo ctr -n k8s.io images pull ghcr.io/plasticity-of-cloud/eks-dx-pod-identity-webhook:${EKS_DX_CONTROL_PLANE_VERSION} || true
+  sudo ctr -n k8s.io images pull ghcr.io/plasticity-of-cloud/eks-d-xpress-auth-proxy:${EKS_DX_CONTROL_PLANE_VERSION} || true
+  sudo ctr -n k8s.io images pull ghcr.io/plasticity-of-cloud/eks-d-xpress-pod-identity-webhook:${EKS_DX_CONTROL_PLANE_VERSION} || true
   sudo ctr -n k8s.io images pull 602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/eks-pod-identity-agent:latest || true
 else
   echo "  Skipping EKS-DX images (INSTALL_EKS_DX=false)"

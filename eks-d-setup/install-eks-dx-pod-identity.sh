@@ -91,7 +91,7 @@ log "✓ Cluster registered"
 # ── 2. eks-dx-auth-proxy ──────────────────────────────────────────────────────
 log "Installing eks-dx-auth-proxy..."
 # shellcheck disable=SC2046
-helm upgrade --install eks-dx-auth-proxy $(chart_ref eks-dx-auth-proxy) \
+helm upgrade --install eks-d-xpress-auth-proxy $(chart_ref eks-d-xpress-auth-proxy) \
   --namespace kube-system \
   --set app.envs.EKS_DX_ENDPOINT="${EKS_DX_ENDPOINT}" \
   --set app.envs.AWS_REGION="${AWS_REGION}" \
@@ -101,7 +101,7 @@ log "✓ eks-dx-auth-proxy installed"
 # ── 3. eks-dx-pod-identity-webhook ───────────────────────────────────────────
 log "Installing eks-dx-pod-identity-webhook..."
 # shellcheck disable=SC2046
-helm upgrade --install eks-dx-pod-identity-webhook $(chart_ref eks-dx-pod-identity-webhook) \
+helm upgrade --install eks-d-xpress-pod-identity-webhook $(chart_ref eks-d-xpress-pod-identity-webhook) \
   --namespace kube-system \
   --set app.envs.EKS_DX_ENDPOINT="${EKS_DX_ENDPOINT}" \
   --set app.envs.EKS_CLUSTER_NAME="${CLUSTER_NAME}" \

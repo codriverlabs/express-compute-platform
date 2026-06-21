@@ -67,7 +67,7 @@ NAT_ENABLED=$(aws ssm get-parameter \
 # ── 2. Install Helm chart (eks-dx-config ConfigMap included in chart) ─────────
 log "Installing eks-dx-karpenter-support..."
 # shellcheck disable=SC2046
-helm upgrade --install eks-dx-karpenter-support $(chart_ref eks-dx-karpenter-support) \
+helm upgrade --install eks-d-xpress-karpenter-support $(chart_ref eks-d-xpress-karpenter-support) \
   --namespace kube-system \
   --set clusterIdentity.clusterName="${CLUSTER_NAME}" \
   --set clusterIdentity.tenantId="${TENANT_ID}" \
