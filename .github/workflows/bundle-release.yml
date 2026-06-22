@@ -1,0 +1,123 @@
+name: Bundle Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      control_plane_version:
+        description: 'eks-d-xpress-control-plane release tag (e.g. v1.0.3-rc20)'
+        required: true
+      infra_version:
+        description: 'eks-d-xpress-infra release tag (e.g. v1.0.0)'
+        required: true
+      bundle_tag:
+        description: 'Bundle image tag (e.g. v1.0.3)'
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io/plasticity-of-cloud
+  IMAGE_NAME: eks-d-xpress-bundle
+
+jobs:
+  build-bundle:
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+            platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download control-plane release artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CP_VERSION: ${{ inputs.control_plane_version }}
+        run: |
+          VER="${CP_VERSION#v}"
+          mkdir -p build/helm
+
+          # CDK cloud assembly
+          gh release download "${CP_VERSION}" \
+            --repo plasticity-of-cloud/eks-d-xpress-control-plane \
+            --pattern "eks-dx-cdk-${VER}.tar.gz" --dir /tmp
+          mkdir -p build/control-plane-cdk-out
+          tar xzf /tmp/eks-dx-cdk-${VER}.tar.gz -C build/control-plane-cdk-out
+
+          # CLI binary (arch-specific)
+          gh release download "${CP_VERSION}" \
+            --repo plasticity-of-cloud/eks-d-xpress-control-plane \
+            --pattern "eks-dx-cli-${VER}-linux-${{ matrix.arch }}" --dir build
+          mv build/eks-dx-cli-${VER}-linux-${{ matrix.arch }} build/eks-dx-cli
+
+          # Helm charts
+          gh release download "${CP_VERSION}" \
+            --repo plasticity-of-cloud/eks-d-xpress-control-plane \
+            --pattern "eks-d-xpress-*.tar.gz" --dir build/helm
+
+      - name: Download infra release artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INFRA_VERSION: ${{ inputs.infra_version }}
+        run: |
+          VER="${INFRA_VERSION#v}"
+          gh release download "${INFRA_VERSION}" \
+            --repo plasticity-of-cloud/eks-d-xpress-infra \
+            --pattern "eks-dx-infra-cdk-${VER}.tar.gz" --dir /tmp
+          mkdir -p build/infra-cdk-out
+          tar xzf /tmp/eks-dx-infra-cdk-${VER}.tar.gz -C build/infra-cdk-out
+
+      - name: Download AMI manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get latest release from this repo
+          gh release download --pattern 'ami-manifest.json' --dir build || \
+            echo '{}' > build/ami-manifest.json
+
+      - name: Stage build context
+        run: |
+          cp bundle/Dockerfile build/Dockerfile
+          cp bundle/deploy.sh build/deploy.sh
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: build
+          file: build/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.bundle_tag }}-${{ matrix.arch }}
+
+  manifest:
+    needs: build-bundle
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifest
+        run: |
+          TAG="${{ inputs.bundle_tag }}"
+          docker buildx imagetools create \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG} \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}-amd64 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}-arm64
