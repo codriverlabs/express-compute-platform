@@ -70,6 +70,21 @@ chart_ref() {
   fi
 }
 
+# ── 0. cert-manager (required for webhook TLS) ────────────────────────────────
+if ! kubectl get crd certificates.cert-manager.io &>/dev/null; then
+  log "Installing cert-manager..."
+  helm repo add jetstack https://charts.jetstack.io --force-update 2>/dev/null
+  helm repo update jetstack 2>/dev/null
+  helm upgrade --install cert-manager jetstack/cert-manager \
+    --namespace cert-manager \
+    --create-namespace \
+    --set crds.enabled=true \
+    --wait --timeout=120s
+  log "✓ cert-manager installed"
+else
+  log "✓ cert-manager already present"
+fi
+
 # ── 1. Register cluster ────────────────────────────────────────────────────────
 log "Registering cluster with eks-dx control plane..."
 
