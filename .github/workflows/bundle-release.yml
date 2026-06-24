@@ -77,17 +77,22 @@ jobs:
           mkdir -p build/infra-cdk
           tar xzf /tmp/eks-d-xpress-infra-${VER}.tar.gz -C build/infra-cdk
 
-      - name: Download AMI manifest
+      - name: Download AMI manifest and signing assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release download "${{ inputs.release_version }}" \
             --repo plasticity-of-cloud/eks-d-xpress \
-            --pattern 'ami-manifest.json' --dir build
+            --pattern 'ami-manifest.json' \
+            --pattern 'ami-signatures.json' \
+            --dir build
+          cp ami-builder/eks-d-xpress-ami-signing.pub.pem build/eks-d-xpress-ami-signing.pub.pem
 
       - name: Stage build context
         run: |
           cp bundle/Dockerfile build/Dockerfile
+          cp ami-builder/scripts/verify-ami.sh build/verify-ami.sh
+          cp ami-builder/scripts/import-ami.sh build/import-ami.sh
           cp bundle/deploy.sh build/deploy.sh
 
       - name: Log in to GHCR

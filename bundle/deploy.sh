@@ -13,6 +13,8 @@ Usage:
   deploy.sh destroy [--stack <name>] [--region <region>]
   deploy.sh register-amis [--region <region>]
   deploy.sh install-charts [--kubeconfig <path>]
+  deploy.sh verify-ami --ami-id <id> [--sig-file <path>]
+  deploy.sh import-ami --ami-id <id> --regions <r1,r2> [--src-region <r>]
   deploy.sh eks-dx <cli-args...>
   deploy.sh --help
 
@@ -26,6 +28,8 @@ Examples:
   deploy.sh deploy --stack infra
   deploy.sh destroy --stack control-plane
   deploy.sh register-amis --region us-east-1
+  deploy.sh verify-ami --ami-id ami-0abc1234def56789
+  deploy.sh import-ami --ami-id ami-0abc1234def56789 --regions us-east-1,eu-west-1
   deploy.sh eks-dx clusters list
 EOF
   exit 0
@@ -142,6 +146,17 @@ case "$COMMAND" in
     ;;
   install-charts)
     install_charts
+    ;;
+  verify-ami)
+    exec "${SCRIPT_DIR}/bin/verify-ami.sh" \
+      --sig-file "${SCRIPT_DIR}/ami-signatures.json" \
+      --pubkey   "${SCRIPT_DIR}/eks-d-xpress-ami-signing.pub.pem" \
+      "$@"
+    ;;
+  import-ami)
+    exec "${SCRIPT_DIR}/bin/import-ami.sh" \
+      --sig-file "${SCRIPT_DIR}/ami-signatures.json" \
+      "$@"
     ;;
   eks-dx)
     exec "${SCRIPT_DIR}/bin/eks-dx" "$@"

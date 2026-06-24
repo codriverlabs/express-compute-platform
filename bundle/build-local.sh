@@ -55,6 +55,16 @@ else
   echo "  Warning: no ami-manifest.json — using empty stub"
 fi
 
+# AMI signatures + public key (for verify-ami / import-ami)
+[ -f "${ROOT}/ami-signatures.json" ] \
+  && cp "${ROOT}/ami-signatures.json" "${BUILD_DIR}/ami-signatures.json" \
+  || echo '{}' > "${BUILD_DIR}/ami-signatures.json"
+cp "${ROOT}/ami-builder/eks-d-xpress-ami-signing.pub.pem" "${BUILD_DIR}/eks-d-xpress-ami-signing.pub.pem"
+
+# AMI utility scripts
+cp "${ROOT}/ami-builder/scripts/verify-ami.sh" "${BUILD_DIR}/verify-ami.sh"
+cp "${ROOT}/ami-builder/scripts/import-ami.sh" "${BUILD_DIR}/import-ami.sh"
+
 cp "${SCRIPT_DIR}/Dockerfile" "${BUILD_DIR}/Dockerfile"
 cp "${SCRIPT_DIR}/deploy.sh"  "${BUILD_DIR}/deploy.sh"
 
