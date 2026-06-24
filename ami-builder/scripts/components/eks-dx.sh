@@ -34,7 +34,11 @@ fi
 rm -rf /tmp/eks-pod-identity-agent
 
 echo "  Pulling eks-pod-identity-agent image..."
+EKS_POD_ID_CTR_USER=$(aws ecr get-authorization-token \
+  --registry-ids 602401143452 --region us-west-2 \
+  --query 'authorizationData[0].authorizationToken' --output text | base64 -d)
 sudo ctr -n k8s.io images pull \
+  --user "${EKS_POD_ID_CTR_USER}" \
   "602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/eks-pod-identity-agent:latest" || true
 
 echo "✓ eks-dx ready"
