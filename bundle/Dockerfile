@@ -1,12 +1,7 @@
 FROM public.ecr.aws/amazoncorretto/amazoncorretto:25.0.3-al2023-headless
 
-RUN dnf install -y nodejs22 npm maven unzip tar gzip findutils python3 && dnf clean all
-
-# AWS CLI v2
-RUN curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscli.zip \
-    && unzip -q /tmp/awscli.zip -d /tmp \
-    && /tmp/aws/install \
-    && rm -rf /tmp/aws /tmp/awscli.zip
+# al2023 ships python3 and aws-cli — only additional tools needed are Node.js/npm and Helm
+RUN dnf install -y nodejs22 npm maven unzip tar gzip findutils && dnf clean all
 
 # CDK CLI + Helm
 RUN npm install -g aws-cdk \
