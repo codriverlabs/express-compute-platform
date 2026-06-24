@@ -1,4 +1,5 @@
-FROM public.ecr.aws/amazoncorretto/amazoncorretto:25.0.3-al2023-headless
+# public.ecr.aws/amazoncorretto/amazoncorretto:25.0.3-al2023-headless (use if JVM needed)
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
 # al2023 ships python3, aws-cli and openssl — only Node.js/npm and Helm needed
 RUN dnf install -y nodejs22 npm unzip tar gzip findutils && dnf clean all
