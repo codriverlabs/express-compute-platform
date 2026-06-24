@@ -4,7 +4,7 @@
 
 - ✅ `eks-d-setup/14-install-eks-dx-pod-identity.sh` — script exists, handles:
   - JWKS extraction from running cluster
-  - Cluster registration with EKS-DX control plane (`eks-dx create cluster`)
+  - Cluster registration with EKS-DX control plane (`eks-dx register-cluster`)
   - Helm install of `eks-dx-auth-proxy`
   - Helm install of `eks-dx-pod-identity-webhook`
   - Graceful skip if `EKS_DX_ENDPOINT` not set

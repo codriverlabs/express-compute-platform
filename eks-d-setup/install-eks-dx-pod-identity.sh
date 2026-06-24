@@ -79,7 +79,7 @@ ISSUER=$(kubectl get --raw /.well-known/openid-configuration 2>/dev/null \
 
 kubectl get --raw /openid/v1/jwks > /tmp/eks-dx-jwks.json
 
-eks-dx create cluster \
+eks-dx register-cluster \
   --name "${CLUSTER_NAME}" \
   --region "${AWS_REGION}" \
   --issuer "${ISSUER}" \
