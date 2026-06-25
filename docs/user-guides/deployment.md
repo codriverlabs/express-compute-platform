@@ -17,8 +17,8 @@ docker run --rm -it \
   -v ~/.aws:/root/.aws:ro \
   -e AWS_PROFILE="${AWS_PROFILE:-default}" \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
-  ghcr.io/plasticity-of-cloud/eks-d-xpress-bundle:latest \
-  bash
+  --entrypoint bash \
+  ghcr.io/plasticity-of-cloud/eks-d-xpress-bundle:latest
 ```
 
 ### From an EC2 instance or bastion host (instance profile / environment variables)
@@ -32,8 +32,8 @@ docker run --rm -it \
   -e AWS_SESSION_TOKEN \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
   --network host \
-  ghcr.io/plasticity-of-cloud/eks-d-xpress-bundle:latest \
-  bash
+  --entrypoint bash \
+  ghcr.io/plasticity-of-cloud/eks-d-xpress-bundle:latest
 ```
 
 > `--network host` lets the container reach the EC2 Instance Metadata Service
@@ -50,8 +50,8 @@ docker run --rm -it \
   -e AWS_SECRET_ACCESS_KEY \
   -e AWS_SESSION_TOKEN \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
-  ghcr.io/plasticity-of-cloud/eks-d-xpress-bundle:latest \
-  bash
+  --entrypoint bash \
+  ghcr.io/plasticity-of-cloud/eks-d-xpress-bundle:latest
 ```
 
 ---
