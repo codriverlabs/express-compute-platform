@@ -1,7 +1,0 @@
-{
-  "app": "mvn -q compile exec:java -Dexec.mainClass=ai.codriverlabs.eksdx.infra.InfraApp",
-  "context": {
-    "domainName": "",
-    "certificateArn": ""
-  }
-}
