@@ -2,7 +2,7 @@
 FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
 # al2023 ships python3 — only Node.js/npm and Helm needed
-RUN dnf install -y nodejs22 aws-cli unzip tar gzip findutils && dnf clean all
+RUN dnf install -y nodejs22 aws-cli unzip tar gzip findutils less && dnf clean all
 
 # CDK CLI + Helm
 RUN npm install -g aws-cdk \
