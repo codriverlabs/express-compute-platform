@@ -3,13 +3,20 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REGION="${AWS_REGION:-us-east-1}"
+PROJECT_NAME="eks-dx-infra"
+INSTANCE_TYPE_ARM64="c6g.xlarge"
+INSTANCE_TYPE_X86="m7i.large"
+DISK_SIZE_GB="20"
+ENABLE_NAT_GATEWAY="false"
 
 usage() {
   cat <<EOF
 EKS-D-Xpress Deployment Bundle
 
 Usage:
-  deploy.sh deploy [--stack <name>] [--region <region>]
+  deploy.sh deploy [--stack <name>] [--region <region>] [--project-name <n>]
+                   [--instance-type-arm64 <type>] [--instance-type-x86 <type>]
+                   [--disk-size-gb <n>] [--enable-nat-gateway]
   deploy.sh destroy [--stack <name>] [--region <region>]
   deploy.sh register-amis [--region <region>]
   deploy.sh install-charts [--kubeconfig <path>]
@@ -47,15 +54,18 @@ deploy_infra() {
   cd "${SCRIPT_DIR}/infra"
   cdk deploy --app cdk.out --all --require-approval never \
     --region "${REGION}" \
-    --context region="${REGION}"
+    --parameters "EksDxSharedInfraStack:ProjectName=${PROJECT_NAME}" \
+    --parameters "EksDxSharedInfraStack:InstanceTypeArm64=${INSTANCE_TYPE_ARM64}" \
+    --parameters "EksDxSharedInfraStack:InstanceTypeX86=${INSTANCE_TYPE_X86}" \
+    --parameters "EksDxSharedInfraStack:DiskSizeGb=${DISK_SIZE_GB}" \
+    --parameters "EksDxSharedInfraStack:EnableNatGateway=${ENABLE_NAT_GATEWAY}"
 }
 
 deploy_control_plane() {
   echo "==> Deploying EksDXpressControlPlaneStack"
   cd "${SCRIPT_DIR}/control-plane"
   cdk deploy --app cdk.out --all --require-approval never \
-    --region "${REGION}" \
-    --context region="${REGION}"
+    --region "${REGION}"
 }
 
 register_amis() {
@@ -108,9 +118,14 @@ shift
 STACK="all"
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --stack)      STACK="$2"; shift 2 ;;
-    --region)     REGION="$2"; export AWS_REGION="$2"; shift 2 ;;
-    --kubeconfig) export KUBECONFIG="$2"; shift 2 ;;
+    --stack)               STACK="$2";                  shift 2 ;;
+    --region)              REGION="$2"; export AWS_REGION="$2"; shift 2 ;;
+    --project-name)        PROJECT_NAME="$2";           shift 2 ;;
+    --instance-type-arm64) INSTANCE_TYPE_ARM64="$2";   shift 2 ;;
+    --instance-type-x86)   INSTANCE_TYPE_X86="$2";     shift 2 ;;
+    --disk-size-gb)        DISK_SIZE_GB="$2";           shift 2 ;;
+    --enable-nat-gateway)  ENABLE_NAT_GATEWAY="true";  shift 1 ;;
+    --kubeconfig)          export KUBECONFIG="$2";      shift 2 ;;
     *)            break ;;
   esac
 done
