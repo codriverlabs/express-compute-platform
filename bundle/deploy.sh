@@ -17,6 +17,7 @@ Usage:
   deploy.sh deploy [--stack <name>] [--region <region>] [--project-name <n>]
                    [--instance-type-arm64 <type>] [--instance-type-x86 <type>]
                    [--disk-size-gb <n>] [--enable-nat-gateway]
+                   [--domain-name <fqdn>] [--certificate-arn <arn>]
   deploy.sh destroy [--stack <name>] [--region <region>]
   deploy.sh register-amis [--region <region>]
   deploy.sh install-charts [--kubeconfig <path>]
@@ -64,8 +65,11 @@ deploy_infra() {
 deploy_control_plane() {
   echo "==> Deploying EksDXpressControlPlaneStack"
   cd "${SCRIPT_DIR}/control-plane"
+  local params=()
+  [[ -n "${DOMAIN_NAME:-}" ]]      && params+=(--parameters "EksDXpressControlPlaneStack:DomainName=${DOMAIN_NAME}")
+  [[ -n "${CERTIFICATE_ARN:-}" ]]  && params+=(--parameters "EksDXpressControlPlaneStack:CertificateArn=${CERTIFICATE_ARN}")
   cdk deploy --app cdk.out --all --require-approval never \
-    --region "${REGION}"
+    --region "${REGION}" "${params[@]}"
 }
 
 register_amis() {
@@ -125,6 +129,8 @@ while [[ $# -gt 0 ]]; do
     --instance-type-x86)   INSTANCE_TYPE_X86="$2";     shift 2 ;;
     --disk-size-gb)        DISK_SIZE_GB="$2";           shift 2 ;;
     --enable-nat-gateway)  ENABLE_NAT_GATEWAY="true";  shift 1 ;;
+    --domain-name)         DOMAIN_NAME="$2";           shift 2 ;;
+    --certificate-arn)     CERTIFICATE_ARN="$2";       shift 2 ;;
     --kubeconfig)          export KUBECONFIG="$2";      shift 2 ;;
     *)            break ;;
   esac
