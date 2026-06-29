@@ -32,9 +32,6 @@ err()  { echo -e "${RED}[✗]${NC} $*" >&2; exit 1; }
 
 CHART_DIR="${CHART_DIR:-/opt/eks-d-setup/charts}"
 
-# shellcheck source=../ami-builder/scripts/component-versions.env
-# shellcheck disable=SC1091
-[[ -f /opt/eks-d/component-versions.env ]] && source /opt/eks-d/component-versions.env
 GHCR_EKS_D_XPRESS_REGISTRY="${GHCR_EKS_D_XPRESS_REGISTRY:-ghcr.io/plasticity-of-cloud}"
 
 log "eks-dx-karpenter-support installation"
