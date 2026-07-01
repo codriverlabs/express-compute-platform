@@ -27,16 +27,14 @@ done
 sudo ip route flush cache 2>/dev/null || true
 echo "✓ ec2-net-utils policy-routes disabled"
 
-# Ensure EC2 API is reachable — IPAMD calls DescribeNetworkInterfaces on startup.
-echo "Waiting for EC2 API reachability..."
-for i in $(seq 1 5); do
-  curl -s --connect-timeout 2 "https://ec2.${AWS_REGION}.amazonaws.com" >/dev/null 2>&1 && {
-    echo "✓ EC2 API reachable (${AWS_REGION})"
-    break
-  }
-  [ "$i" -eq 5 ] && echo "Warning: EC2 API not confirmed after 5s, proceeding anyway"
-  sleep 1
-done
+# Quick EC2 API connectivity check (non-blocking, informational only).
+# IPAMD handles its own retries for DescribeNetworkInterfaces — no need to
+# gate the install on this. Just log the status for debugging.
+if curl -s --connect-timeout 2 "https://ec2.${AWS_REGION}.amazonaws.com" >/dev/null 2>&1; then
+  echo "✓ EC2 API reachable (${AWS_REGION})"
+else
+  echo "Note: EC2 API not immediately reachable — IPAMD will retry internally"
+fi
 
 echo "Installing AWS VPC CNI v1.20.4..."
 
