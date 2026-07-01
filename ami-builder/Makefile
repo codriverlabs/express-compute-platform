@@ -16,6 +16,7 @@ ami: stage build clean-sgs sign
 _ONLY = $(if $(filter arm64,$(ARCH)),-only=amazon-ebs.arm64,$(if $(filter x86_64,$(ARCH)),-only=amazon-ebs.x86_64,))
 
 build: packer-init
+	@mkdir -p "$(DIR)output"
 	PACKER_LOG=1 PACKER_LOG_PATH="$(ROOT)/packer-build-$(AMI_VERSION).log" \
 	packer build \
 	  $(_ONLY) \

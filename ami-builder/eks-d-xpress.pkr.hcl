@@ -166,25 +166,19 @@ build {
 
   provisioner "file" {
     source      = "/tmp/sbom.spdx.json"
-    destination = "${path.root}/sbom-${source.name}-${var.ami_version}.spdx.json"
-    direction   = "download"
-  }
-
-  provisioner "file" {
-    source      = "/tmp/sbom.spdx.json"
-    destination = "${path.root}/sbom-${source.name}-${var.ami_version}.spdx.json"
+    destination = "${path.root}/output/sbom-${source.name}-${var.ami_version}.spdx.json"
     direction   = "download"
   }
 
   post-processor "manifest" {
-    output     = "packer-manifest.json"
+    output     = "output/packer-manifest.json"
     strip_path = true
   }
 
   post-processor "shell-local" {
     inline = [
       # Push AMI IDs to SSM and write a clean manifest entry per build
-      "python3 -c \"\nimport json, sys\nbuilds = json.load(open('packer-manifest.json'))['builds']\nentries = []\nfor b in builds:\n    region, ami_id = b['artifact_id'].split(':')\n    arch = b['name']\n    entries.append({'kubernetes_version': '${var.kubernetes_version}', 'arch': arch, 'region': region, 'ami_id': ami_id})\n    import subprocess\n    subprocess.run(['aws','ssm','put-parameter','--name',f'/eks-d-xpress/infra/ami/{arch}/${var.kubernetes_version}','--value',ami_id,'--type','String','--overwrite','--region',region], check=True)\n    print(f'Stored /eks-d-xpress/infra/ami/{arch}/${var.kubernetes_version} -> {ami_id}')\njson.dump(entries, open('ami-manifest-entries.json','w'), indent=2)\n\""
+      "python3 -c \"\nimport json, sys, os\nos.makedirs('output', exist_ok=True)\nbuilds = json.load(open('output/packer-manifest.json'))['builds']\nentries = []\nfor b in builds:\n    region, ami_id = b['artifact_id'].split(':')\n    arch = b['name']\n    entries.append({'kubernetes_version': '${var.kubernetes_version}', 'arch': arch, 'region': region, 'ami_id': ami_id})\n    import subprocess\n    subprocess.run(['aws','ssm','put-parameter','--name',f'/eks-d-xpress/infra/ami/{arch}/${var.kubernetes_version}','--value',ami_id,'--type','String','--overwrite','--region',region], check=True)\n    print(f'Stored /eks-d-xpress/infra/ami/{arch}/${var.kubernetes_version} -> {ami_id}')\njson.dump(entries, open('output/ami-manifest-entries.json','w'), indent=2)\n\""
     ]
   }
 }

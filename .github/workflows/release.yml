@@ -64,7 +64,7 @@ jobs:
             AMI_VERSION="$(date +%Y%m%d-%H%M)" \
             ARCH="${{ matrix.arch }}" \
             BUILD_TYPE="release"
-          cp ami-builder/ami-manifest-entries.json \
+          cp ami-builder/output/ami-manifest-entries.json \
              ami-manifest-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
 
       - name: Sign AMI
@@ -79,8 +79,8 @@ jobs:
         with:
           name: sbom-${{ matrix.k8s_version }}-${{ matrix.arch }}
           path: |
-            ami-builder/sbom-${{ matrix.arch }}-*.spdx.json
-            ami-builder/ami-signatures-entries.json
+            ami-builder/output/sbom-${{ matrix.arch }}-*.spdx.json
+            ami-builder/output/ami-signatures-entries.json
           retention-days: 90
 
       - uses: actions/upload-artifact@v4

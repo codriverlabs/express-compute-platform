@@ -1,8 +1,12 @@
-packer-manifest.json
-ami-manifest-entries.json
-ami-manifest-*.json
+# AMI builder outputs (manifests, SBOMs, signatures)
+ami-builder/output/
+
+# Packer build logs
 packer-build-*.log
-ami-builder/sbom-*.spdx.json
+
+# CDK build artifacts
 ami-builder/cdk/target/
 cdk.out/
+
+# Bundle build artifacts
 bundle/.build/
