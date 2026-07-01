@@ -42,15 +42,27 @@ echo "Installing AWS VPC CNI v1.20.4..."
 
 # If CNI binaries aren't pre-baked in the AMI, extract them from the init container
 # image now so the daemonset init container finds them and skips extraction.
+# This is a safety-net fallback — normally the AMI bake pre-populates /opt/cni/bin.
 if [ -z "$(ls /opt/cni/bin/ 2>/dev/null)" ]; then
-  echo "CNI binaries not pre-baked — extracting from init container image..."
+  echo "WARNING: CNI binaries not pre-baked in AMI — extracting at boot (AMI bake may have failed)"
   CNI_INIT_IMG=$(grep "image:" /opt/eks-d/manifests/aws-vpc-cni.yaml 2>/dev/null | grep "cni-init" | head -1 | awk '{print $2}')
   if [ -n "$CNI_INIT_IMG" ]; then
     sudo mkdir -p /opt/cni/bin
-    docker create --name cni-prebake "$CNI_INIT_IMG" 2>/dev/null && \
-      sudo docker cp cni-prebake:/opt/cni/bin/. /opt/cni/bin/ && \
-      docker rm cni-prebake || docker rm -f cni-prebake 2>/dev/null || true
-    echo "✓ CNI binaries extracted to /opt/cni/bin"
+    # Use ctr images mount (pure rootfs copy, no docker required, no exec inside
+    # the image). This avoids the failure mode where 'ctr run ... sh -c cp' silently
+    # copies 0 files because the minimal cni-init image lacks a usable shell.
+    CNI_MNT="$(mktemp -d)"
+    if sudo ctr -n k8s.io images mount "$CNI_INIT_IMG" "$CNI_MNT"; then
+      sudo cp -a "$CNI_MNT"/opt/cni/bin/. /opt/cni/bin/
+      sudo ctr -n k8s.io images unmount "$CNI_MNT"
+      rmdir "$CNI_MNT"
+      echo "✓ CNI binaries extracted to /opt/cni/bin ($(ls /opt/cni/bin | wc -l) files)"
+    else
+      rmdir "$CNI_MNT" 2>/dev/null || true
+      echo "WARNING: CNI binary extraction failed — init container will handle it (adds ~24s)"
+    fi
+  else
+    echo "WARNING: Could not determine cni-init image from manifest"
   fi
 else
   echo "✓ CNI binaries already present at /opt/cni/bin — skipping extraction"

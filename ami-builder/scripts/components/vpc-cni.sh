@@ -53,15 +53,36 @@ done
 
 echo "  Pre-baking CNI binaries from init container..."
 CNI_INIT_IMG=$(grep "image:" "${MANIFESTS_DIR}/aws-vpc-cni.yaml" | grep "cni-init" | head -1 | awk '{print $2}')
-if [ -n "$CNI_INIT_IMG" ] && sudo ctr -n k8s.io images check name=="$CNI_INIT_IMG" 2>/dev/null | grep -q "complete"; then
-  sudo mkdir -p /opt/cni/bin
-  sudo ctr -n k8s.io run --rm \
-    --mount type=bind,src=/opt/cni/bin,dst=/host/opt/cni/bin,options=rbind:rw \
-    "$CNI_INIT_IMG" "cni-prebake-$$" \
-    sh -c "cp -a /opt/cni/bin/. /host/opt/cni/bin/" 2>/dev/null || true
-  echo "  ✓ CNI binaries baked to /opt/cni/bin ($(ls /opt/cni/bin 2>/dev/null | wc -l) files)"
-else
-  echo "  Warning: CNI init image not ready — /opt/cni/bin not pre-baked, will extract at boot"
+if [ -z "$CNI_INIT_IMG" ]; then
+  echo "  ERROR: could not determine cni-init image from ${MANIFESTS_DIR}/aws-vpc-cni.yaml" >&2
+  exit 1
 fi
+
+# The image must be fully present locally, otherwise we cannot extract from it.
+# Fail the build here — do NOT fall through to a boot-time fallback, which only
+# hides a broken bake and pushes the extraction cost onto every node's boot.
+if ! sudo ctr -n k8s.io images check name=="$CNI_INIT_IMG" | grep -q "complete"; then
+  echo "  ERROR: cni-init image ${CNI_INIT_IMG} not fully pulled; cannot pre-bake" >&2
+  exit 1
+fi
+
+# Extract binaries via a read-only rootfs mount of the image (pure filesystem
+# copy, exactly like 'docker cp'). This does NOT execute the container, so it
+# works even though the minimal cni-init image has no usable shell/coreutils —
+# the previous 'ctr run ... sh -c cp' approach silently copied 0 files because
+# it depended on a shell inside the image.
+sudo mkdir -p /opt/cni/bin
+CNI_MNT="$(mktemp -d)"
+sudo ctr -n k8s.io images mount "$CNI_INIT_IMG" "$CNI_MNT"
+sudo cp -a "$CNI_MNT"/opt/cni/bin/. /opt/cni/bin/
+sudo ctr -n k8s.io images unmount "$CNI_MNT"
+rmdir "$CNI_MNT"
+
+CNI_BIN_COUNT=$(ls /opt/cni/bin 2>/dev/null | wc -l)
+if [ "$CNI_BIN_COUNT" -eq 0 ]; then
+  echo "  ERROR: pre-bake copied 0 CNI binaries from ${CNI_INIT_IMG}" >&2
+  exit 1
+fi
+echo "  ✓ CNI binaries baked to /opt/cni/bin (${CNI_BIN_COUNT} files)"
 
 echo "✓ vpc-cni ready"
