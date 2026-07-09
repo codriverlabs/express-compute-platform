@@ -3,10 +3,14 @@ set -e
 source /tmp/ami-build.env
 MANIFESTS_DIR="/opt/eks-d/manifests"
 
-echo "  Downloading VPC CNI manifest (v1.20.4)..."
+echo "  Downloading VPC CNI manifest (v1.22.3)..."
 sudo mkdir -p "${MANIFESTS_DIR}"
-sudo curl -sL \
-  "https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.20.4/config/master/aws-k8s-cni.yaml" \
+# --fail (-f): exit 22 on HTTP 4xx/5xx — prevents silently saving a rate-limit
+# or error response body (e.g. a 429 page) as a "valid" YAML file, which was
+# the root cause of the previous yaml.scanner.ScannerError build failure.
+# --retry 3 / --retry-delay 5: recover from transient GitHub raw throttling.
+sudo curl -fsSL --retry 3 --retry-delay 5 \
+  "https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.22.3/config/master/aws-k8s-cni.yaml" \
   -o "${MANIFESTS_DIR}/aws-vpc-cni.yaml"
 
 echo "  Patching manifest for prefix delegation..."
@@ -46,7 +50,7 @@ VPC_CNI_CTR_USER=$(aws ecr get-authorization-token \
   --registry-ids 602401143452 --region "${VPC_CNI_ECR_REGION}" \
   --query 'authorizationData[0].authorizationToken' --output text | base64 -d)
 
-echo "  Pulling VPC CNI images (602401143452.dkr.ecr.us-west-2)..."
+echo "  Pulling VPC CNI images (602401143452.dkr.ecr.us-west-2, v1.22.3)..."
 python3 "${EXTRACT_IMAGES_PY}" < "${MANIFESTS_DIR}/aws-vpc-cni.yaml" | sort -u | while read img; do
   sudo ctr -n k8s.io images pull --user "${VPC_CNI_CTR_USER}" "$img" || true
 done

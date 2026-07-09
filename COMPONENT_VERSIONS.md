@@ -28,7 +28,7 @@ Pinned versions from the official EKS-D release manifests. Not all components ar
 | livenessprobe | v2.16.0 | v2.16.0 |
 | **Networking** | | |
 | cni-plugins | v1.7.1 | v1.7.1 |
-| aws-vpc-cni | v1.19.0 | — (managed add-on) |
+| aws-vpc-cni | v1.22.3 | — (managed add-on) |
 | aws-ebs-csi-driver | v1.38.0 | — (managed add-on) |
 
 > `aws-vpc-cni` and `aws-ebs-csi-driver` are EKS managed add-ons and are not part of the EKS-D release manifest.
