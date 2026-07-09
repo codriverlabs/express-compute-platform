@@ -177,8 +177,11 @@ build {
 
   post-processor "shell-local" {
     inline = [
-      # Push AMI IDs to SSM and write a clean manifest entry per build
-      "python3 -c \"\nimport json, sys, os\nos.makedirs('output', exist_ok=True)\nbuilds = json.load(open('output/packer-manifest.json'))['builds']\nentries = []\nfor b in builds:\n    region, ami_id = b['artifact_id'].split(':')\n    arch = b['name']\n    entries.append({'kubernetes_version': '${var.kubernetes_version}', 'arch': arch, 'region': region, 'ami_id': ami_id})\n    import subprocess\n    subprocess.run(['aws','ssm','put-parameter','--name',f'/eks-d-xpress/infra/ami/{arch}/${var.kubernetes_version}','--value',ami_id,'--type','String','--overwrite','--region',region], check=True)\n    print(f'Stored /eks-d-xpress/infra/ami/{arch}/${var.kubernetes_version} -> {ami_id}')\njson.dump(entries, open('output/ami-manifest-entries.json','w'), indent=2)\n\""
+      # Push AMI IDs to SSM and write a clean manifest entry per build.
+      # Filter builds by last_run_uuid so previous runs accumulated in
+      # packer-manifest.json (which is cumulative by design) don't pollute
+      # ami-manifest-entries.json with deregistered AMI IDs.
+      "python3 -c \"\nimport json, sys, os\nos.makedirs('output', exist_ok=True)\ndata = json.load(open('output/packer-manifest.json'))\nlast_uuid = data['last_run_uuid']\nbuilds = [b for b in data['builds'] if b.get('packer_run_uuid') == last_uuid]\nentries = []\nfor b in builds:\n    region, ami_id = b['artifact_id'].split(':')\n    arch = b['name']\n    entries.append({'kubernetes_version': '${var.kubernetes_version}', 'arch': arch, 'region': region, 'ami_id': ami_id})\n    import subprocess\n    subprocess.run(['aws','ssm','put-parameter','--name',f'/eks-d-xpress/infra/ami/{arch}/${var.kubernetes_version}','--value',ami_id,'--type','String','--overwrite','--region',region], check=True)\n    print(f'Stored /eks-d-xpress/infra/ami/{arch}/${var.kubernetes_version} -> {ami_id}')\njson.dump(entries, open('output/ami-manifest-entries.json','w'), indent=2)\n\""
     ]
   }
 }
