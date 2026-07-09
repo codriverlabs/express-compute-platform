@@ -75,10 +75,34 @@ fi
 # works even though the minimal cni-init image has no usable shell/coreutils —
 # the previous 'ctr run ... sh -c cp' approach silently copied 0 files because
 # it depended on a shell inside the image.
+#
+# Image layout changed between versions — discover the source path rather than
+# hardcode it to avoid future breakage:
+#   ≤v1.20  →  /opt/cni/bin/   (old layout)
+#   ≥v1.22  →  /init/          (Dockerfile.init: WORKDIR /init, all plugins COPY'd there)
 sudo mkdir -p /opt/cni/bin
 CNI_MNT="$(mktemp -d)"
 sudo ctr -n k8s.io images mount "$CNI_INIT_IMG" "$CNI_MNT"
-sudo cp -a "$CNI_MNT"/opt/cni/bin/. /opt/cni/bin/
+
+CNI_BIN_SRC=""
+for candidate in "$CNI_MNT/init" "$CNI_MNT/opt/cni/bin"; do
+  if sudo test -d "$candidate" && sudo ls "$candidate" | grep -q .; then
+    CNI_BIN_SRC="$candidate"
+    break
+  fi
+done
+
+if [ -z "$CNI_BIN_SRC" ]; then
+  echo "  ERROR: could not locate CNI binaries in mounted image ${CNI_INIT_IMG}" >&2
+  echo "  Searched: /init, /opt/cni/bin" >&2
+  echo "  Image top-level contents:" >&2
+  sudo ls -la "$CNI_MNT" >&2 || true
+  sudo ctr -n k8s.io images unmount "$CNI_MNT"
+  exit 1
+fi
+
+echo "  Copying CNI binaries from ${CNI_BIN_SRC#"$CNI_MNT"}/ ..."
+sudo cp -a "$CNI_BIN_SRC/." /opt/cni/bin/
 sudo ctr -n k8s.io images unmount "$CNI_MNT"
 rmdir "$CNI_MNT"
 
