@@ -1,77 +1,61 @@
 #!/bin/bash
-# progress.sh — DynamoDB progress reporting for EKS-DX boot scripts.
+# progress.sh — SQS FIFO progress reporting for EKS-DX boot scripts.
 # Source this file from workstation-boot.sh or any boot script.
 #
-# Requires: TENANT_ID, AWS_REGION (from cluster.env)
-# Optional: EKS_DX_TENANTS_TABLE (defaults to eks-d-xpress-tenants)
+# Requires: TENANT_ID, AWS_REGION, PROGRESS_QUEUE_URL (from cluster.env)
+#
+# The instance profile has sqs:SendMessage scoped to the per-tenant progress
+# queue ARN. No additional credentials are needed — uses instance profile directly.
+#
+# The queue is ephemeral: created by the provisioning Lambda, deleted by the
+# SSE Lambda on terminal state (ready/failed). If the queue no longer exists,
+# progress reporting silently stops (provisioning already completed/failed).
 
-EKS_DX_TENANTS_TABLE="${EKS_DX_TENANTS_TABLE:-eks-d-xpress-tenants}"
-
-# Update progress in DynamoDB. Called by boot scripts at each step.
+# Send a progress event to the per-tenant SQS FIFO queue.
 # Usage: update_progress <state> <phase> <progress_percent>
 update_progress() {
   local state=$1 phase=$2 progress=$3
 
-  # Skip if TENANT_ID not set (e.g. manual run without cluster.env)
+  # Skip if TENANT_ID or PROGRESS_QUEUE_URL not set (e.g. manual run without cluster.env)
   [ -z "${TENANT_ID:-}" ] && return 0
+  [ -z "${PROGRESS_QUEUE_URL:-}" ] && return 0
 
-  aws dynamodb update-item \
-    --table-name "${EKS_DX_TENANTS_TABLE}" \
-    --key "{\"tenantId\":{\"S\":\"${TENANT_ID}\"}}" \
-    --update-expression "SET #s = :s, phase = :p, progress = :n, updatedAt = :t" \
-    --expression-attribute-names '{"#s":"state"}' \
-    --expression-attribute-values "{
-      \":s\":{\"S\":\"${state}\"},
-      \":p\":{\"S\":\"${phase}\"},
-      \":n\":{\"N\":\"${progress}\"},
-      \":t\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
-    }" \
+  aws sqs send-message \
+    --queue-url "${PROGRESS_QUEUE_URL}" \
+    --message-group-id "${TENANT_ID}" \
+    --message-deduplication-id "${TENANT_ID}-${progress}" \
+    --message-body "{\"tenantId\":\"${TENANT_ID}\",\"state\":\"${state}\",\"phase\":\"${phase}\",\"progress\":${progress}}" \
     --region "${AWS_REGION}" 2>/dev/null || true
 }
 
-# Report failure to DynamoDB and exit.
+# Report failure and exit.
 # Usage: fail "error message"
 fail() {
   local msg=$1
 
   [ -z "${TENANT_ID:-}" ] && { echo "FATAL: $msg"; exit 1; }
+  [ -z "${PROGRESS_QUEUE_URL:-}" ] && { echo "FATAL: $msg"; exit 1; }
 
-  aws dynamodb update-item \
-    --table-name "${EKS_DX_TENANTS_TABLE}" \
-    --key "{\"tenantId\":{\"S\":\"${TENANT_ID}\"}}" \
-    --update-expression "SET #s = :s, #e = :e, updatedAt = :t" \
-    --expression-attribute-names '{"#s":"state","#e":"error"}' \
-    --expression-attribute-values "{
-      \":s\":{\"S\":\"failed\"},
-      \":e\":{\"S\":\"${msg}\"},
-      \":t\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
-    }" \
+  aws sqs send-message \
+    --queue-url "${PROGRESS_QUEUE_URL}" \
+    --message-group-id "${TENANT_ID}" \
+    --message-deduplication-id "${TENANT_ID}-failed" \
+    --message-body "{\"tenantId\":\"${TENANT_ID}\",\"state\":\"failed\",\"phase\":\"${msg}\",\"progress\":0}" \
     --region "${AWS_REGION}" 2>/dev/null || true
 
   exit 1
 }
 
-# Report ready state with public IP.
+# Report ready state.
 # Usage: report_ready
 report_ready() {
-  local public_ip
-  local token
-  token=$(curl -sf -X PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 60" -m 2 2>/dev/null)
-  public_ip=$(curl -sf -m 2 -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "")
-
   [ -z "${TENANT_ID:-}" ] && return 0
+  [ -z "${PROGRESS_QUEUE_URL:-}" ] && return 0
 
-  aws dynamodb update-item \
-    --table-name "${EKS_DX_TENANTS_TABLE}" \
-    --key "{\"tenantId\":{\"S\":\"${TENANT_ID}\"}}" \
-    --update-expression "SET #s = :s, phase = :p, progress = :n, publicIp = :ip, updatedAt = :t" \
-    --expression-attribute-names '{"#s":"state"}' \
-    --expression-attribute-values "{
-      \":s\":{\"S\":\"ready\"},
-      \":p\":{\"S\":\"Cluster ready\"},
-      \":n\":{\"N\":\"100\"},
-      \":ip\":{\"S\":\"${public_ip}\"},
-      \":t\":{\"S\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}
-    }" \
+  aws sqs send-message \
+    --queue-url "${PROGRESS_QUEUE_URL}" \
+    --message-group-id "${TENANT_ID}" \
+    --message-deduplication-id "${TENANT_ID}-100" \
+    --message-body "{\"tenantId\":\"${TENANT_ID}\",\"state\":\"ready\",\"phase\":\"Cluster ready\",\"progress\":100}" \
     --region "${AWS_REGION}" 2>/dev/null || true
 }
