@@ -55,7 +55,7 @@ fi
 
 CHART_DIR="${CHART_DIR:-/opt/cluster-setup/charts}"
 
-GHCR_EKS_D_XPRESS_REGISTRY="${GHCR_EKS_D_XPRESS_REGISTRY:-ghcr.io/plasticity-of-cloud}"
+ECP_GHCR_REGISTRY="${ECP_GHCR_REGISTRY:-ghcr.io/plasticity-of-cloud}"
 
 log "Express Compute Workload Identity installation"
 log "  Cluster:  ${CLUSTER_NAME}"
@@ -72,7 +72,7 @@ chart_ref() {
   if [[ -n "$tgz" ]]; then
     echo "$tgz"
   else
-    echo "oci://${GHCR_EKS_D_XPRESS_REGISTRY}/helm/${name} --version ${ECP_CONTROL_PLANE_VERSION}"
+    echo "oci://${ECP_GHCR_REGISTRY}/helm/${name} --version ${ECP_CONTROL_PLANE_VERSION}"
   fi
 }
 

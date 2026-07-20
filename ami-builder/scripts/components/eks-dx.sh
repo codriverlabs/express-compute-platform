@@ -11,16 +11,16 @@ fi
 
 echo "  Pulling Express Compute Helm charts (v${ECP_CONTROL_PLANE_VERSION})..."
 for chart in express-compute-workload-identity-webhook express-compute-auth-proxy express-compute-karpenter-support; do
-  helm pull "oci://${GHCR_EKS_D_XPRESS_REGISTRY}/helm/${chart}" \
+  helm pull "oci://${ECP_GHCR_REGISTRY}/helm/${chart}" \
     --version "${ECP_CONTROL_PLANE_VERSION}" --destination /tmp || true
 done
 sudo mv /tmp/express-compute-*.tgz "${CHARTS_DIR}/" 2>/dev/null || true
 
 echo "  Pulling Express Compute container images..."
 sudo ctr -n k8s.io images pull \
-  "${GHCR_EKS_D_XPRESS_REGISTRY}/express-compute-auth-proxy:${ECP_CONTROL_PLANE_VERSION}" || true
+  "${ECP_GHCR_REGISTRY}/express-compute-auth-proxy:${ECP_CONTROL_PLANE_VERSION}" || true
 sudo ctr -n k8s.io images pull \
-  "${GHCR_EKS_D_XPRESS_REGISTRY}/express-compute-workload-identity-webhook:${ECP_CONTROL_PLANE_VERSION}" || true
+  "${ECP_GHCR_REGISTRY}/express-compute-workload-identity-webhook:${ECP_CONTROL_PLANE_VERSION}" || true
 
 echo "  Pulling eks-workload-identity-agent chart..."
 mkdir -p /tmp/eks-workload-identity-agent
