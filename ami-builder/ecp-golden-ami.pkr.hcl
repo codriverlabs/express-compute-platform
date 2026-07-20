@@ -15,7 +15,7 @@ variable "kubernetes_version" {
 variable "ami_version"        { type = string }
 variable "project_name" {
   type    = string
-  default = "eks-d-xpress-infra"
+  default = "express-compute-managed-k8s-infra"
 }
 variable "build_type" {
   type    = string
@@ -40,11 +40,11 @@ source "amazon-ebs" "x86_64" {
     most_recent = true
   }
 
-  ami_name        = "eks-d-xpress-x86_64-${var.ami_version}"
-  ami_description = "EKS-D-Xpress ${var.kubernetes_version} x86_64 - ${var.ami_version}"
+  ami_name        = "express-compute-x86_64-${var.ami_version}"
+  ami_description = "Express Compute ${var.kubernetes_version} x86_64 - ${var.ami_version}"
   ssh_username    = "ec2-user"
 
-  iam_instance_profile = "eks-d-xpress-packer-builder"
+  iam_instance_profile = "express-compute-packer-builder"
 
   metadata_options {
     http_tokens                 = "required"
@@ -60,14 +60,14 @@ source "amazon-ebs" "x86_64" {
   }
 
   run_tags = {
-    Name     = "eks-d-xpress-builder-x86_64"
-    Platform = "eks-d-xpress"
+    Name     = "express-compute-builder-x86_64"
+    Platform = "express-compute"
     ManagedBy = "Packer"
   }
 
   tags = {
-    Name              = "eks-d-xpress-x86_64-${var.ami_version}"
-    Platform          = "eks-d-xpress"
+    Name              = "express-compute-x86_64-${var.ami_version}"
+    Platform          = "express-compute"
     Project           = var.project_name
     KubernetesVersion = var.kubernetes_version
     ManagedBy         = "Packer"
@@ -90,11 +90,11 @@ source "amazon-ebs" "arm64" {
     most_recent = true
   }
 
-  ami_name        = "eks-d-xpress-arm64-${var.ami_version}"
-  ami_description = "EKS-D-Xpress ${var.kubernetes_version} arm64 - ${var.ami_version}"
+  ami_name        = "express-compute-arm64-${var.ami_version}"
+  ami_description = "Express Compute ${var.kubernetes_version} arm64 - ${var.ami_version}"
   ssh_username    = "ec2-user"
 
-  iam_instance_profile = "eks-d-xpress-packer-builder"
+  iam_instance_profile = "express-compute-packer-builder"
 
   metadata_options {
     http_tokens                 = "required"
@@ -110,14 +110,14 @@ source "amazon-ebs" "arm64" {
   }
 
   run_tags = {
-    Name      = "eks-d-xpress-builder-arm64"
-    Platform  = "eks-d-xpress"
+    Name      = "express-compute-builder-arm64"
+    Platform  = "express-compute"
     ManagedBy = "Packer"
   }
 
   tags = {
-    Name              = "eks-d-xpress-arm64-${var.ami_version}"
-    Platform          = "eks-d-xpress"
+    Name              = "express-compute-arm64-${var.ami_version}"
+    Platform          = "express-compute"
     Project           = var.project_name
     KubernetesVersion = var.kubernetes_version
     ManagedBy         = "Packer"
@@ -128,8 +128,8 @@ build {
   sources = ["source.amazon-ebs.x86_64", "source.amazon-ebs.arm64"]
 
   provisioner "file" {
-    source      = "${path.root}/../eks-d-setup"
-    destination = "/tmp/eks-d-setup"
+    source      = "${path.root}/../cluster-setup"
+    destination = "/tmp/cluster-setup"
   }
 
   provisioner "file" {
@@ -181,7 +181,7 @@ build {
       # Filter builds by last_run_uuid so previous runs accumulated in
       # packer-manifest.json (which is cumulative by design) don't pollute
       # ami-manifest-entries.json with deregistered AMI IDs.
-      "python3 -c \"\nimport json, sys, os\nos.makedirs('output', exist_ok=True)\ndata = json.load(open('output/packer-manifest.json'))\nlast_uuid = data['last_run_uuid']\nbuilds = [b for b in data['builds'] if b.get('packer_run_uuid') == last_uuid]\nentries = []\nfor b in builds:\n    region, ami_id = b['artifact_id'].split(':')\n    arch = b['name']\n    entries.append({'kubernetes_version': '${var.kubernetes_version}', 'arch': arch, 'region': region, 'ami_id': ami_id})\n    import subprocess\n    subprocess.run(['aws','ssm','put-parameter','--name',f'/eks-d-xpress/infra/ami/{arch}/${var.kubernetes_version}','--value',ami_id,'--type','String','--overwrite','--region',region], check=True)\n    print(f'Stored /eks-d-xpress/infra/ami/{arch}/${var.kubernetes_version} -> {ami_id}')\njson.dump(entries, open('output/ami-manifest-entries.json','w'), indent=2)\n\""
+      "python3 -c \"\nimport json, sys, os\nos.makedirs('output', exist_ok=True)\ndata = json.load(open('output/packer-manifest.json'))\nlast_uuid = data['last_run_uuid']\nbuilds = [b for b in data['builds'] if b.get('packer_run_uuid') == last_uuid]\nentries = []\nfor b in builds:\n    region, ami_id = b['artifact_id'].split(':')\n    arch = b['name']\n    entries.append({'kubernetes_version': '${var.kubernetes_version}', 'arch': arch, 'region': region, 'ami_id': ami_id})\n    import subprocess\n    subprocess.run(['aws','ssm','put-parameter','--name',f'/express-compute/infra/ami/{arch}/${var.kubernetes_version}','--value',ami_id,'--type','String','--overwrite','--region',region], check=True)\n    print(f'Stored /express-compute/infra/ami/{arch}/${var.kubernetes_version} -> {ami_id}')\njson.dump(entries, open('output/ami-manifest-entries.json','w'), indent=2)\n\""
     ]
   }
 }

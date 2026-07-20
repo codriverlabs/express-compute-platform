@@ -6,7 +6,7 @@ on:
       - 'v*'
     paths:
       - 'ami-builder/**'
-      - 'eks-d-setup/**'
+      - 'cluster-setup/**'
       - 'COMPONENT_VERSIONS.md'
   workflow_dispatch:
     inputs:
@@ -51,7 +51,7 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::864899852480:role/eks-d-xpress-packer-ci
+          role-to-assume: arn:aws:iam::864899852480:role/express-compute-packer-ci
           aws-region: us-east-1
 
       - name: Build AMI
@@ -103,10 +103,10 @@ jobs:
 
       - name: Prepare release scripts
         run: |
-          cp eks-d-setup/install-eks-dx-pod-identity.sh install-eks-dx-pod-identity.sh
+          cp cluster-setup/install-ecp-workload-identity.sh install-ecp-workload-identity.sh
           cp ami-builder/scripts/verify-ami.sh verify-ami.sh
           cp ami-builder/scripts/import-ami.sh import-ami.sh
-          cp ami-builder/eks-d-xpress-ami-signing.pub.pem eks-d-xpress-ami-signing.pub.pem
+          cp ami-builder/express-compute-ami-signing.pub.pem express-compute-ami-signing.pub.pem
 
       - name: Merge AMI manifest entries
         run: |
@@ -139,7 +139,7 @@ jobs:
           EOF
 
       - name: Generate checksums
-        run: sha256sum ecr-credential-provider-* ami-manifest.json sbom-*.spdx.json install-eks-dx-pod-identity.sh > checksums.txt
+        run: sha256sum ecr-credential-provider-* ami-manifest.json sbom-*.spdx.json install-ecp-workload-identity.sh > checksums.txt
 
       - uses: softprops/action-gh-release@v2
         with:
@@ -147,10 +147,10 @@ jobs:
             ecr-credential-provider-*
             ami-manifest.json
             ami-signatures.json
-            install-eks-dx-pod-identity.sh
+            install-ecp-workload-identity.sh
             verify-ami.sh
             import-ami.sh
-            eks-d-xpress-ami-signing.pub.pem
+            express-compute-ami-signing.pub.pem
             sbom-*.spdx.json
             checksums.txt
           generate_release_notes: true

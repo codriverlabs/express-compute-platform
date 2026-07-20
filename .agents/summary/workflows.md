@@ -91,7 +91,7 @@ sequenceDiagram
     S->>A: 11-install-cert-manager.sh
     A-->>S: Certificate management ready
     
-    S->>A: 12-install-eks-dx-pod-identity.sh
+    S->>A: 12-install-ecp-workload-identity.sh
     A-->>S: Pod identity ready
     
     S->>A: 13-install-ebs-csi.sh

@@ -1,6 +1,6 @@
 # AMI Signature Verification
 
-Every EKS-D-Xpress AMI is signed with an RSA-4096 KMS key after it is built.
+Every Express Compute AMI is signed with an RSA-4096 KMS key after it is built.
 The public key is committed to this repository so you can verify any AMI
 without needing access to our AWS account.
 
@@ -8,17 +8,17 @@ without needing access to our AWS account.
 
 - `openssl` (any modern version)
 - `python3`
-- `ami-signatures.json` from the [GitHub release](https://github.com/plasticity-of-cloud/eks-d-xpress/releases)
+- `ami-signatures.json` from the [GitHub release](https://github.com/plasticity-of-cloud/express-compute/releases)
 
 ## Verify an AMI
 
 ```bash
 # Download verification assets from the release
 gh release download v1.0.3 \
-  --repo plasticity-of-cloud/eks-d-xpress \
+  --repo plasticity-of-cloud/express-compute \
   --pattern "verify-ami.sh" \
   --pattern "ami-signatures.json" \
-  --pattern "eks-d-xpress-ami-signing.pub.pem"
+  --pattern "express-compute-ami-signing.pub.pem"
 
 chmod +x verify-ami.sh
 ./verify-ami.sh --ami-id <AMI_ID>
@@ -33,9 +33,9 @@ Expected output on success:
 
 | Source | Command |
 |--------|---------|
-| AWS Console | EC2 → AMIs → search `eks-d-xpress` → owned by account `864899852480` |
-| AWS CLI | `aws ec2 describe-images --owners 864899852480 --filters "Name=name,Values=eks-d-xpress-arm64-*" --query "sort_by(Images,&CreationDate)[-1].{ID:ImageId,Name:Name}"` |
-| AMI tag | The `Name` tag on the AMI is `eks-d-xpress-<arch>-<VERSION>` |
+| AWS Console | EC2 → AMIs → search `express-compute` → owned by account `864899852480` |
+| AWS CLI | `aws ec2 describe-images --owners 864899852480 --filters "Name=name,Values=express-compute-arm64-*" --query "sort_by(Images,&CreationDate)[-1].{ID:ImageId,Name:Name}"` |
+| AMI tag | The `Name` tag on the AMI is `express-compute-<arch>-<VERSION>` |
 
 The `VERSION` is the `<DATE>-<TIME>` suffix in the AMI name, e.g. `20260611-0156`.
 
@@ -53,7 +53,7 @@ The build pipeline creates a JSON attestation for each AMI:
 }
 ```
 
-The signature is stored in our AWS SSM Parameter Store (internal) and bundled as `ami-signatures.json` in every release. The `verify-ami.sh` script reads the signature from that file, reconstructs the attestation, and verifies it against `eks-d-xpress-ami-signing.pub.pem`. No AWS credentials are required.
+The signature is stored in our AWS SSM Parameter Store (internal) and bundled as `ami-signatures.json` in every release. The `verify-ami.sh` script reads the signature from that file, reconstructs the attestation, and verifies it against `express-compute-ami-signing.pub.pem`. No AWS credentials are required.
 
 The timestamp is also stamped as a `SigningTimestamp` tag on the AMI itself,
 so you can inspect it independently:
@@ -67,12 +67,12 @@ aws ec2 describe-tags \
 ## Public key fingerprint
 
 ```
-ami-builder/eks-d-xpress-ami-signing.pub.pem
+ami-builder/express-compute-ami-signing.pub.pem
 SHA-256: 99fd42ec9397f28a5e99d6374f390d474562f64ae3ac570776b21320a2ec43ad
 ```
 
 To compute it yourself:
 ```bash
-openssl pkey -pubin -in ami-builder/eks-d-xpress-ami-signing.pub.pem \
+openssl pkey -pubin -in ami-builder/express-compute-ami-signing.pub.pem \
   -outform DER | openssl dgst -sha256
 ```

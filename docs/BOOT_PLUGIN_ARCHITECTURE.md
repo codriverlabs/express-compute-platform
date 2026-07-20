@@ -1,6 +1,6 @@
 # Boot Script Plugin Architecture
 
-> ⚠️ **Design proposal — not yet implemented.** The current `eks-d-setup/` uses flat
+> ⚠️ **Design proposal — not yet implemented.** The current `cluster-setup/` uses flat
 > numbered scripts (05–18) run sequentially by `setup-eks-d.sh`. The `core/` and
 > `addons/` directory structure described below does not exist yet.
 
@@ -15,7 +15,7 @@ Addon groups run **all in parallel** with a concurrency limit equal to the numbe
 ## Directory Structure
 
 ```
-eks-d-setup/
+cluster-setup/
 ├── setup-eks-d.sh              # Runner: orchestrates core + addon phases
 ├── core/                       # Phase 1: Sequential, strict order
 │   ├── 01-prepare-etcd.sh
@@ -80,8 +80,8 @@ Customers drop executable `.sh` scripts into the appropriate folder:
 
 ```bash
 # Example: Add Mountpoint for S3 CSI driver
-cp my-mountpoint-s3.sh /opt/eks-d-setup/addons/storage/mountpoint-s3.sh
-chmod +x /opt/eks-d-setup/addons/storage/mountpoint-s3.sh
+cp my-mountpoint-s3.sh /opt/cluster-setup/addons/storage/mountpoint-s3.sh
+chmod +x /opt/cluster-setup/addons/storage/mountpoint-s3.sh
 ```
 
 ### Script Requirements

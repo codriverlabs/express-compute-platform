@@ -1,14 +1,14 @@
 #!/bin/bash
-# workstation-boot.sh - EKS-DX Workstation Boot Script
+# workstation-boot.sh - Express Compute Workstation Boot Script
 # 
-# This script is the entry point for AMI-based EKS-DX workstation deployment.
-# It runs automatically via systemd (eks-dx-boot.service) after network-online.target
+# This script is the entry point for AMI-based Express Compute workstation deployment.
+# It runs automatically via systemd (ecp-boot.service) after network-online.target
 # and performs idempotent installation of EKS-D and all required components.
 
 set -eo pipefail
 
 # Logging setup
-BOOT_LOG="/var/log/eks-dx-boot.log"
+BOOT_LOG="/var/log/ecp-boot.log"
 exec > >(tee -a "$BOOT_LOG") 2>&1
 
 # EBS warmup — pre-fault the first 256MB of the root volume from snapshot in the
@@ -29,13 +29,13 @@ for i in $(seq 1 15); do
 done
 
 echo "=========================================="
-echo "EKS-DX Workstation Boot Started"
+echo "Express Compute Workstation Boot Started"
 echo "Time: $(date)"
 echo "=========================================="
 
 # Check if installation already completed
 if [ -f /opt/eks-d/.installation_complete ]; then
-  echo "✓ EKS-DX installation already completed, skipping"
+  echo "✓ Express Compute installation already completed, skipping"
   # kubeadm re-applies the control-plane taint on every node restart;
   # remove it so EBS CSI and Karpenter can schedule on the control-plane node.
   echo "Removing control-plane taint (re-applied by kubeadm on reboot)..."
@@ -56,12 +56,12 @@ fi
 [ -n "${1:-}" ] && TENANT_ID="$1"
 [ -n "${2:-}" ] && CLUSTER_NAME="$2"
 
-# Optional: EKS-DX Pod Identity integration
+# Optional: Express Compute Workload Identity integration
 # Set both via EC2 user data to enable cluster self-registration and component install.
-# EKS_DX_ENDPOINT  — Lambda Function URL base (e.g. https://<id>.lambda-url.us-east-1.on.aws)
-# EKS_DX_API_URL   — API Gateway URL (e.g. https://<id>.execute-api.us-east-1.amazonaws.com/prod)
-EKS_DX_ENDPOINT="${EKS_DX_ENDPOINT:-}"
-EKS_DX_API_URL="${EKS_DX_API_URL:-}"
+# ECP_ENDPOINT  — Lambda Function URL base (e.g. https://<id>.lambda-url.us-east-1.on.aws)
+# ECP_API_URL   — API Gateway URL (e.g. https://<id>.execute-api.us-east-1.amazonaws.com/prod)
+ECP_ENDPOINT="${ECP_ENDPOINT:-}"
+ECP_API_URL="${ECP_API_URL:-}"
 
 if [ -z "${TENANT_ID}" ] || [ -z "${CLUSTER_NAME}" ]; then
   echo "Error: TENANT_ID and CLUSTER_NAME are required (pass as args or set in /opt/eks-d/cluster.env)"
@@ -72,16 +72,16 @@ echo "Developer: ${TENANT_ID}"
 echo "Cluster: ${CLUSTER_NAME}"
 
 # Verify installation scripts are available
-if [ ! -d /opt/eks-d-setup ]; then
-  echo "Error: /opt/eks-d-setup directory not found"
+if [ ! -d /opt/cluster-setup ]; then
+  echo "Error: /opt/cluster-setup directory not found"
   echo "Installation scripts should be copied during AMI build"
   exit 1
 fi
 
 # Run boot-time cluster setup
 echo "Starting EKS-D cluster setup..."
-cd /opt/eks-d-setup
-bash setup-eks-d.sh 2>&1 | tee /var/log/eks-dx-install-all.log
+cd /opt/cluster-setup
+bash setup-eks-d.sh 2>&1 | tee /var/log/ecp-install-all.log
 
 # Copy kubeconfig for the login user (cloud-init runs as root; ec2-user needs access too)
 LOGIN_USER="ec2-user"
@@ -98,7 +98,7 @@ touch /opt/eks-d/.installation_complete
 echo "$(date): Installation completed successfully" >> /opt/eks-d/.installation_complete
 
 echo "=========================================="
-echo "✓ EKS-DX Workstation Boot Completed"
+echo "✓ Express Compute Workstation Boot Completed"
 echo "Time: $(date)"
 echo "=========================================="
 

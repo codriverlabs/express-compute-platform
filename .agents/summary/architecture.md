@@ -88,7 +88,7 @@ graph LR
 ## Security Architecture
 
 The system implements defense-in-depth security:
-- **IAM**: Pod Identity and IRSA for workload authentication
+- **IAM**: Workload Identity and IRSA for workload authentication
 - **Network**: VPC isolation with security groups
 - **Authentication**: AWS IAM Authenticator integration
 - **Authorization**: Kubernetes RBAC

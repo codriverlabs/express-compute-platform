@@ -13,7 +13,7 @@
 ### Dependency Graph
 ```mermaid
 graph TB
-    subgraph "EKS-D-Xpress"
+    subgraph "Express Compute"
         A[Control Plane]
         B[Worker Nodes]
     end

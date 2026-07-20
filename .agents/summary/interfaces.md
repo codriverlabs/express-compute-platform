@@ -6,7 +6,7 @@
 
 ```mermaid
 graph TB
-    subgraph "EKS-D-Xpress"
+    subgraph "Express Compute"
         A[Control Plane]
         B[Worker Nodes]
         C[Karpenter]
@@ -33,7 +33,7 @@ graph TB
 
 **Integration Details**:
 - **EC2**: Instance provisioning, AMI management, Security Groups
-- **IAM**: Pod Identity, IRSA, service authentication
+- **IAM**: Workload Identity, IRSA, service authentication
 - **EBS**: Persistent volume provisioning via CSI driver
 - **VPC**: Network isolation and CNI integration
 - **CloudWatch**: Metrics, logs, and monitoring data
@@ -70,9 +70,9 @@ sequenceDiagram
 
 ### CDK Stack Interface
 ```java
-// EksDXpressPackerIamStack.java interface
-public class EksDXpressPackerIamStack extends Stack {
-    public EksDXpressPackerIamStack(Construct scope, String id, StackProps props)
+// EcpPackerIamStack.java interface
+public class EcpPackerIamStack extends Stack {
+    public EcpPackerIamStack(Construct scope, String id, StackProps props)
     // Creates IAM roles and policies for Packer and EKS-D
 }
 ```
@@ -111,7 +111,7 @@ fail()            # Handle component failure
 
 ### Authentication Interface
 - **AWS IAM Authenticator**: Integrates AWS IAM with Kubernetes RBAC
-- **Pod Identity**: Direct IAM role association for pods
+- **Workload Identity**: Direct IAM role association for pods
 - **IRSA**: IAM Roles for Service Accounts (legacy compatibility)
 
 ## Network Interfaces

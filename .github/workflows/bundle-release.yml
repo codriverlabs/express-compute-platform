@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       control_plane_version:
-        description: 'eks-d-xpress-control-plane release tag (e.g. v1.0.3-rc20)'
+        description: 'express-compute-control-plane release tag (e.g. v1.0.3-rc20)'
         required: true
       infra_version:
-        description: 'eks-d-xpress-infra release tag (e.g. v1.0.0)'
+        description: 'express-compute-managed-k8s-infra release tag (e.g. v1.0.0)'
         required: true
       release_version:
-        description: 'eks-d-xpress release tag to pull ami-manifest.json from (e.g. v1.0.3)'
+        description: 'express-compute release tag to pull ami-manifest.json from (e.g. v1.0.3)'
         required: true
       bundle_tag:
         description: 'Bundle image tag (e.g. v1.0.3)'
@@ -22,7 +22,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io/plasticity-of-cloud
-  IMAGE_NAME: eks-d-xpress-bundle
+  IMAGE_NAME: express-compute-bundle
 
 jobs:
   build-bundle:
@@ -49,21 +49,21 @@ jobs:
 
           # CDK full source
           gh release download "${CP_VERSION}" \
-            --repo plasticity-of-cloud/eks-d-xpress-control-plane \
-            --pattern "eks-d-xpress-control-plane-${VER}.tar.gz" --dir /tmp
+            --repo plasticity-of-cloud/express-compute-control-plane \
+            --pattern "express-compute-control-plane-${VER}.tar.gz" --dir /tmp
           mkdir -p build/control-plane-cdk
-          tar xzf /tmp/eks-d-xpress-control-plane-${VER}.tar.gz -C build/control-plane-cdk --strip-components=1
+          tar xzf /tmp/express-compute-control-plane-${VER}.tar.gz -C build/control-plane-cdk --strip-components=1
 
           # CLI binary (arch-specific)
           gh release download "${CP_VERSION}" \
-            --repo plasticity-of-cloud/eks-d-xpress-control-plane \
-            --pattern "eks-dx-cli-${VER}-linux-${{ matrix.arch }}" --dir build
-          mv build/eks-dx-cli-${VER}-linux-${{ matrix.arch }} build/eks-dx-cli
+            --repo plasticity-of-cloud/express-compute-control-plane \
+            --pattern "ecp-cli-${VER}-linux-${{ matrix.arch }}" --dir build
+          mv build/ecp-cli-${VER}-linux-${{ matrix.arch }} build/ecp-cli
 
           # Helm charts
           gh release download "${CP_VERSION}" \
-            --repo plasticity-of-cloud/eks-d-xpress-control-plane \
-            --pattern "eks-d-xpress-*.tar.gz" --dir build/helm
+            --repo plasticity-of-cloud/express-compute-control-plane \
+            --pattern "express-compute-*.tar.gz" --dir build/helm
 
       - name: Download infra release artifacts
         env:
@@ -72,21 +72,21 @@ jobs:
         run: |
           VER="${INFRA_VERSION#v}"
           gh release download "${INFRA_VERSION}" \
-            --repo plasticity-of-cloud/eks-d-xpress-infra \
-            --pattern "eks-d-xpress-infra-${VER}.tar.gz" --dir /tmp
+            --repo plasticity-of-cloud/express-compute-managed-k8s-infra \
+            --pattern "express-compute-managed-k8s-infra-${VER}.tar.gz" --dir /tmp
           mkdir -p build/infra-cdk
-          tar xzf /tmp/eks-d-xpress-infra-${VER}.tar.gz -C build/infra-cdk
+          tar xzf /tmp/express-compute-managed-k8s-infra-${VER}.tar.gz -C build/infra-cdk
 
       - name: Download AMI manifest and signing assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release download "${{ inputs.release_version }}" \
-            --repo plasticity-of-cloud/eks-d-xpress \
+            --repo plasticity-of-cloud/express-compute \
             --pattern 'ami-manifest.json' \
             --pattern 'ami-signatures.json' \
             --dir build
-          cp ami-builder/eks-d-xpress-ami-signing.pub.pem build/eks-d-xpress-ami-signing.pub.pem
+          cp ami-builder/express-compute-ami-signing.pub.pem build/express-compute-ami-signing.pub.pem
 
       - name: Stage build context
         run: |

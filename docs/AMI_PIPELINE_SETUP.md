@@ -8,11 +8,11 @@ attestation with KMS, and generates an SPDX SBOM of the installed filesystem.
 
 ```
 GitHub Actions (OIDC)
-  └─ assume eks-d-xpress-packer-ci (IAM role)
+  └─ assume express-compute-packer-ci (IAM role)
        ├─ Packer builds EC2 builder instance
        │    └─ temporary instance profile (ECR pull-through access)
        ├─ syft generates SBOM → downloaded as artifact
-       ├─ AMI ID written to SSM /eks-d-xpress/infra/ami/{arch}/{version}
+       ├─ AMI ID written to SSM /express-compute/infra/ami/{arch}/{version}
        └─ KMS signs attestation → signature in SSM + AMI tag
 ```
 
@@ -23,7 +23,7 @@ Run once per AWS account. Requires `AdministratorAccess` or equivalent.
 ```bash
 export AWS_REGION=us-east-1
 export GITHUB_ORG=plasticity-of-cloud
-export GITHUB_REPO=eks-d-xpress   # optional, defaults to eks-d-xpress
+export GITHUB_REPO=express-compute   # optional, defaults to express-compute
 
 ./ami-builder/setup-iam.sh
 ```
@@ -33,20 +33,20 @@ The script creates:
 | Resource | Name/Path |
 |---|---|
 | IAM OIDC provider | `token.actions.githubusercontent.com` |
-| IAM role | `eks-d-xpress-packer-ci` |
-| KMS signing key | `alias/eks-d-xpress-ami-signing` (RSA 4096, SIGN_VERIFY) |
-| SSM parameter | `/eks-d-xpress/infra/kms/ami-signing-key-arn` |
+| IAM role | `express-compute-packer-ci` |
+| KMS signing key | `alias/express-compute-ami-signing` (RSA 4096, SIGN_VERIFY) |
+| SSM parameter | `/express-compute/infra/kms/ami-signing-key-arn` |
 
 At the end the script prints the values to add to GitHub:
 
 | GitHub setting | Value |
 |---|---|
 | Variable `AWS_REGION` | e.g. `us-east-1` |
-| Secret `AWS_PACKER_ROLE_ARN` | `arn:aws:iam::ACCOUNT:role/eks-d-xpress-packer-ci` |
+| Secret `AWS_PACKER_ROLE_ARN` | `arn:aws:iam::ACCOUNT:role/express-compute-packer-ci` |
 
 ## IAM least-privilege model
 
-### GitHub Actions role (`eks-d-xpress-packer-ci`)
+### GitHub Actions role (`express-compute-packer-ci`)
 
 Packer requires broad EC2 permissions by design (it creates instances, volumes,
 snapshots, security groups, key pairs). The role is scoped to the minimum
@@ -57,22 +57,22 @@ Packer documents as required:
 - **IAM**: scoped to `packer-*` resource prefix only — Packer creates a
   temporary instance profile for the builder instance; no other IAM paths
   are accessible
-- **SSM**: write/read restricted to `parameter/eks-d-xpress/*`
-- **KMS sign**: restricted to keys tagged `Usage=eks-d-xpress-ami-signing`
+- **SSM**: write/read restricted to `parameter/express-compute/*`
+- **KMS sign**: restricted to keys tagged `Usage=express-compute-ami-signing`
 
 The trust policy restricts `AssumeRoleWithWebIdentity` to:
 - Audience: `sts.amazonaws.com`  
-- Subject: `repo:plasticity-of-cloud/eks-d-xpress:*` (any branch/tag/PR)
+- Subject: `repo:plasticity-of-cloud/express-compute:*` (any branch/tag/PR)
 
 Narrow to a specific branch for production accounts:
 ```json
 "StringEquals": {
   "token.actions.githubusercontent.com:sub":
-    "repo:plasticity-of-cloud/eks-d-xpress:ref:refs/heads/main"
+    "repo:plasticity-of-cloud/express-compute:ref:refs/heads/main"
 }
 ```
 
-### Builder instance profile (inline in `eks-d-xpress.pkr.hcl`)
+### Builder instance profile (inline in `express-compute.pkr.hcl`)
 
 The temporary EC2 instance that packer SSHes into only receives:
 - ECR pull-through cache access (read-only)
@@ -100,7 +100,7 @@ pipeline implements it via KMS attestation:
 
 3. Stores the base64 signature in SSM:
    ```
-   /eks-d-xpress/infra/ami/{arch}/{k8s_version}/signature
+   /express-compute/infra/ami/{arch}/{k8s_version}/signature
    ```
 
 4. Tags the AMI:
@@ -126,7 +126,7 @@ ATTESTATION=$(aws ec2 describe-images --region "$REGION" \
 
 # 2. Retrieve signature and key ARN
 SIG=$(aws ssm get-parameter --region "$REGION" \
-  --name "/eks-d-xpress/infra/ami/${ARCH}/${K8S_VERSION}/signature" \
+  --name "/express-compute/infra/ami/${ARCH}/${K8S_VERSION}/signature" \
   --query 'Parameter.Value' --output text)
 
 KEY_ARN=$(aws ec2 describe-images --region "$REGION" \

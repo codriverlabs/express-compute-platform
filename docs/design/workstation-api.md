@@ -1,12 +1,12 @@
 # Workstation API — Design Document
 
 > ⚠️ **Historical design document.** The Lambda-based provisioner described here has been
-> implemented in the `eks-d-xpress-control-plane` repository (`TenantEc2Service`). References
+> implemented in the `express-compute-control-plane` repository (`TenantEc2Service`). References
 > to `terraform/api/` and per-developer Terraform are obsolete — Terraform is no longer used.
 
 ## Overview
 
-Replace per-developer Terraform with a self-service API. A Lambda function behind a private API Gateway provisions EKS-DX workstations from a Launch Template.
+Replace per-developer Terraform with a self-service API. A Lambda function behind a private API Gateway provisions Express Compute workstations from a Launch Template.
 
 ## Architecture
 
@@ -36,10 +36,10 @@ Defines the complete EC2 configuration. One template per architecture (x86_64, a
 
 | Field | Value |
 |-------|-------|
-| AMI | Resolved from SSM `/eks-dx/ami/{region}/{k8s-version}/{arch}` |
+| AMI | Resolved from SSM `/ecp/ami/{region}/{k8s-version}/{arch}` |
 | Instance type | `m6a.large` (x86_64) / `m6g.large` (arm64) |
-| Instance profile | `eks-dx-workstation` (shared role) |
-| Security group | `eks-dx-workstation-sg` |
+| Instance profile | `ecp-workstation` (shared role) |
+| Security group | `ecp-workstation-sg` |
 | Key pair | Per-developer (pre-created or generated on first request) |
 | User data | Calls `workstation-boot.sh` with developer signum |
 | Root volume | 50 GB gp3 |
@@ -109,7 +109,7 @@ Describe instance (EC2 API) + DynamoDB record. Returns current state, public IP,
 
 ## DynamoDB Table
 
-**Table name:** `eks-dx-workstations`  
+**Table name:** `ecp-workstations`  
 **Partition key:** `username` (String)  
 **Sort key:** `arch` (String)
 
@@ -126,7 +126,7 @@ Describe instance (EC2 API) + DynamoDB record. Returns current state, public IP,
 
 ## IAM Roles
 
-### Lambda Execution Role (`eks-dx-api-lambda`)
+### Lambda Execution Role (`ecp-api-lambda`)
 
 ```json
 {
@@ -152,7 +152,7 @@ Scoped down in production:
 - `iam:PassRole` restricted to workstation instance profile role ARN
 - DynamoDB restricted to table ARN
 
-### Workstation Instance Role (`eks-dx-workstation`)
+### Workstation Instance Role (`ecp-workstation`)
 
 Same as current — ECR pull, SSM, SQS (Karpenter), EC2 (Karpenter node management).
 
@@ -161,7 +161,7 @@ Same as current — ECR pull, SSM, SQS (Karpenter), EC2 (Karpenter node manageme
 - **Type:** REST API, private (VPC endpoint)
 - **Auth:** IAM authorization (SigV4) — callers need `execute-api:Invoke`
 - **VPC Endpoint:** Interface endpoint for `execute-api` in the shared VPC
-- **Custom domain:** Optional (`workstations.eks-dx.internal`)
+- **Custom domain:** Optional (`workstations.ecp.internal`)
 
 ## User Data
 
@@ -169,7 +169,7 @@ Minimal — just invokes the pre-baked boot script:
 
 ```bash
 #!/bin/bash
-/opt/eks-d-setup/workstation-boot.sh "${DEVELOPER_USERNAME}"
+/opt/cluster-setup/workstation-boot.sh "${DEVELOPER_USERNAME}"
 ```
 
 The username is injected by Lambda as a Launch Template override.
@@ -177,7 +177,7 @@ The username is injected by Lambda as a Launch Template override.
 ## Directory Structure
 
 ```
-ecp-eks-dx-infra/
+ecp-ecp-infra/
 ├── terraform/
 │   ├── main.tf                  # Existing workstation infra (to be replaced)
 │   ├── vpc/                     # Shared VPC (unchanged)

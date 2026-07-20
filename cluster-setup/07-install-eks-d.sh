@@ -34,15 +34,15 @@ echo "Fetching PKI material from Secrets Manager..."
 sudo mkdir -p /etc/kubernetes/pki
 
 aws secretsmanager get-secret-value \
-  --secret-id "eks-dx/tenant/${TENANT_ID}/ca-key" \
+  --secret-id "ecp/tenant/${TENANT_ID}/ca-key" \
   --query SecretString --output text | sudo tee /etc/kubernetes/pki/ca.key > /dev/null
 
 aws secretsmanager get-secret-value \
-  --secret-id "eks-dx/tenant/${TENANT_ID}/ca-crt" \
+  --secret-id "ecp/tenant/${TENANT_ID}/ca-crt" \
   --query SecretString --output text | sudo tee /etc/kubernetes/pki/ca.crt > /dev/null
 
 aws secretsmanager get-secret-value \
-  --secret-id "eks-dx/tenant/${TENANT_ID}/sa-key" \
+  --secret-id "ecp/tenant/${TENANT_ID}/sa-key" \
   --query SecretString --output text | sudo tee /etc/kubernetes/pki/sa.key > /dev/null
 
 sudo openssl rsa -in /etc/kubernetes/pki/sa.key -pubout -out /etc/kubernetes/pki/sa.pub 2>/dev/null
@@ -77,7 +77,7 @@ apiServer:
   extraArgs:
     authentication-token-webhook-config-file: /etc/kubernetes/aws-iam-authenticator/kubeconfig.yaml
     enable-admission-plugins: NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook
-    service-account-issuer: "https://eks-dx.codriverlabs.ai/clusters/${TENANT_ID}"
+    service-account-issuer: "https://ecp.codriverlabs.ai/clusters/${TENANT_ID}"
   extraVolumes:
     - name: aws-iam-authenticator
       hostPath: /etc/kubernetes/aws-iam-authenticator

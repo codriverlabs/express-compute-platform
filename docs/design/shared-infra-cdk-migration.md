@@ -1,8 +1,8 @@
 # Shared Infrastructure — Terraform to CDK (Java) Migration
 
-> ⚠️ **Historical.** This migration has been completed in the `eks-d-xpress-infra` repository
-> (`EksDxSharedInfraStack`). Terraform is gone. This document is kept for reference.
-> Note: SSM paths below use `/eks-dx/` — the deployed prefix is `/eks-d-xpress/`.
+> ⚠️ **Historical.** This migration has been completed in the `express-compute-managed-k8s-infra` repository
+> (`EcpSharedInfraStack`). Terraform is gone. This document is kept for reference.
+> Note: SSM paths below use `/ecp/` — the deployed prefix is `/express-compute/`.
 
 ## Overview
 
@@ -36,7 +36,7 @@ All resources in `terraform/vpc/main.tf`:
 
 ## CDK Stack Design
 
-### Stack: `EksDxSharedInfraStack`
+### Stack: `EcpSharedInfraStack`
 
 Single stack, one per region. Parameterised via CDK context or environment variables.
 
@@ -44,7 +44,7 @@ Single stack, one per region. Parameterised via CDK context or environment varia
 
 | Key | Default | Description |
 |---|---|---|
-| `projectName` | `eks-dx` | Resource name prefix |
+| `projectName` | `ecp` | Resource name prefix |
 | `instanceTypeArm64` | `m7g.large` | Default arm64 control plane instance type |
 | `instanceTypeX86_64` | `m7i.large` | Default x86_64 control plane instance type |
 | `diskSizeGb` | `20` | Root volume size for launch templates |
@@ -61,20 +61,20 @@ CDK's `ec2.Vpc` creates IGW, route tables, and NAT gateway automatically when
 CIDR must be `10.0.0.0/16` to match the existing tenant subnet allocation scheme
 (`10.0.<index>.0/24` for public, `10.0.<100+index>.0/24` for private).
 
-The VPC must be tagged `Name: eks-dx-shared-vpc` — tenant Terraform discovers it by
+The VPC must be tagged `Name: ecp-shared-vpc` — tenant Terraform discovers it by
 this tag via `data "aws_vpc"`.
 
 ### Route Tables
 
 Tenant Terraform looks up route tables by name tag:
-- `eks-dx-public-rt`
-- `eks-dx-private-rt`
+- `ecp-public-rt`
+- `ecp-private-rt`
 
 These tags must be preserved exactly in CDK.
 
 ### VPC Flow Logs
 
-The existing log group `/aws/vpc/<region>/eks-dx-flow-logs` may already exist with
+The existing log group `/aws/vpc/<region>/ecp-flow-logs` may already exist with
 retained logs. On first CDK deploy, import it using a CDK custom resource or
 `CfnInclude`, or simply let CDK create it (CloudFormation will fail if it already
 exists — use `RemovalPolicy.RETAIN` and handle the import).
@@ -118,10 +118,10 @@ reads instance tags).
 After creating each launch template, write its ID to SSM:
 
 ```
-/eks-dx/launch-template/arm64/spot
-/eks-dx/launch-template/arm64/ondemand
-/eks-dx/launch-template/x86_64/spot
-/eks-dx/launch-template/x86_64/ondemand
+/ecp/launch-template/arm64/spot
+/ecp/launch-template/arm64/ondemand
+/ecp/launch-template/x86_64/spot
+/ecp/launch-template/x86_64/ondemand
 ```
 
 Use `ssm.StringParameter` with `parameterName` set explicitly.
@@ -132,8 +132,8 @@ Use `ssm.StringParameter` with `parameterName` set explicitly.
 
 ### Phase 1 — CDK stack alongside Terraform (no cutover yet)
 
-1. Create CDK app in `eks-dx-control-plane` (or a new `ecp-eks-dx-shared-infra-cdk` module).
-2. Implement `EksDxSharedInfraStack` covering all resources above.
+1. Create CDK app in `ecp-control-plane` (or a new `ecp-ecp-shared-infra-cdk` module).
+2. Implement `EcpSharedInfraStack` covering all resources above.
 3. Deploy to a **fresh region** (not the region where Terraform state exists) to validate.
 4. Verify SSM parameters are written correctly and tenant provisioning works end-to-end.
 
@@ -167,8 +167,8 @@ Replace `provision-shared-infra.sh` with:
 #!/bin/bash
 set -euo pipefail
 REGION="${1:-us-east-1}"
-cdk deploy EksDxSharedInfraStack \
-  --context projectName=eks-dx \
+cdk deploy EcpSharedInfraStack \
+  --context projectName=ecp \
   --region "${REGION}" \
   --require-approval never
 ```
@@ -179,7 +179,7 @@ cdk deploy EksDxSharedInfraStack \
 
 The following remain outside this stack:
 
-- **Tenant resources** (IAM role, SG, subnets, SQS, EC2) — migrating to Lambda in `eks-dx-control-plane`
-- **AMI SSM parameters** (`/eks-dx/ami/<arch>/<k8s_version>`) — written by Packer, not infrastructure
+- **Tenant resources** (IAM role, SG, subnets, SQS, EC2) — migrating to Lambda in `ecp-control-plane`
+- **AMI SSM parameters** (`/ecp/ami/<arch>/<k8s_version>`) — written by Packer, not infrastructure
 - **NodePool Helm chart** — applied on the EC2 instance at boot time
-- **SSM Documents** (`eks-dx-status-*`, `eks-dx-bootstrap-*`) — currently in `terraform/ssm-documents.tf`, can move to CDK separately or to `eks-dx-control-plane`
+- **SSM Documents** (`ecp-status-*`, `ecp-bootstrap-*`) — currently in `terraform/ssm-documents.tf`, can move to CDK separately or to `ecp-control-plane`

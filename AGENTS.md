@@ -1,16 +1,16 @@
-# EKS-D-Xpress - AI Agent Context Guide
+# Express Compute - AI Agent Context Guide
 
 ## Project Overview
 
-EKS-D-Xpress is a rapid Kubernetes deployment system that creates EKS-compatible clusters with Karpenter autoscaling in under 3 minutes. The system combines infrastructure automation (AWS CDK), custom AMI building (Packer), and streamlined EKS-D installation to deliver production-ready clusters quickly.
+Express Compute is a rapid Kubernetes deployment system that creates EKS-compatible clusters with Karpenter autoscaling in under 3 minutes. The system combines infrastructure automation (AWS CDK), custom AMI building (Packer), and streamlined EKS-D installation to deliver production-ready clusters quickly.
 
 ## Repository Structure and Navigation
 
 ### Core Directories
 ```
-eks-d-xpress/
+express-compute/
 ├── ami-builder/          # AMI creation and signing (Packer + Java CDK)
-├── eks-d-setup/          # Sequential installation scripts (05-17)  
+├── cluster-setup/          # Sequential installation scripts (05-17)  
 ├── node-pools/           # Karpenter node pool configuration
 ├── monitoring/           # CloudWatch and metrics setup
 ├── docs/                 # Project documentation
@@ -18,8 +18,8 @@ eks-d-xpress/
 ```
 
 ### Key Entry Points
-- **`ami-builder/eks-d-xpress.pkr.hcl`**: Packer configuration for golden AMI
-- **`eks-d-setup/setup-eks-d.sh`**: Master installation orchestrator (~135 lines)
+- **`ami-builder/express-compute.pkr.hcl`**: Packer configuration for golden AMI
+- **`cluster-setup/setup-eks-d.sh`**: Master installation orchestrator (~135 lines)
 - **`ami-builder/scripts/install.sh`**: Comprehensive AMI provisioning (~257 lines)
 - **`DEPLOYMENT_GUIDE.md`**: Redirect — see `docs/user-guides/deployment.md`
 - **`COMPONENT_VERSIONS.md`**: Pinned component versions and compatibility
@@ -36,10 +36,10 @@ The system uses a three-phase approach:
 05-prepare-etcd.sh → 06-install-aws-iam-authenticator.sh → 07-install-eks-d.sh → 
 08-install-cni.sh → 09-install-cloud-provider.sh → 10-configure-node.sh →
 11-install-cert-manager.sh → 11b-install-kubelet-csr-approver.sh → 
-12-install-eks-dx-pod-identity.sh → 13-install-ebs-csi.sh → 
+12-install-ecp-workload-identity.sh → 13-install-ebs-csi.sh → 
 14-install-metrics-server.sh → 15-install-karpenter.sh → 
 16-install-cloudwatch.sh → 17-monitor-cloudwatch-rollout.sh →
-18-install-eks-dx-karpenter-support.sh
+18-install-ecp-karpenter-support.sh
 ```
 
 ## Repo-Specific Tools and Patterns
@@ -48,17 +48,17 @@ The system uses a three-phase approach:
 - **AMI Builder**: `ami-builder/build-golden-amis.sh` - orchestrates Packer builds
 - **CDK Stack**: `ami-builder/cdk/` - Java CDK for IAM role management  
 - **Cleanup Tools**: `ami-builder/cleanup-amis.sh` - removes old AMIs
-- **Progress Tracking**: `eks-d-setup/progress.sh` - installation progress functions
+- **Progress Tracking**: `cluster-setup/progress.sh` - installation progress functions
 
 ### Configuration Management
 - **Component Versions**: Centralized in `COMPONENT_VERSIONS.md` with compatibility matrix
 - **EKS-D Discovery**: `ami-builder/scripts/discover-eks-d.sh` - finds latest releases
 - **Image Pre-loading**: `ami-builder/scripts/extract-images.py` - container image extraction
-- **Reset Capability**: `eks-d-setup/reset-cluster.sh` - cluster cleanup and reset
+- **Reset Capability**: `cluster-setup/reset-cluster.sh` - cluster cleanup and reset
 
 ### Security Patterns
 - **AMI Signing**: Cryptographic signing of golden AMIs
-- **Pod Identity**: EKS Pod Identity integration (newer than IRSA)
+- **Workload Identity**: EKS Workload Identity integration (newer than IRSA)
 - **CSR Automation**: Kubelet certificate signing automation
 - **IAM Integration**: AWS IAM Authenticator for cluster authentication
 
@@ -99,13 +99,13 @@ The system uses a three-phase approach:
 - Error handling with exit codes and logging
 
 ### Java (CDK Components)  
-- **`EksDXpressPackerIamStack.java`**: IAM stack solely for provisioning infrastructure that allows Packer to execute AMI builds via GitHub Actions (GitHub → AWS connection)
+- **`EcpPackerIamStack.java`**: IAM stack solely for provisioning infrastructure that allows Packer to execute AMI builds via GitHub Actions (GitHub → AWS connection)
 - CDK is **not** used for cluster infrastructure — its only role is pre-build setup (IAM roles, OIDC trust, instance profiles) enabling Packer to run in AWS from GitHub CI
 - Maven-based build system
 - AWS CDK v2 constructs for infrastructure
 
 ### HCL (Packer)
-- **`eks-d-xpress.pkr.hcl`**: Packer configuration with provisioners
+- **`express-compute.pkr.hcl`**: Packer configuration with provisioners
 - Shell script provisioning chain
 - AMI metadata and tagging
 
@@ -127,7 +127,7 @@ The system uses a three-phase approach:
 
 1. **Infrastructure Setup**: Configure CDK in `ami-builder/cdk/` directory
 2. **AMI Building**: Run `ami-builder/build-golden-amis.sh` 
-3. **Cluster Deployment**: Execute `eks-d-setup/setup-eks-d.sh`
+3. **Cluster Deployment**: Execute `cluster-setup/setup-eks-d.sh`
 4. **Node Configuration**: Use `node-pools/configure-nodepools.sh`
 
 ## Custom Instructions

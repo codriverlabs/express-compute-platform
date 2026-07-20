@@ -8,7 +8,7 @@ RUN dnf install -y nodejs22 aws-cli unzip tar gzip findutils less && dnf clean a
 RUN npm install -g aws-cdk \
     && curl -sL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-WORKDIR /opt/eks-dx
+WORKDIR /opt/ecp
 
 # Infra: pre-synthesized cdk.out bundled in release tarball
 COPY infra-cdk/ ./
@@ -19,14 +19,14 @@ COPY control-plane-cdk/ ./control-plane/
 # AMI manifest + signing public key + signatures (for verify-ami / import-ami)
 COPY ami-manifest.json ./ami-manifest.json
 COPY ami-signatures.json ./ami-signatures.json
-COPY eks-d-xpress-ami-signing.pub.pem ./eks-d-xpress-ami-signing.pub.pem
+COPY express-compute-ami-signing.pub.pem ./express-compute-ami-signing.pub.pem
 
 # Helm charts
 COPY helm/ ./helm/
 
 # CLI binary (arch-matched via buildx)
-COPY eks-dx-cli ./bin/eks-dx
-RUN chmod +x ./bin/eks-dx
+COPY ecp-cli ./bin/ecp
+RUN chmod +x ./bin/ecp
 
 # AMI utility scripts
 COPY verify-ami.sh  ./bin/verify-ami.sh
@@ -37,7 +37,7 @@ RUN chmod +x ./bin/verify-ami.sh ./bin/import-ami.sh
 COPY deploy.sh ./deploy.sh
 RUN chmod +x ./deploy.sh
 
-ENV PATH="${PATH}:/opt/eks-dx/bin"
+ENV PATH="${PATH}:/opt/ecp/bin"
 
-ENTRYPOINT ["/opt/eks-dx/deploy.sh"]
+ENTRYPOINT ["/opt/ecp/deploy.sh"]
 CMD ["--help"]

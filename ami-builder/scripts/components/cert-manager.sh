@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 source /tmp/ami-build.env
-CHARTS_DIR="/opt/eks-d-setup/charts"
+CHARTS_DIR="/opt/cluster-setup/charts"
 
 echo "  Pulling cert-manager chart (${CERT_MANAGER_VERSION})..."
 helm repo add jetstack https://charts.jetstack.io --force-update 2>/dev/null

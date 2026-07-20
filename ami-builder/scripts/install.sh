@@ -6,7 +6,7 @@ set -e
 # Component-specific chart/image pulls live in scripts/components/*.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EKS_D_SETUP_DIR="/tmp/eks-d-setup"
+EKS_D_SETUP_DIR="/tmp/cluster-setup"
 
 KUBERNETES_VERSION="${KUBERNETES_VERSION:-1.35}"
 EKS_VERSION="${KUBERNETES_VERSION}"
@@ -25,12 +25,12 @@ echo "EKSD_VERSION=${EKSD_DOTTED}" | sudo tee -a /opt/eks-d/version.env
 
 VERSIONS_ENV="${SCRIPT_DIR}/component-versions.env"
 [ -f "$VERSIONS_ENV" ] && source "$VERSIONS_ENV"
-: "${EKS_DX_CONTROL_PLANE_VERSION:?component-versions.env missing or EKS_DX_CONTROL_PLANE_VERSION not set}"
-echo "EKS_DX_CONTROL_PLANE_VERSION=${EKS_DX_CONTROL_PLANE_VERSION}" | sudo tee -a /opt/eks-d/version.env
-echo "INSTALL_EKS_DX=${INSTALL_EKS_DX:-false}" | sudo tee -a /opt/eks-d/version.env
+: "${ECP_CONTROL_PLANE_VERSION:?component-versions.env missing or ECP_CONTROL_PLANE_VERSION not set}"
+echo "ECP_CONTROL_PLANE_VERSION=${ECP_CONTROL_PLANE_VERSION}" | sudo tee -a /opt/eks-d/version.env
+echo "INSTALL_ECP=${INSTALL_ECP:-false}" | sudo tee -a /opt/eks-d/version.env
 echo "CERT_MANAGER_VERSION=${CERT_MANAGER_VERSION}" | sudo tee -a /opt/eks-d/version.env
 echo "KARPENTER_VERSION=${KARPENTER_VERSION}" | sudo tee -a /opt/eks-d/version.env
-export EKS_DX_CONTROL_PLANE_VERSION INSTALL_EKS_DX
+export ECP_CONTROL_PLANE_VERSION INSTALL_ECP
 
 # ── 2. Binary installation ────────────────────────────────────────────────────
 echo "==> Pre-installing EKS-D binaries (kubeadm, kubelet, kubectl)..."
@@ -57,15 +57,15 @@ tar -xzf /tmp/syft.tar.gz -C /tmp syft
 sudo install -o root -g root -m 0755 /tmp/syft /usr/local/bin/syft
 rm -f /tmp/syft.tar.gz /tmp/syft
 
-echo "==> Installing eks-dx CLI..."
-if [[ "${INSTALL_EKS_DX:-false}" == "true" ]]; then
-  EKS_DX_CLI_URL="https://github.com/plasticity-of-cloud/eks-d-xpress-control-plane/releases/download/v${EKS_DX_CONTROL_PLANE_VERSION}/eks-dx-cli-${EKS_DX_CONTROL_PLANE_VERSION}-linux-${ARCH}"
-  curl -fsSL "$EKS_DX_CLI_URL" -o /tmp/eks-dx
-  sudo install -o root -g root -m 0755 /tmp/eks-dx /usr/local/bin/eks-dx
-  rm -f /tmp/eks-dx
-  echo "✓ eks-dx CLI installed"
+echo "==> Installing ecp CLI..."
+if [[ "${INSTALL_ECP:-false}" == "true" ]]; then
+  ECP_CLI_URL="https://github.com/plasticity-of-cloud/express-compute-control-plane/releases/download/v${ECP_CONTROL_PLANE_VERSION}/ecp-cli-${ECP_CONTROL_PLANE_VERSION}-linux-${ARCH}"
+  curl -fsSL "$ECP_CLI_URL" -o /tmp/ecp
+  sudo install -o root -g root -m 0755 /tmp/ecp /usr/local/bin/ecp
+  rm -f /tmp/ecp
+  echo "✓ ecp CLI installed"
 else
-  echo "  Skipping eks-dx CLI (INSTALL_EKS_DX=false)"
+  echo "  Skipping ecp CLI (INSTALL_ECP=false)"
 fi
 
 # ── 3. System configuration ───────────────────────────────────────────────────
@@ -196,8 +196,8 @@ QUAY_CACHE=${QUAY_CACHE}
 ECR_CTR_USER=AWS:${ECR_PASSWORD}
 REGION=${REGION}
 ACCOUNT_ID=${ACCOUNT_ID}
-INSTALL_EKS_DX=${INSTALL_EKS_DX:-false}
-EKS_DX_CONTROL_PLANE_VERSION=${EKS_DX_CONTROL_PLANE_VERSION}
+INSTALL_ECP=${INSTALL_ECP:-false}
+ECP_CONTROL_PLANE_VERSION=${ECP_CONTROL_PLANE_VERSION}
 GHCR_EKS_D_XPRESS_REGISTRY=${GHCR_EKS_D_XPRESS_REGISTRY:-ghcr.io/plasticity-of-cloud}
 CERT_MANAGER_VERSION=${CERT_MANAGER_VERSION}
 KARPENTER_VERSION=${KARPENTER_VERSION}
@@ -207,16 +207,16 @@ EXTRACT_IMAGES_PY=${SCRIPT_DIR}/extract-images.py
 EOF
 
 # ── 6. Stage files ────────────────────────────────────────────────────────────
-echo "==> Staging eks-d-setup scripts..."
-sudo mkdir -p /opt/eks-d-setup/charts
-sudo cp -r "${EKS_D_SETUP_DIR}"/* /opt/eks-d-setup/
-sudo chmod +x /opt/eks-d-setup/*.sh
+echo "==> Staging cluster-setup scripts..."
+sudo mkdir -p /opt/cluster-setup/charts
+sudo cp -r "${EKS_D_SETUP_DIR}"/* /opt/cluster-setup/
+sudo chmod +x /opt/cluster-setup/*.sh
 
 echo "==> Staging Karpenter node-pools..."
-sudo mkdir -p /opt/eks-d-setup/karpenter
-sudo cp -r /tmp/node-pools/chart /opt/eks-d-setup/karpenter/
-sudo cp /tmp/node-pools/configure-nodepools.sh /opt/eks-d-setup/karpenter/
-sudo chmod +x /opt/eks-d-setup/karpenter/configure-nodepools.sh
+sudo mkdir -p /opt/cluster-setup/karpenter
+sudo cp -r /tmp/node-pools/chart /opt/cluster-setup/karpenter/
+sudo cp /tmp/node-pools/configure-nodepools.sh /opt/cluster-setup/karpenter/
+sudo chmod +x /opt/cluster-setup/karpenter/configure-nodepools.sh
 
 # ── 7. Component scripts ──────────────────────────────────────────────────────
 export AMI_BUILD=true
@@ -231,7 +231,7 @@ for component in \
     vpc-cni \
     cloudwatch \
     system-images \
-    eks-dx; do
+    ecp; do
   echo "==> Component: ${component}"
   bash "${COMPONENTS_DIR}/${component}.sh"
 done
@@ -249,10 +249,10 @@ for prefix in kubernetes etcd-io coredns; do
 done
 
 # ── 9. Final setup ────────────────────────────────────────────────────────────
-echo "==> Installing eks-dx-boot.service..."
-sudo cp /tmp/scripts/eks-dx-boot.service /etc/systemd/system/eks-dx-boot.service
+echo "==> Installing ecp-boot.service..."
+sudo cp /tmp/scripts/ecp-boot.service /etc/systemd/system/ecp-boot.service
 sudo systemctl daemon-reload
-sudo systemctl enable eks-dx-boot.service
+sudo systemctl enable ecp-boot.service
 
 echo "==> Disabling swap..."
 sudo swapoff -a
@@ -270,6 +270,6 @@ done
 
 echo ""
 echo "==> AMI build complete!"
-echo "    Scripts:   /opt/eks-d-setup/"
-echo "    Charts:    /opt/eks-d-setup/charts/"
+echo "    Scripts:   /opt/cluster-setup/"
+echo "    Charts:    /opt/cluster-setup/charts/"
 echo "    Manifests: /opt/eks-d/manifests/"

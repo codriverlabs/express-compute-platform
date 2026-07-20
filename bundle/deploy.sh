@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REGION="${AWS_REGION:-us-east-1}"
-PROJECT_NAME="eks-dx-infra"
+PROJECT_NAME="ecp-infra"
 INSTANCE_TYPE_ARM64="c6g.xlarge"
 INSTANCE_TYPE_X86="m7i.large"
 DISK_SIZE_GB="20"
@@ -11,7 +11,7 @@ ENABLE_NAT_GATEWAY="false"
 
 usage() {
   cat <<EOF
-EKS-D-Xpress Deployment Bundle
+Express Compute Deployment Bundle
 
 Usage:
   deploy.sh deploy [--stack <name>] [--region <region>] [--project-name <n>]
@@ -23,7 +23,7 @@ Usage:
   deploy.sh install-charts [--kubeconfig <path>]
   deploy.sh verify-ami --ami-id <id> [--sig-file <path>]
   deploy.sh import-ami --ami-id <id> --regions <r1,r2> [--src-region <r>]
-  deploy.sh eks-dx <cli-args...>
+  deploy.sh ecp <cli-args...>
   deploy.sh --help
 
 Stacks:
@@ -38,7 +38,7 @@ Examples:
   deploy.sh register-amis --region us-east-1
   deploy.sh verify-ami --ami-id ami-0abc1234def56789
   deploy.sh import-ami --ami-id ami-0abc1234def56789 --regions us-east-1,eu-west-1
-  deploy.sh eks-dx clusters list
+  deploy.sh ecp clusters list
 EOF
   exit 0
 }
@@ -51,23 +51,23 @@ cdk_bootstrap() {
 }
 
 deploy_infra() {
-  echo "==> Deploying EksDxSharedInfraStack"
+  echo "==> Deploying EcpSharedInfraStack"
   cd "${SCRIPT_DIR}/infra"
   cdk deploy --app cdk.out --all --require-approval never \
     --region "${REGION}" \
-    --parameters "EksDxSharedInfraStack:ProjectName=${PROJECT_NAME}" \
-    --parameters "EksDxSharedInfraStack:InstanceTypeArm64=${INSTANCE_TYPE_ARM64}" \
-    --parameters "EksDxSharedInfraStack:InstanceTypeX86=${INSTANCE_TYPE_X86}" \
-    --parameters "EksDxSharedInfraStack:DiskSizeGb=${DISK_SIZE_GB}" \
-    --parameters "EksDxSharedInfraStack:EnableNatGateway=${ENABLE_NAT_GATEWAY}"
+    --parameters "EcpSharedInfraStack:ProjectName=${PROJECT_NAME}" \
+    --parameters "EcpSharedInfraStack:InstanceTypeArm64=${INSTANCE_TYPE_ARM64}" \
+    --parameters "EcpSharedInfraStack:InstanceTypeX86=${INSTANCE_TYPE_X86}" \
+    --parameters "EcpSharedInfraStack:DiskSizeGb=${DISK_SIZE_GB}" \
+    --parameters "EcpSharedInfraStack:EnableNatGateway=${ENABLE_NAT_GATEWAY}"
 }
 
 deploy_control_plane() {
-  echo "==> Deploying EksDXpressControlPlaneStack"
+  echo "==> Deploying EcpControlPlaneStack"
   cd "${SCRIPT_DIR}/control-plane"
   local params=()
-  [[ -n "${DOMAIN_NAME:-}" ]]      && params+=(--parameters "EksDXpressControlPlaneStack:DomainName=${DOMAIN_NAME}")
-  [[ -n "${CERTIFICATE_ARN:-}" ]]  && params+=(--parameters "EksDXpressControlPlaneStack:CertificateArn=${CERTIFICATE_ARN}")
+  [[ -n "${DOMAIN_NAME:-}" ]]      && params+=(--parameters "EcpControlPlaneStack:DomainName=${DOMAIN_NAME}")
+  [[ -n "${CERTIFICATE_ARN:-}" ]]  && params+=(--parameters "EcpControlPlaneStack:CertificateArn=${CERTIFICATE_ARN}")
   cdk deploy --app cdk.out --all --require-approval never \
     --region "${REGION}" "${params[@]}"
 }
@@ -89,7 +89,7 @@ for k8s_ver, arches in manifest.items():
         if not ami_id:
             print(f'  SKIP: No AMI for {arch}/{k8s_ver} in {region}')
             continue
-        param = f'/eks-d-xpress/infra/ami/{arch}/{k8s_ver}'
+        param = f'/express-compute/infra/ami/{arch}/{k8s_ver}'
         subprocess.run([
             'aws', 'ssm', 'put-parameter',
             '--name', param,
@@ -175,7 +175,7 @@ case "$COMMAND" in
   verify-ami)
     exec "${SCRIPT_DIR}/bin/verify-ami.sh" \
       --sig-file "${SCRIPT_DIR}/ami-signatures.json" \
-      --pubkey   "${SCRIPT_DIR}/eks-d-xpress-ami-signing.pub.pem" \
+      --pubkey   "${SCRIPT_DIR}/express-compute-ami-signing.pub.pem" \
       "$@"
     ;;
   import-ami)
@@ -183,8 +183,8 @@ case "$COMMAND" in
       --sig-file "${SCRIPT_DIR}/ami-signatures.json" \
       "$@"
     ;;
-  eks-dx)
-    exec "${SCRIPT_DIR}/bin/eks-dx" "$@"
+  ecp)
+    exec "${SCRIPT_DIR}/bin/ecp" "$@"
     ;;
   *)
     echo "Unknown command: $COMMAND"

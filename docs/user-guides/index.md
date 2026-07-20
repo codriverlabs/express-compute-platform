@@ -1,6 +1,6 @@
 # User Guides
 
-This directory contains user-facing documentation for the EKS-D-Xpress project.
+This directory contains user-facing documentation for the Express Compute project.
 
 ## Available Guides
 

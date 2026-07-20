@@ -37,7 +37,7 @@
 # IAM role mapping
 # ────────────────
 # Both the control-plane EC2 instance and Karpenter worker nodes use the
-# same IAM instance profile: eks-dx-workstation-<signum>.
+# same IAM instance profile: ecp-workstation-<signum>.
 # The authenticator maps that role to:
 #   username: system:node:{{EC2PrivateDNSName}}
 #   groups:   [system:bootstrappers, system:nodes]
@@ -61,7 +61,7 @@ if [ -z "$AWS_ACCOUNT_ID" ] || [ -z "$AWS_REGION" ]; then
 fi
 
 _ARCH="$(uname -m | sed 's/aarch64/arm64/')"
-NODE_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/eks-d-xpress-tenant-${TENANT_ID}-instance-role"
+NODE_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/express-compute-tenant-${TENANT_ID}-instance-role"
 
 # ── EKS-D image registry ──────────────────────────────────────────────────────
 if [ ! -f /opt/eks-d/manifests/eks-d-versions.env ]; then

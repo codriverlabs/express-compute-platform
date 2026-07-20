@@ -1,5 +1,5 @@
 #!/bin/bash
-# progress.sh — SQS FIFO progress reporting for EKS-DX boot scripts.
+# progress.sh — SQS FIFO progress reporting for Express Compute boot scripts.
 # Source this file from workstation-boot.sh or any boot script.
 #
 # Requires: TENANT_ID, AWS_REGION, PROGRESS_QUEUE_URL (from cluster.env)

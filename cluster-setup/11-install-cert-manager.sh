@@ -3,7 +3,7 @@ set -e
 
 # Install cert-manager for TLS certificate lifecycle management.
 # Required by: CloudWatch Observability webhooks, custom admission webhooks,
-# and future EKS Pod Identity Agent integration.
+# and future EKS Workload Identity Agent integration.
 
 # Source component versions from the on-AMI version file (written by AMI builder)
 [ -f /opt/eks-d/version.env ] && source /opt/eks-d/version.env
@@ -12,7 +12,7 @@ set -e
 echo "Installing cert-manager ${CERT_MANAGER_VERSION}..."
 
 # Use pre-cached chart if available
-CHART=$(ls /opt/eks-d-setup/charts/cert-manager-*.tgz 2>/dev/null | head -1)
+CHART=$(ls /opt/cluster-setup/charts/cert-manager-*.tgz 2>/dev/null | head -1)
 if [ -z "$CHART" ]; then
   CHART="jetstack/cert-manager"
   helm repo add jetstack https://charts.jetstack.io --force-update

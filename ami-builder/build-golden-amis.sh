@@ -18,7 +18,7 @@ BUILD_TYPE="${BUILD_TYPE:-internal}"
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo "║   EKS-DX Distribution — Build AMI           ║"
+echo "║   Express Compute Distribution — Build AMI           ║"
 echo "╚══════════════════════════════════════════════╝"
 echo ""
 prompt AWS_REGION         "AWS region"         "us-east-1"

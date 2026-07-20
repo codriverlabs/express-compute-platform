@@ -1,4 +1,4 @@
-package ai.codriverlabs.eksdxpress.packer;
+package ai.codriverlabs.ecppress.packer;
 
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.Stack;
@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Least-privilege IAM infrastructure for the EKS-DX Packer AMI build pipeline.
+ * Least-privilege IAM infrastructure for the ECP Packer AMI build pipeline.
  *
  * Replaces ami-builder/archived/setup-iam.sh with the following fixes over the
  * original script:
@@ -30,9 +30,9 @@ import java.util.Map;
  *   - iam:CreateRole gated on iam:PermissionsBoundary to prevent escalation
  *   - Write actions restricted to the deployment region via aws:RequestedRegion
  */
-public class EksDXpressPackerIamStack extends Stack {
+public class ExpressComputePackerIamStack extends Stack {
 
-    public EksDXpressPackerIamStack(Construct scope, String id, StackProps props) {
+    public ExpressComputePackerIamStack(Construct scope, String id, StackProps props) {
         super(scope, id, props);
 
         String account   = this.getAccount();
@@ -53,7 +53,7 @@ public class EksDXpressPackerIamStack extends Stack {
         // ── Pre-created instance role for Packer builder EC2 instances ────────
         // Using a named instance profile avoids iam:CreateRole/DeleteRole entirely.
         var builderInstanceRole = Role.Builder.create(this, "PackerBuilderInstanceRole")
-                .roleName("eks-d-xpress-packer-builder-instance")
+                .roleName("express-compute-packer-builder-instance")
                 .description("Role assumed by EC2 instances launched by Packer")
                 .assumedBy(new ServicePrincipal("ec2.amazonaws.com"))
                 .build();
@@ -91,7 +91,7 @@ public class EksDXpressPackerIamStack extends Stack {
         builderInstanceRole.addToPolicy(PolicyStatement.Builder.create()
                 .effect(Effect.ALLOW)
                 .actions(List.of("ssm:GetParameter"))
-                .resources(List.of("arn:aws:ssm:*:" + account + ":parameter/eks-d-xpress/*"))
+                .resources(List.of("arn:aws:ssm:*:" + account + ":parameter/express-compute/*"))
                 .build());
 
         builderInstanceRole.addToPolicy(PolicyStatement.Builder.create()
@@ -101,14 +101,14 @@ public class EksDXpressPackerIamStack extends Stack {
                 .build());
 
         var builderInstanceProfile = CfnInstanceProfile.Builder.create(this, "PackerBuilderInstanceProfile")
-                .instanceProfileName("eks-d-xpress-packer-builder")
+                .instanceProfileName("express-compute-packer-builder")
                 .roles(List.of(builderInstanceRole.getRoleName()))
                 .build();
 
         // ── Packer CI role ────────────────────────────────────────────────────
         var packerRole = Role.Builder.create(this, "PackerRole")
-                .roleName("eks-d-xpress-packer-ci")
-                .description("Least-privilege role for EKS-DX Packer AMI builds via GitHub Actions OIDC")
+                .roleName("express-compute-packer-ci")
+                .description("Least-privilege role for ECP Packer AMI builds via GitHub Actions OIDC")
                 .assumedBy(new FederatedPrincipal(
                         oidcArn,
                         Map.of(
@@ -235,7 +235,7 @@ public class EksDXpressPackerIamStack extends Stack {
                 .sid("AMIManifestSSM")
                 .effect(Effect.ALLOW)
                 .actions(List.of("ssm:PutParameter", "ssm:GetParameter"))
-                .resources(List.of("arn:aws:ssm:*:" + account + ":parameter/eks-d-xpress/*"))
+                .resources(List.of("arn:aws:ssm:*:" + account + ":parameter/express-compute/*"))
                 .build());
 
         // KMS — sign/verify scoped by resource tag
@@ -245,22 +245,22 @@ public class EksDXpressPackerIamStack extends Stack {
                 .actions(List.of("kms:Sign", "kms:GetPublicKey", "kms:DescribeKey"))
                 .resources(List.of("arn:aws:kms:*:" + account + ":key/*"))
                 .conditions(Map.of("StringEquals", Map.of(
-                        "aws:ResourceTag/Usage", "eks-d-xpress-ami-signing")))
+                        "aws:ResourceTag/Usage", "express-compute-ami-signing")))
                 .build());
 
         // ── KMS signing key ───────────────────────────────────────────────────
         var signingKey = Key.Builder.create(this, "AmiSigningKey")
-                .description("EKS-DX AMI attestation signing key")
+                .description("ECP AMI attestation signing key")
                 .keySpec(KeySpec.RSA_4096)
                 .keyUsage(KeyUsage.SIGN_VERIFY)
-                .alias("eks-d-xpress-ami-signing")
+                .alias("express-compute-ami-signing")
                 .build();
-        Tags.of(signingKey).add("Usage", "eks-d-xpress-ami-signing");
+        Tags.of(signingKey).add("Usage", "express-compute-ami-signing");
         signingKey.applyRemovalPolicy(RemovalPolicy.RETAIN);
 
         // ── SSM — key ARN for pipeline reference ──────────────────────────────
         StringParameter.Builder.create(this, "AmiSigningKeyArn")
-                .parameterName("/eks-d-xpress/infra/kms/ami-signing-key-arn")
+                .parameterName("/express-compute/infra/kms/ami-signing-key-arn")
                 .stringValue(signingKey.getKeyArn())
                 .build();
     }

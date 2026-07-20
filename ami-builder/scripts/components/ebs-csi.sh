@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 source /tmp/ami-build.env
-CHARTS_DIR="/opt/eks-d-setup/charts"
+CHARTS_DIR="/opt/cluster-setup/charts"
 
 echo "  Pulling EBS CSI chart..."
 helm repo add aws-ebs-csi-driver https://kubernetes-sigs.github.io/aws-ebs-csi-driver
