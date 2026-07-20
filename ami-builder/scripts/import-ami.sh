@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# import-ami.sh — verify an EKS-D-Xpress AMI signature, then copy it into
+# import-ami.sh — verify an Express Compute AMI signature, then copy it into
 # the caller's AWS account and optionally replicate to additional regions.
 #
 # Prerequisites:
@@ -56,20 +56,20 @@ for REGION in "${TARGET_REGIONS[@]}"; do
     --source-image-id "${AMI_ID}" \
     --source-region "${SRC_REGION}" \
     --region "${REGION}" \
-    --name "eks-d-xpress-${ARCH}-${AMI_VERSION}" \
-    --description "EKS-D-Xpress k8s-${K8S_VERSION} ${ARCH} imported from ${SRC_REGION}" \
+    --name "express-compute-${ARCH}-${AMI_VERSION}" \
+    --description "Express Compute k8s-${K8S_VERSION} ${ARCH} imported from ${SRC_REGION}" \
     --query "ImageId" --output text)
 
   echo "  ✓ ${REGION}: ${NEW_AMI} (pending — image copy is async)"
 
   aws ssm put-parameter \
     --region "${REGION}" \
-    --name "/eks-d-xpress/infra/ami/${ARCH}/${K8S_VERSION}" \
+    --name "/express-compute/infra/ami/${ARCH}/${K8S_VERSION}" \
     --value "${NEW_AMI}" \
     --type String --overwrite \
     --description "Imported from ${AMI_ID} (${SRC_REGION})" \
     --no-cli-pager
-  echo "  ✓ SSM /eks-d-xpress/infra/ami/${ARCH}/${K8S_VERSION} = ${NEW_AMI}"
+  echo "  ✓ SSM /express-compute/infra/ami/${ARCH}/${K8S_VERSION} = ${NEW_AMI}"
 done
 
 echo ""

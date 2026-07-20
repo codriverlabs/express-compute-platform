@@ -6,7 +6,7 @@
 
 The EKS-D control plane is the Kubernetes control plane running on a dedicated EC2 instance.
 
-**Installation**: `eks-d-setup/07-install-eks-d.sh` (via `setup-eks-d.sh` step 3)
+**Installation**: `cluster-setup/07-install-eks-d.sh` (via `setup-eks-d.sh` step 3)
 
 **Components**:
 - `kube-apiserver` - REST API server for Kubernetes
@@ -24,7 +24,7 @@ The EKS-D control plane is the Kubernetes control plane running on a dedicated E
 
 Karpenter is an open-source node provisioning project for Kubernetes.
 
-**Installation**: `eks-d-setup/15-install-karpenter.sh` (via `setup-eks-d.sh` step 9)
+**Installation**: `cluster-setup/15-install-karpenter.sh` (via `setup-eks-d.sh` step 9)
 
 **Resources**:
 
@@ -70,7 +70,7 @@ spec:
 
 The VPC Container Network Interface provides pod networking.
 
-**Installation**: `eks-d-setup/08-install-cni.sh` (via `setup-eks-d.sh` step 4)
+**Installation**: `cluster-setup/08-install-cni.sh` (via `setup-eks-d.sh` step 4)
 
 **Purpose**: Assigns VPC IP addresses to pods
 
@@ -83,7 +83,7 @@ during step 3 (`07-install-eks-d.sh`) — there is no separate install script.
 
 The EBS Container Storage Interface driver enables EBS volume usage.
 
-**Installation**: `eks-d-setup/13-install-ebs-csi.sh` (via `setup-eks-d.sh` step 7)
+**Installation**: `cluster-setup/13-install-ebs-csi.sh` (via `setup-eks-d.sh` step 7)
 
 **Purpose**: Persistent storage for workloads
 
@@ -94,10 +94,10 @@ The EBS Container Storage Interface driver enables EBS volume usage.
 | containerd | AMI (`ami-builder/scripts/00-configure-containerd.sh`) | Container runtime |
 | Helm | AMI (`ami-builder/scripts/04-install-helm.sh`) | Package manager |
 | kubectl / kubeadm / kubelet | AMI (`ami-builder/scripts/install.sh`) | Kubernetes tooling |
-| CloudWatch agent | `eks-d-setup/16-install-cloudwatch.sh` | Monitoring |
-| cert-manager | `eks-d-setup/11-install-cert-manager.sh` | Certificate management |
-| kubelet-csr-approver | `eks-d-setup/11b-install-kubelet-csr-approver.sh` | CSR automation |
-| Metrics Server | `eks-d-setup/14-install-metrics-server.sh` | Resource metrics |
+| CloudWatch agent | `cluster-setup/16-install-cloudwatch.sh` | Monitoring |
+| cert-manager | `cluster-setup/11-install-cert-manager.sh` | Certificate management |
+| kubelet-csr-approver | `cluster-setup/11b-install-kubelet-csr-approver.sh` | CSR automation |
+| Metrics Server | `cluster-setup/14-install-metrics-server.sh` | Resource metrics |
 
 > Docker, kubectl, and Helm are baked into the AMI — they are not installed at cluster boot time.
 
@@ -136,8 +136,8 @@ classDiagram
 
 | Component | Location |
 |-----------|----------|
-| Boot installation orchestrator | `eks-d-setup/setup-eks-d.sh` |
-| Installation scripts (05–18) | `eks-d-setup/` |
+| Boot installation orchestrator | `cluster-setup/setup-eks-d.sh` |
+| Installation scripts (05–18) | `cluster-setup/` |
 | NodePool / EC2NodeClass definitions | `node-pools/` |
 | AMI build scripts | `ami-builder/scripts/` |
 | Monitoring manifests | `monitoring/` |

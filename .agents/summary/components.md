@@ -30,12 +30,12 @@ graph TB
 ```
 
 **Key Files**:
-- `eks-d-xpress.pkr.hcl`: Packer configuration for AMI building
+- `express-compute.pkr.hcl`: Packer configuration for AMI building
 - `build-golden-amis.sh`: Orchestrates AMI creation process
 - `scripts/install.sh`: Master installation script (515 LOC)
 - `cdk/`: Java CDK stack for IAM permissions
 
-### EKS-D Setup (`eks-d-setup/`)
+### EKS-D Setup (`cluster-setup/`)
 Sequential installation system with numbered scripts:
 
 ```mermaid
@@ -47,7 +47,7 @@ graph TD
     E --> F[10-configure-node.sh]
     F --> G[11-install-cert-manager.sh]
     G --> H[11b-install-kubelet-csr-approver.sh]
-    H --> I[12-install-eks-dx-pod-identity.sh]
+    H --> I[12-install-ecp-workload-identity.sh]
     I --> J[13-install-ebs-csi.sh]
     J --> K[14-install-metrics-server.sh]
     K --> L[15-install-karpenter.sh]
@@ -62,7 +62,7 @@ graph TD
 - **CNI** (08): VPC networking plugin installation (75 LOC)
 - **Cloud Provider** (09): AWS cloud controller manager
 - **Certificate Management** (11): cert-manager and CSR automation
-- **Pod Identity** (12): EKS Pod Identity for workload authentication
+- **Workload Identity** (12): EKS Workload Identity for workload authentication
 - **Storage** (13): EBS CSI driver for persistent volumes
 - **Monitoring** (14-17): Metrics server and CloudWatch integration
 - **Autoscaling** (15): Karpenter for node provisioning (66 LOC)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the EKS-D-Xpress bundle image locally.
+# Build the Express Compute bundle image locally.
 # Downloads release artifacts from GitHub using versions in bundle-versions.env.
 #
 # Usage:
@@ -9,7 +9,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BUILD_DIR="${SCRIPT_DIR}/.build"
-IMAGE_TAG="${1:-eks-d-xpress-bundle:local}"
+IMAGE_TAG="${1:-express-compute-bundle:local}"
 
 source "${SCRIPT_DIR}/bundle-versions.env"
 
@@ -17,8 +17,8 @@ CP_VER="${CONTROL_PLANE_VERSION}"
 INFRA_VER="${INFRA_VERSION}"
 ARCH=$(uname -m); [ "${ARCH}" = "aarch64" ] && ARCH="arm64" || ARCH="amd64"
 
-CP_BASE="https://github.com/plasticity-of-cloud/eks-d-xpress-control-plane/releases/download/v${CP_VER}"
-INFRA_BASE="https://github.com/plasticity-of-cloud/eks-d-xpress-infra/releases/download/v${INFRA_VER}"
+CP_BASE="https://github.com/plasticity-of-cloud/express-compute-control-plane/releases/download/v${CP_VER}"
+INFRA_BASE="https://github.com/plasticity-of-cloud/express-compute-managed-k8s-infra/releases/download/v${INFRA_VER}"
 
 # ── Authenticate to ECR public gallery (required to pull base image) ─────────
 echo "==> Authenticating to ECR public gallery..."
@@ -30,22 +30,22 @@ echo "==> Downloading control-plane v${CP_VER}..."
 rm -rf "${BUILD_DIR}" && mkdir -p "${BUILD_DIR}/helm"
 
 # control-plane tarball has a versioned top-level dir — strip it
-curl -fsSL "${CP_BASE}/eks-d-xpress-control-plane-${CP_VER}.tar.gz" \
+curl -fsSL "${CP_BASE}/express-compute-control-plane-${CP_VER}.tar.gz" \
   | tar xz -C "${BUILD_DIR}" --strip-components=1 --one-top-level=control-plane-cdk
 
 echo "==> Downloading infra v${INFRA_VER}..."
 # infra tarball has no top-level dir — extract directly
 mkdir -p "${BUILD_DIR}/infra-cdk"
-curl -fsSL "${INFRA_BASE}/eks-d-xpress-infra-${INFRA_VER}.tar.gz" \
+curl -fsSL "${INFRA_BASE}/express-compute-managed-k8s-infra-${INFRA_VER}.tar.gz" \
   | tar xz -C "${BUILD_DIR}/infra-cdk"
 
-echo "==> Downloading eks-dx CLI (${ARCH})..."
-curl -fsSL "${CP_BASE}/eks-dx-cli-${CP_VER}-linux-${ARCH}" \
-  -o "${BUILD_DIR}/eks-dx-cli"
-chmod +x "${BUILD_DIR}/eks-dx-cli"
+echo "==> Downloading ecp CLI (${ARCH})..."
+curl -fsSL "${CP_BASE}/ecp-cli-${CP_VER}-linux-${ARCH}" \
+  -o "${BUILD_DIR}/ecp-cli"
+chmod +x "${BUILD_DIR}/ecp-cli"
 
 echo "==> Downloading Helm charts..."
-for chart in eks-d-xpress-auth-proxy eks-d-xpress-pod-identity-webhook eks-d-xpress-karpenter-support; do
+for chart in express-compute-auth-proxy express-compute-workload-identity-webhook express-compute-karpenter-support; do
   curl -fsSL "${CP_BASE}/${chart}-${CP_VER}.tar.gz" \
     -o "${BUILD_DIR}/helm/${chart}-${CP_VER}.tar.gz"
 done
@@ -62,7 +62,7 @@ fi
 [ -f "${ROOT}/ami-signatures.json" ] \
   && cp "${ROOT}/ami-signatures.json" "${BUILD_DIR}/ami-signatures.json" \
   || echo '{}' > "${BUILD_DIR}/ami-signatures.json"
-cp "${ROOT}/ami-builder/eks-d-xpress-ami-signing.pub.pem" "${BUILD_DIR}/eks-d-xpress-ami-signing.pub.pem"
+cp "${ROOT}/ami-builder/express-compute-ami-signing.pub.pem" "${BUILD_DIR}/express-compute-ami-signing.pub.pem"
 
 # AMI utility scripts
 cp "${ROOT}/ami-builder/scripts/verify-ami.sh" "${BUILD_DIR}/verify-ami.sh"

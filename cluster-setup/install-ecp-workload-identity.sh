@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
-# install-eks-dx-pod-identity.sh
+# install-ecp-workload-identity.sh
 #
-# Installs EKS Pod Identity on any Kubernetes distribution (k3s, EKS-D, microk8s, etc.)
-# by registering the cluster with the eks-dx control plane and deploying three components:
-#   1. eks-dx-auth-proxy      — in-cluster TokenReview + credential forwarding
-#   2. eks-dx-pod-identity-webhook — mutating webhook (env + projected token injection)
-#   3. eks-pod-identity-agent — AWS DaemonSet (intercepts 169.254.170.23)
+# Installs EKS Workload Identity on any Kubernetes distribution (k3s, EKS-D, microk8s, etc.)
+# by registering the cluster with the ecp control plane and deploying three components:
+#   1. ecp-auth-proxy      — in-cluster TokenReview + credential forwarding
+#   2. ecp-workload-identity-webhook — mutating webhook (env + projected token injection)
+#   3. eks-workload-identity-agent — AWS DaemonSet (intercepts 169.254.170.23)
 #
 # Required environment variables:
 #   CLUSTER_NAME                 — unique cluster identifier
 #   AWS_REGION                   — AWS region
-#   EKS_DX_CONTROL_PLANE_VERSION — eks-dx-control-plane release version (sourced from /opt/eks-d/version.env)
+#   ECP_CONTROL_PLANE_VERSION — ecp-control-plane release version (sourced from /opt/eks-d/version.env)
 #
 # Optional environment variables:
-#   EKS_DX_ENDPOINT              — API Gateway URL override (default: resolved from SSM /eks-d-xpress/control-plane/api/endpoint)
+#   ECP_ENDPOINT              — API Gateway URL override (default: resolved from SSM /express-compute/control-plane/api/endpoint)
 #   KUBECONFIG                   — path to kubeconfig (default: standard lookup)
 #   CHART_DIR                    — directory containing pre-downloaded chart tarballs (AMI bake path)
 #                                  falls back to GHCR OCI pull if not set or charts not found
 #
 # Usage:
-#   curl -sL https://github.com/plasticity-of-cloud/eks-d-xpress-control-plane/releases/download/vVERSION/install-eks-dx-pod-identity.sh \
+#   curl -sL https://github.com/plasticity-of-cloud/express-compute-control-plane/releases/download/vVERSION/install-ecp-workload-identity.sh \
 #     | CLUSTER_NAME=my-cluster AWS_REGION=us-east-1 bash
 #
 set -euo pipefail
@@ -42,26 +42,26 @@ done
 [[ -z "${CLUSTER_NAME:-}"    ]] && err "CLUSTER_NAME is required"
 [[ -z "${AWS_REGION:-}"      ]] && err "AWS_REGION is required"
 
-# ── Resolve EKS_DX_ENDPOINT (env → SSM → error) ───────────────────────────────
-if [[ -z "${EKS_DX_ENDPOINT:-}" ]]; then
-  EKS_DX_ENDPOINT=$(aws ssm get-parameter \
-    --name /eks-d-xpress/control-plane/api/endpoint \
+# ── Resolve ECP_ENDPOINT (env → SSM → error) ───────────────────────────────
+if [[ -z "${ECP_ENDPOINT:-}" ]]; then
+  ECP_ENDPOINT=$(aws ssm get-parameter \
+    --name /express-compute/control-plane/api/endpoint \
     --region "${AWS_REGION}" \
     --query Parameter.Value --output text 2>/dev/null || true)
 fi
-[[ -z "${EKS_DX_ENDPOINT:-}" ]] && err "EKS_DX_ENDPOINT could not be resolved — set env var or ensure SSM param /eks-d-xpress/control-plane/api/endpoint exists"
+[[ -z "${ECP_ENDPOINT:-}" ]] && err "ECP_ENDPOINT could not be resolved — set env var or ensure SSM param /express-compute/control-plane/api/endpoint exists"
 
-[[ -z "${EKS_DX_CONTROL_PLANE_VERSION:-}" ]] && err "EKS_DX_CONTROL_PLANE_VERSION is required — set it explicitly or ensure /opt/eks-d/version.env is present"
+[[ -z "${ECP_CONTROL_PLANE_VERSION:-}" ]] && err "ECP_CONTROL_PLANE_VERSION is required — set it explicitly or ensure /opt/eks-d/version.env is present"
 
-CHART_DIR="${CHART_DIR:-/opt/eks-d-setup/charts}"
+CHART_DIR="${CHART_DIR:-/opt/cluster-setup/charts}"
 
 GHCR_EKS_D_XPRESS_REGISTRY="${GHCR_EKS_D_XPRESS_REGISTRY:-ghcr.io/plasticity-of-cloud}"
 
-log "EKS-DX Pod Identity installation"
+log "Express Compute Workload Identity installation"
 log "  Cluster:  ${CLUSTER_NAME}"
 log "  Region:   ${AWS_REGION}"
-log "  Endpoint: ${EKS_DX_ENDPOINT}"
-log "  Version:  ${EKS_DX_CONTROL_PLANE_VERSION}"
+log "  Endpoint: ${ECP_ENDPOINT}"
+log "  Version:  ${ECP_CONTROL_PLANE_VERSION}"
 
 # ── Helper: resolve chart (local cache first, GHCR OCI fallback) ──────────────
 chart_ref() {
@@ -72,7 +72,7 @@ chart_ref() {
   if [[ -n "$tgz" ]]; then
     echo "$tgz"
   else
-    echo "oci://${GHCR_EKS_D_XPRESS_REGISTRY}/helm/${name} --version ${EKS_DX_CONTROL_PLANE_VERSION}"
+    echo "oci://${GHCR_EKS_D_XPRESS_REGISTRY}/helm/${name} --version ${ECP_CONTROL_PLANE_VERSION}"
   fi
 }
 
@@ -93,76 +93,76 @@ fi
 
 # ── 1. Register cluster (self-managed only — managed clusters are pre-registered) ──
 if [[ "$OIDC_MODE" == "self-managed" ]]; then
-  log "Registering cluster with eks-dx control plane..."
+  log "Registering cluster with ecp control plane..."
 
   ISSUER=$(kubectl get --raw /.well-known/openid-configuration 2>/dev/null \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['issuer'])" 2>/dev/null || true)
-  [[ -z "$ISSUER" ]] && ISSUER="${EKS_DX_ENDPOINT}/clusters/${CLUSTER_NAME}"
+  [[ -z "$ISSUER" ]] && ISSUER="${ECP_ENDPOINT}/clusters/${CLUSTER_NAME}"
 
-  kubectl get --raw /openid/v1/jwks > /tmp/eks-dx-jwks.json
+  kubectl get --raw /openid/v1/jwks > /tmp/ecp-jwks.json
 
-  eks-dx create-cluster --name "${CLUSTER_NAME}" --oidc-mode self-managed \
+  ecp create-cluster --name "${CLUSTER_NAME}" --oidc-mode self-managed \
     --region "${AWS_REGION}" \
     --issuer "${ISSUER}" \
-    --jwks-file /tmp/eks-dx-jwks.json || warn "Cluster registration returned non-zero (may already be registered)"
+    --jwks-file /tmp/ecp-jwks.json || warn "Cluster registration returned non-zero (may already be registered)"
 
-  rm -f /tmp/eks-dx-jwks.json
+  rm -f /tmp/ecp-jwks.json
   log "✓ Cluster registered"
 else
   log "Skipping cluster registration (managed mode — pre-registered by control plane)"
 fi
 
-# ── 2. eks-dx-auth-proxy ──────────────────────────────────────────────────────
-log "Installing eks-dx-auth-proxy..."
+# ── 2. ecp-auth-proxy ──────────────────────────────────────────────────────
+log "Installing ecp-auth-proxy..."
 # shellcheck disable=SC2046
-helm upgrade --install eks-d-xpress-auth-proxy $(chart_ref eks-d-xpress-auth-proxy) \
+helm upgrade --install express-compute-auth-proxy $(chart_ref express-compute-auth-proxy) \
   --namespace kube-system \
-  --set app.envs.EKS_DX_ENDPOINT="${EKS_DX_ENDPOINT}" \
+  --set app.envs.ECP_ENDPOINT="${ECP_ENDPOINT}" \
   --set app.envs.AWS_REGION="${AWS_REGION}" \
   --wait --timeout=120s
-log "✓ eks-dx-auth-proxy installed"
+log "✓ ecp-auth-proxy installed"
 
-# ── 3. eks-dx-pod-identity-webhook ───────────────────────────────────────────
-log "Installing eks-dx-pod-identity-webhook..."
+# ── 3. ecp-workload-identity-webhook ───────────────────────────────────────────
+log "Installing ecp-workload-identity-webhook..."
 # shellcheck disable=SC2046
-helm upgrade --install eks-d-xpress-pod-identity-webhook $(chart_ref eks-d-xpress-pod-identity-webhook) \
+helm upgrade --install express-compute-workload-identity-webhook $(chart_ref express-compute-workload-identity-webhook) \
   --namespace kube-system \
-  --set app.envs.EKS_DX_ENDPOINT="${EKS_DX_ENDPOINT}" \
+  --set app.envs.ECP_ENDPOINT="${ECP_ENDPOINT}" \
   --set app.envs.EKS_CLUSTER_NAME="${CLUSTER_NAME}" \
   --set app.envs.AWS_REGION="${AWS_REGION}" \
   --wait --timeout=120s
-log "✓ eks-dx-pod-identity-webhook installed"
+log "✓ ecp-workload-identity-webhook installed"
 
-# ── 4. eks-pod-identity-agent ─────────────────────────────────────────────────
+# ── 4. eks-workload-identity-agent ─────────────────────────────────────────────────
 # The agent image is in AWS ECR us-west-2 — create a pull secret.
-log "Creating ECR pull secret for eks-pod-identity-agent..."
-kubectl create secret docker-registry ecr-pod-identity-agent \
+log "Creating ECR pull secret for eks-workload-identity-agent..."
+kubectl create secret docker-registry ecr-workload-identity-agent \
   --namespace kube-system \
   --docker-server=602401143452.dkr.ecr.us-west-2.amazonaws.com \
   --docker-username=AWS \
   --docker-password="$(aws ecr get-login-password --region us-west-2)" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-log "Installing eks-pod-identity-agent..."
-AGENT_CHART=$(ls "${CHART_DIR}/eks-pod-identity-agent"-*.tgz 2>/dev/null | head -1 || true)
+log "Installing eks-workload-identity-agent..."
+AGENT_CHART=$(ls "${CHART_DIR}/eks-workload-identity-agent"-*.tgz 2>/dev/null | head -1 || true)
 if [[ -z "$AGENT_CHART" ]]; then
-  warn "eks-pod-identity-agent chart not in CHART_DIR — downloading from GitHub..."
-  mkdir -p /tmp/eks-pod-identity-agent
-  curl -sL https://github.com/aws/eks-pod-identity-agent/archive/refs/heads/main.tar.gz | \
-    tar xz --strip-components=3 -C /tmp/eks-pod-identity-agent eks-pod-identity-agent-main/charts/eks-pod-identity-agent
-  AGENT_CHART="/tmp/eks-pod-identity-agent"
+  warn "eks-workload-identity-agent chart not in CHART_DIR — downloading from GitHub..."
+  mkdir -p /tmp/eks-workload-identity-agent
+  curl -sL https://github.com/aws/eks-workload-identity-agent/archive/refs/heads/main.tar.gz | \
+    tar xz --strip-components=3 -C /tmp/eks-workload-identity-agent eks-workload-identity-agent-main/charts/eks-workload-identity-agent
+  AGENT_CHART="/tmp/eks-workload-identity-agent"
 fi
 
-helm upgrade --install eks-pod-identity-agent "$AGENT_CHART" \
+helm upgrade --install eks-workload-identity-agent "$AGENT_CHART" \
   --namespace kube-system \
   --set clusterName="${CLUSTER_NAME}" \
   --set env.AWS_REGION="${AWS_REGION}" \
-  --set "agent.additionalArgs.--endpoint=http://eks-dx-auth-proxy.kube-system.svc.cluster.local:8080" \
+  --set "agent.additionalArgs.--endpoint=http://ecp-auth-proxy.kube-system.svc.cluster.local:8080" \
   --set "affinity=" \
-  --set "imagePullSecrets[0].name=ecr-pod-identity-agent" \
+  --set "imagePullSecrets[0].name=ecr-workload-identity-agent" \
   --wait --timeout=120s
-log "✓ eks-pod-identity-agent installed"
+log "✓ eks-workload-identity-agent installed"
 
-log "EKS-DX Pod Identity installation complete"
+log "Express Compute Workload Identity installation complete"
 log "  Test: kubectl run aws-test --image=amazon/aws-cli:latest --rm -it \\"
 log "    --overrides='{\"spec\":{\"serviceAccountName\":\"<your-sa\"}}' -- sts get-caller-identity"

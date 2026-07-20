@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# install-eks-dx-karpenter-support.sh
+# install-ecp-karpenter-support.sh
 #
-# Installs eks-dx-karpenter-support — EC2NodeClass mutating webhook and
+# Installs ecp-karpenter-support — EC2NodeClass mutating webhook and
 # ValidationSucceeded controller for Karpenter on non-EKS clusters.
 #
-# Also writes the eks-dx-config ConfigMap consumed by ClusterIdentityService
+# Also writes the ecp-config ConfigMap consumed by ClusterIdentityService
 # at webhook runtime. This is the in-cluster identity contract that replaces
 # the cluster-discovery portion of configure-nodepools.sh (deprecated).
 #
@@ -12,7 +12,7 @@
 #   CLUSTER_NAME                 — unique cluster identifier
 #   TENANT_ID                    — tenant identifier
 #   AWS_REGION                   — AWS region
-#   EKS_DX_CONTROL_PLANE_VERSION — release version (from /opt/eks-d/version.env)
+#   ECP_CONTROL_PLANE_VERSION — release version (from /opt/eks-d/version.env)
 #
 # Optional:
 #   CHART_DIR  — directory containing pre-downloaded chart tarballs (AMI bake path)
@@ -28,17 +28,17 @@ err()  { echo -e "${RED}[✗]${NC} $*" >&2; exit 1; }
 [[ -z "${CLUSTER_NAME:-}"    ]] && err "CLUSTER_NAME is required"
 [[ -z "${TENANT_ID:-}"       ]] && err "TENANT_ID is required"
 [[ -z "${AWS_REGION:-}"      ]] && err "AWS_REGION is required"
-[[ -z "${EKS_DX_CONTROL_PLANE_VERSION:-}" ]] && err "EKS_DX_CONTROL_PLANE_VERSION is required"
+[[ -z "${ECP_CONTROL_PLANE_VERSION:-}" ]] && err "ECP_CONTROL_PLANE_VERSION is required"
 
-CHART_DIR="${CHART_DIR:-/opt/eks-d-setup/charts}"
+CHART_DIR="${CHART_DIR:-/opt/cluster-setup/charts}"
 
 GHCR_EKS_D_XPRESS_REGISTRY="${GHCR_EKS_D_XPRESS_REGISTRY:-ghcr.io/plasticity-of-cloud}"
 
-log "eks-dx-karpenter-support installation"
+log "ecp-karpenter-support installation"
 log "  Cluster:  ${CLUSTER_NAME}"
 log "  Tenant:   ${TENANT_ID}"
 log "  Region:   ${AWS_REGION}"
-log "  Version:  ${EKS_DX_CONTROL_PLANE_VERSION}"
+log "  Version:  ${ECP_CONTROL_PLANE_VERSION}"
 
 chart_ref() {
   local name="$1"
@@ -47,13 +47,13 @@ chart_ref() {
   if [[ -n "$tgz" ]]; then
     echo "$tgz"
   else
-    echo "oci://${GHCR_EKS_D_XPRESS_REGISTRY}/helm/${name} --version ${EKS_DX_CONTROL_PLANE_VERSION}"
+    echo "oci://${GHCR_EKS_D_XPRESS_REGISTRY}/helm/${name} --version ${ECP_CONTROL_PLANE_VERSION}"
   fi
 }
 
 # ── 1. Resolve NAT gateway flag ───────────────────────────────────────────────
 NAT_ENABLED=$(aws ssm get-parameter \
-  --name "/eks-d-xpress/infra/network/nat-gateway-enabled" \
+  --name "/express-compute/infra/network/nat-gateway-enabled" \
   --region "${AWS_REGION}" \
   --query Parameter.Value --output text 2>/dev/null || echo "false")
 
@@ -61,10 +61,10 @@ NAT_ENABLED=$(aws ssm get-parameter \
 [[ -z "${PRIVATE_SUBNET_ID:-}"  ]] && warn "PRIVATE_SUBNET_ID not set in cluster.env"
 [[ -z "${SECURITY_GROUP_ID:-}"  ]] && warn "SECURITY_GROUP_ID not set in cluster.env"
 
-# ── 2. Install Helm chart (eks-dx-config ConfigMap included in chart) ─────────
-log "Installing eks-dx-karpenter-support..."
+# ── 2. Install Helm chart (ecp-config ConfigMap included in chart) ─────────
+log "Installing ecp-karpenter-support..."
 # shellcheck disable=SC2046
-helm upgrade --install eks-d-xpress-karpenter-support $(chart_ref eks-d-xpress-karpenter-support) \
+helm upgrade --install express-compute-karpenter-support $(chart_ref express-compute-karpenter-support) \
   --namespace kube-system \
   --set clusterIdentity.clusterName="${CLUSTER_NAME}" \
   --set clusterIdentity.tenantId="${TENANT_ID}" \
@@ -73,9 +73,9 @@ helm upgrade --install eks-d-xpress-karpenter-support $(chart_ref eks-d-xpress-k
   --set clusterIdentity.privateSubnetId="${PRIVATE_SUBNET_ID:-}" \
   --set clusterIdentity.securityGroupId="${SECURITY_GROUP_ID:-}" \
   --wait --timeout=120s
-log "✓ eks-dx-karpenter-support installed (eks-dx-config ConfigMap included)"
+log "✓ ecp-karpenter-support installed (ecp-config ConfigMap included)"
 
-log "eks-dx-karpenter-support installation complete"
+log "ecp-karpenter-support installation complete"
 log "  EC2NodeClass amiFamily will be rewritten to Custom automatically"
 log "  ValidationSucceeded condition will be patched by the controller"
 log "  configure-nodepools.sh is no longer required"

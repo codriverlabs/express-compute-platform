@@ -86,14 +86,14 @@ echo "Step 6b2: Deploying kubelet-csr-approver..."
 bash "${SCRIPT_DIR}/11b-install-kubelet-csr-approver.sh"
 update_progress "provisioning" "kubelet-csr-approver deployed" 71
 
-# Step 6c: EKS-DX Pod Identity integration (requires cert-manager for webhook TLS)
-# Only runs if EKS_DX_ENDPOINT is set (provisioned by Lambda, not manual dev setup)
-if [ -n "${EKS_DX_ENDPOINT:-}" ]; then
-  echo "Step 6c: Registering with EKS-DX control plane..."
-  update_progress "registering" "Registering cluster with EKS-DX" 72
-  bash "${SCRIPT_DIR}/12-install-eks-dx-pod-identity.sh"
+# Step 6c: Express Compute Workload Identity integration (requires cert-manager for webhook TLS)
+# Only runs if ECP_ENDPOINT is set (provisioned by Lambda, not manual dev setup)
+if [ -n "${ECP_ENDPOINT:-}" ]; then
+  echo "Step 6c: Registering with Express Compute control plane..."
+  update_progress "registering" "Registering cluster with Express Compute" 72
+  bash "${SCRIPT_DIR}/12-install-ecp-workload-identity.sh"
 else
-  echo "Step 6c: Skipping EKS-DX Pod Identity (EKS_DX_ENDPOINT not set — manual/dev mode)"
+  echo "Step 6c: Skipping Express Compute Workload Identity (ECP_ENDPOINT not set — manual/dev mode)"
 fi
 
 # Step 7: EBS CSI Driver
@@ -119,11 +119,11 @@ update_progress "provisioning" "CloudWatch installed" 95
 # Deferred CloudWatch validation — operator has had time to reconcile by now
 bash "${SCRIPT_DIR}/17-monitor-cloudwatch-rollout.sh"
 
-# Step 18: EKS-DX Karpenter Support (EC2NodeClass webhook + ValidationSucceeded controller)
+# Step 18: Express Compute Karpenter Support (EC2NodeClass webhook + ValidationSucceeded controller)
 # Requires: cert-manager (step 11), Karpenter CRDs (step 15). No external dependencies.
-echo "Step 18: Installing eks-dx-karpenter-support..."
-bash "${SCRIPT_DIR}/18-install-eks-dx-karpenter-support.sh"
-update_progress "provisioning" "eks-dx-karpenter-support installed" 98
+echo "Step 18: Installing ecp-karpenter-support..."
+bash "${SCRIPT_DIR}/18-install-ecp-karpenter-support.sh"
+update_progress "provisioning" "ecp-karpenter-support installed" 98
 
 echo ""
 echo "=========================================="

@@ -1,6 +1,6 @@
 # Deployment Guide
 
-EKS-D-Xpress ships as a Docker bundle. You drop into an interactive shell inside the
+Express Compute ships as a Docker bundle. You drop into an interactive shell inside the
 container, explore the tools, then run the provisioning script. No Java, no Terraform,
 no local toolchain required beyond Docker.
 
@@ -18,7 +18,7 @@ docker run --rm -it \
   -e AWS_PROFILE="${AWS_PROFILE:-default}" \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
   --entrypoint bash \
-  ghcr.io/plasticity-of-cloud/eks-d-xpress-bundle:latest
+  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest
 ```
 
 ### From an EC2 instance or bastion host (instance profile / environment variables)
@@ -33,7 +33,7 @@ docker run --rm -it \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
   --network host \
   --entrypoint bash \
-  ghcr.io/plasticity-of-cloud/eks-d-xpress-bundle:latest
+  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest
 ```
 
 > `--network host` lets the container reach the EC2 Instance Metadata Service
@@ -51,7 +51,7 @@ docker run --rm -it \
   -e AWS_SESSION_TOKEN \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
   --entrypoint bash \
-  ghcr.io/plasticity-of-cloud/eks-d-xpress-bundle:latest
+  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest
 ```
 
 ---
@@ -61,12 +61,12 @@ docker run --rm -it \
 Once inside you have a fully equipped environment:
 
 ```
-/opt/eks-dx/
+/opt/ecp/
 ├── deploy.sh          ← deployment orchestrator
-├── bin/eks-dx         ← cluster management CLI
+├── bin/ecp         ← cluster management CLI
 ├── ami-manifest.json  ← golden AMI IDs by region and arch
-├── infra/cdk.out/     ← EksDxSharedInfraStack (pre-synthesized)
-├── control-plane/cdk.out/  ← EksDXpressControlPlaneStack
+├── infra/cdk.out/     ← EcpSharedInfraStack (pre-synthesized)
+├── control-plane/cdk.out/  ← EcpControlPlaneStack
 └── helm/              ← Helm charts
 ```
 
@@ -107,7 +107,7 @@ Or step by step if you want to inspect between stages:
 # Step 2: register golden AMI IDs into SSM
 ./deploy.sh register-amis --region us-east-1
 
-# Step 3: Lambdas, API Gateway, DynamoDB, Pod Identity
+# Step 3: Lambdas, API Gateway, DynamoDB, Workload Identity
 ./deploy.sh deploy --stack control-plane --region us-east-1
 ```
 
@@ -115,25 +115,25 @@ What gets deployed:
 
 | Stack | What it creates |
 |-------|----------------|
-| `EksDxSharedInfraStack` | VPC, launch templates, ECR pull-through cache, S3 endpoint, SSM params |
-| AMI registration | `/eks-d-xpress/infra/ami/{arch}/{k8s-version}` SSM parameters |
-| `EksDXpressControlPlaneStack` | Lambdas, API Gateway, DynamoDB, Pod Identity webhook |
+| `EcpSharedInfraStack` | VPC, launch templates, ECR pull-through cache, S3 endpoint, SSM params |
+| AMI registration | `/express-compute/infra/ami/{arch}/{k8s-version}` SSM parameters |
+| `EcpControlPlaneStack` | Lambdas, API Gateway, DynamoDB, Workload Identity webhook |
 
 ---
 
 ## 4. Manage Clusters
 
-Once the platform is deployed, use the `eks-dx` CLI inside the same shell:
+Once the platform is deployed, use the `ecp` CLI inside the same shell:
 
 ```bash
 # List clusters in your account
-eks-dx clusters list
+ecp clusters list
 
 # Create a cluster (Lambda provisions an EC2 instance, boot takes ~3 min)
-eks-dx clusters create --name my-cluster --region us-east-1
+ecp clusters create --name my-cluster --region us-east-1
 
 # Get kubeconfig
-eks-dx clusters kubeconfig --name my-cluster > /tmp/kubeconfig
+ecp clusters kubeconfig --name my-cluster > /tmp/kubeconfig
 ```
 
 Install Helm charts on a running cluster:
@@ -171,13 +171,13 @@ automatically via systemd. The full install sequence is:
 10-configure-node.sh            → untaint control plane
 11-install-cert-manager.sh
 11b-install-kubelet-csr-approver.sh
-12-install-eks-dx-pod-identity.sh   (skipped in dev mode)
+12-install-ecp-workload-identity.sh   (skipped in dev mode)
 13-install-ebs-csi.sh
 14-install-metrics-server.sh
 15-install-karpenter.sh
 16-install-cloudwatch.sh
 17-monitor-cloudwatch-rollout.sh
-18-install-eks-dx-karpenter-support.sh
+18-install-ecp-karpenter-support.sh
 ```
 
 Total: under 3 minutes.
@@ -190,15 +190,15 @@ If you want to boot a cluster by hand (no provisioner Lambda):
 sudo mkdir -p /opt/eks-d
 sudo tee /opt/eks-d/cluster.env <<EOF
 TENANT_ID=alice
-CLUSTER_NAME=alice-eks-dx-arm64
+CLUSTER_NAME=alice-ecp-arm64
 NODE_IP=$(hostname -I | awk '{print $1}')
 AWS_REGION=us-east-1
 EOF
 
-sudo bash /home/ec2-user/eks-d-setup/setup-eks-d.sh
+sudo bash /home/ec2-user/cluster-setup/setup-eks-d.sh
 ```
 
-`EKS_DX_ENDPOINT` is omitted → step 12 (Pod Identity) skips gracefully.
+`ECP_ENDPOINT` is omitted → step 12 (Workload Identity) skips gracefully.
 
 ---
 
@@ -222,7 +222,7 @@ kubectl get events --field-selector reason=ProvisioningSucceeded
 **Cluster boot stalled**
 ```bash
 # On the control plane EC2:
-journalctl -u eks-dx-boot -f
+journalctl -u ecp-boot -f
 ```
 
 **Worker nodes not joining**

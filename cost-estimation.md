@@ -1,4 +1,4 @@
-# EKS-D-Xpress Cost Estimation
+# Express Compute Cost Estimation
 
 ## Monthly Cost Breakdown (per team member)
 

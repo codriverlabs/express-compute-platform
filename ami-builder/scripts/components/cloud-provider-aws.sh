@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 source /tmp/ami-build.env
-CHARTS_DIR="/opt/eks-d-setup/charts"
+CHARTS_DIR="/opt/cluster-setup/charts"
 
 echo "  Pulling cloud-provider-aws chart..."
 helm repo add aws-cloud-controller-manager \

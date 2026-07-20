@@ -1,7 +1,7 @@
 #!/bin/bash
-# 18-install-eks-dx-karpenter-support.sh
+# 18-install-ecp-karpenter-support.sh
 # Delegates to the canonical install script baked into the AMI at build time.
-# Source: eks-d-xpress-control-plane release assets
+# Source: express-compute-control-plane release assets
 #
 # Prerequisites: cert-manager (11), Karpenter (15)
 # Required env (via /opt/eks-d/cluster.env):
@@ -11,14 +11,14 @@ set -eo pipefail
 [ -f /opt/eks-d/cluster.env ] && source /opt/eks-d/cluster.env
 [ -f /opt/eks-d/version.env ] && source /opt/eks-d/version.env
 
-CANONICAL_SCRIPT="$(dirname "$0")/install-eks-dx-karpenter-support.sh"
+CANONICAL_SCRIPT="$(dirname "$0")/install-ecp-karpenter-support.sh"
 if [ ! -f "$CANONICAL_SCRIPT" ]; then
   echo "Error: $CANONICAL_SCRIPT not found — was the AMI built correctly?"
   exit 1
 fi
 
-export CLUSTER_NAME TENANT_ID AWS_REGION EKS_DX_CONTROL_PLANE_VERSION
+export CLUSTER_NAME TENANT_ID AWS_REGION ECP_CONTROL_PLANE_VERSION
 export PUBLIC_SUBNET_ID PRIVATE_SUBNET_ID SECURITY_GROUP_ID
-export CHART_DIR="/opt/eks-d-setup/charts"
+export CHART_DIR="/opt/cluster-setup/charts"
 
 exec bash "$CANONICAL_SCRIPT"

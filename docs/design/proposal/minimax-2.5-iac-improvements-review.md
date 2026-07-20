@@ -141,7 +141,7 @@ The `self = true` rule is the standard pattern for Kubernetes node security grou
 
 ```hcl
 resource "aws_dlm_lifecycle_policy" "etcd_backup" {
-  description        = "EKS-DX etcd daily backup"
+  description        = "Express Compute etcd daily backup"
   execution_role_arn = aws_iam_role.dlm.arn
   state              = "ENABLED"
 

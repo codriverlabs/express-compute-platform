@@ -26,4 +26,4 @@ kill $TIMEOUT_PID 2>/dev/null || true
 
 25 minutes gives headroom over the 3-minute boot target while terminating
 before the SSE Lambda's 15-minute max. On timeout, systemd also marks
-`eks-dx-boot.service` as failed.
+`ecp-boot.service` as failed.

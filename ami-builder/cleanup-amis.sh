@@ -1,22 +1,22 @@
 #!/bin/bash
 set -e
 
-# EKS-DX AMI Cleanup Script
-# Deletes all EKS-DX AMIs owned by the current account
+# Express Compute AMI Cleanup Script
+# Deletes all Express Compute AMIs owned by the current account
 
 echo "=========================================="
-echo "EKS-DX AMI Cleanup"
+echo "Express Compute AMI Cleanup"
 echo "=========================================="
 
-# Get all EKS-DX AMIs
-AMIS=$(aws ec2 describe-images --owners self --filters "Name=name,Values=eks-d-xpress-*" --query "Images[*].{ImageId:ImageId,Name:Name,CreationDate:CreationDate}" --output json)
+# Get all Express Compute AMIs
+AMIS=$(aws ec2 describe-images --owners self --filters "Name=name,Values=express-compute-*" --query "Images[*].{ImageId:ImageId,Name:Name,CreationDate:CreationDate}" --output json)
 
 if [ "$(echo "$AMIS" | jq length)" -eq 0 ]; then
-  echo "No EKS-DX AMIs found to delete."
+  echo "No Express Compute AMIs found to delete."
   exit 0
 fi
 
-echo "Found EKS-DX AMIs:"
+echo "Found Express Compute AMIs:"
 echo "$AMIS" | jq -r '.[] | "\(.ImageId) - \(.Name) (\(.CreationDate))"'
 echo ""
 
@@ -60,4 +60,4 @@ done < /tmp/ami_snapshots.txt
 rm -f /tmp/ami_snapshots.txt
 
 echo ""
-echo "✓ All EKS-DX AMIs and snapshots deleted successfully!"
+echo "✓ All Express Compute AMIs and snapshots deleted successfully!"

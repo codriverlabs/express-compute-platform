@@ -1,7 +1,7 @@
-# EKS-D-Xpress Codebase Information
+# Express Compute Codebase Information
 
 ## Overview
-EKS-D-Xpress is an EKS-compatible distribution system designed to deploy Kubernetes clusters with Karpenter support in under 3 minutes. The system combines infrastructure automation (AWS CDK), custom AMI building, and streamlined EKS-D installation.
+Express Compute is an EKS-compatible distribution system designed to deploy Kubernetes clusters with Karpenter support in under 3 minutes. The system combines infrastructure automation (AWS CDK), custom AMI building, and streamlined EKS-D installation.
 
 ## Repository Statistics
 - **Total Files**: 893

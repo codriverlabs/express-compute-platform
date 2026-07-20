@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# verify-ami.sh — verify an EKS-D-Xpress AMI cryptographic signature.
+# verify-ami.sh — verify an Express Compute AMI cryptographic signature.
 #
 # Reads the signature and attestation metadata from ami-signatures.json
 # (shipped with every release) and verifies against the RSA-4096 public key
@@ -9,14 +9,14 @@
 #   ./ami-builder/scripts/verify-ami.sh \
 #     --ami-id   ami-0abc1234def56789 \
 #     --sig-file /path/to/ami-signatures.json   # default: <script-dir>/../ami-signatures.json
-#     --pubkey   /path/to/pubkey.pem             # default: bundled eks-d-xpress-ami-signing.pub.pem
+#     --pubkey   /path/to/pubkey.pem             # default: bundled express-compute-ami-signing.pub.pem
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 AMI_ID=""
 SIG_FILE="${SCRIPT_DIR}/../ami-signatures.json"
-PUBKEY="${SCRIPT_DIR}/../eks-d-xpress-ami-signing.pub.pem"
+PUBKEY="${SCRIPT_DIR}/../express-compute-ami-signing.pub.pem"
 
 while [[ $# -gt 0 ]]; do
   case $1 in

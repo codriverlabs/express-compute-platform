@@ -1,8 +1,8 @@
-# EKS-D-Xpress Architecture
+# Express Compute Architecture
 
 ## Overview
 
-This document describes the architecture of the EKS-D-Xpress deployment, which provides each team member with a dedicated Kubernetes control plane running on EC2, with Karpenter managing worker nodes.
+This document describes the architecture of the Express Compute deployment, which provides each team member with a dedicated Kubernetes control plane running on EC2, with Karpenter managing worker nodes.
 
 ## System Architecture
 
@@ -116,9 +116,9 @@ sequenceDiagram
     participant Worker as Worker Node
 
     Dev->>Bundle: docker run deploy --region us-east-1
-    Bundle-->>Dev: EksDxSharedInfraStack + EksDXpressControlPlaneStack deployed
+    Bundle-->>Dev: EcpSharedInfraStack + EcpControlPlaneStack deployed
 
-    Dev->>Lambda: eks-dx clusters create
+    Dev->>Lambda: ecp clusters create
     Lambda->>EC2: Launch EC2 with user-data (cluster.env pre-seeded)
     EC2->>EKS: setup-eks-d.sh runs (05→18)
     EC2->>K: Karpenter installed (step 15)

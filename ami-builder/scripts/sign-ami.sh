@@ -17,7 +17,7 @@ AWS_REGION="${AWS_REGION:?set AWS_REGION}"
 [ -f "${MANIFEST}" ] || { echo "ERROR: ${MANIFEST} not found — run packer build first" >&2; exit 1; }
 
 KEY_ARN=$(aws ssm get-parameter --region "${AWS_REGION}" \
-  --name "/eks-d-xpress/infra/kms/ami-signing-key-arn" \
+  --name "/express-compute/infra/kms/ami-signing-key-arn" \
   --query 'Parameter.Value' --output text)
 echo "==> Signing with KMS key: ${KEY_ARN}"
 
@@ -60,7 +60,7 @@ for e in entries:
     subprocess.run([
         "aws", "ssm", "put-parameter",
         "--region", e["region"],
-        "--name", f"/eks-d-xpress/infra/ami/{e['arch']}/{e['kubernetes_version']}/signature",
+        "--name", f"/express-compute/infra/ami/{e['arch']}/{e['kubernetes_version']}/signature",
         "--value", sig,
         "--type", "String", "--overwrite",
     ], check=True)

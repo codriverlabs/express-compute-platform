@@ -68,6 +68,6 @@ spec:
         deleteOnTermination: true
 
   tags:
-    Platform: eks-d-xpress
+    Platform: express-compute
     Tenant: {{ .Values.tenantId | quote }}
     ManagedBy: Karpenter

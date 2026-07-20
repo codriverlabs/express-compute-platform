@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 source /tmp/ami-build.env
-CHARTS_DIR="/opt/eks-d-setup/charts"
+CHARTS_DIR="/opt/cluster-setup/charts"
 
 echo "  Pulling Karpenter chart (${KARPENTER_VERSION})..."
 helm registry logout public.ecr.aws 2>/dev/null || true

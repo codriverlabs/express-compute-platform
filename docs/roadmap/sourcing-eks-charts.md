@@ -15,7 +15,7 @@ helm repo update
 
 ---
 
-## Charts Available in `eks/` Relevant to EKS-D-Xpress
+## Charts Available in `eks/` Relevant to Express Compute
 
 | Chart | Current install method | Chart name | Notes |
 |---|---|---|---|
@@ -116,7 +116,7 @@ to Helm, the AMI script still needs the manifest to enumerate images for `ctr pu
    separate curl download, but adds a Helm dependency to the AMI build environment.
 
 Option 1 is recommended for now. The `vpc-cni.sh` script already uses `--fail` on the curl
-download; switching the runtime install step (in `eks-d-setup/08-install-cni.sh`) to Helm is
+download; switching the runtime install step (in `cluster-setup/08-install-cni.sh`) to Helm is
 the higher-value change.
 
 ### Versioning
@@ -125,7 +125,7 @@ Chart versions in `eks/aws-vpc-cni` track the CNI release versions (e.g. chart `
 VPC CNI `v1.22.3`). When bumping the CNI version, update both:
 
 - `ami-builder/scripts/components/vpc-cni.sh` — manifest URL and image pull version
-- `eks-d-setup/08-install-cni.sh` — runtime Helm chart version (once migrated)
+- `cluster-setup/08-install-cni.sh` — runtime Helm chart version (once migrated)
 - `COMPONENT_VERSIONS.md` — version matrix table
 
 ---

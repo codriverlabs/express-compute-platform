@@ -12,7 +12,7 @@ source /opt/eks-d/cluster.env
 
 REGION="${AWS_REGION:-us-east-1}"
 ARCH="${ARCH:-arm64}"
-CLUSTER_NAME="${CLUSTER_NAME:-${TENANT_ID}-eks-dx-${ARCH}}"
+CLUSTER_NAME="${CLUSTER_NAME:-${TENANT_ID}-ecp-${ARCH}}"
 
 # NODE_VARIANT controls which EKS-optimized AMI family to use.
 # Supported values:
@@ -54,11 +54,11 @@ echo "  EKS-Optimized AMI : $AMI_ID (k8s 1.${K8S_MINOR} ${ARCH})"
 
 # Discover AWS resources
 # Instance profile follows the naming convention from TenantIamService
-INSTANCE_PROFILE="eks-d-xpress-tenant-${TENANT_ID}-instance-role"
+INSTANCE_PROFILE="express-compute-tenant-${TENANT_ID}-instance-role"
 
 # Check if NAT gateway is available (infra layer publishes this to SSM)
 NAT_ENABLED=$(aws ssm get-parameter \
-  --name "/eks-d-xpress/infra/network/nat-gateway-enabled" \
+  --name "/express-compute/infra/network/nat-gateway-enabled" \
   --query Parameter.Value --output text --region "$REGION" 2>/dev/null || echo "false")
 if [ "$NAT_ENABLED" = "true" ]; then
   ASSOCIATE_PUBLIC_IP="false"
@@ -71,7 +71,7 @@ SUBNET_ID=$(aws ec2 describe-subnets \
   --query 'Subnets[0].SubnetId' --output text --region "$REGION")
 
 SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
-  --filters "Name=group-name,Values=${TENANT_ID}-eks-d-xpress" \
+  --filters "Name=group-name,Values=${TENANT_ID}-express-compute" \
   --query 'SecurityGroups[0].GroupId' --output text --region "$REGION")
 
 # Discover cluster details
@@ -88,7 +88,7 @@ print(str(list(net.hosts())[9]))
 ")
 
 [[ "$SECURITY_GROUP_ID" == "None" || -z "$SECURITY_GROUP_ID" ]] && \
-  { echo "ERROR: Security group '${TENANT_ID}-eks-d-xpress' not found in $REGION"; exit 1; }
+  { echo "ERROR: Security group '${TENANT_ID}-express-compute' not found in $REGION"; exit 1; }
 
 echo "  Instance Profile : $INSTANCE_PROFILE"
 echo "  Subnet           : $SUBNET_ID"

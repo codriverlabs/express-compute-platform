@@ -1,11 +1,11 @@
-# IaC Architecture Review: EKS-DX Infrastructure
+# IaC Architecture Review: Express Compute Infrastructure
 
 > ⚠️ **Historical.** This review was written against the Terraform-based architecture.
 > Terraform has since been removed entirely. Content is kept for audit trail only.
 
 **Date:** 2026-05-05  
 **Reviewer:** Chief IaC Architect  
-**Scope:** Terraform (main, vpc, ami-builder) + Shell scripts (deploy, destroy, eks-d-setup, node-pools)
+**Scope:** Terraform (main, vpc, ami-builder) + Shell scripts (deploy, destroy, cluster-setup, node-pools)
 
 ---
 
@@ -18,7 +18,7 @@ The codebase is well-structured with clear separation of concerns (VPC, workstat
 ## Critical Findings
 
 ### 1. Hardcoded AWS Region in Karpenter Installation
-**File:** `eks-d-setup/11-install-karpenter.sh`  
+**File:** `cluster-setup/11-install-karpenter.sh`  
 **Issue:** Line `export AWS_REGION=us-east-1` hardcodes region, ignoring deployment region.
 
 ```bash
@@ -93,7 +93,7 @@ resource "aws_vpc_endpoint" "ssm" {
 ```hcl
 # Add to backend config in bootstrap.sh
 aws dynamodb create-table \
-  --table-name eks-dx-tfstate-lock \
+  --table-name ecp-tfstate-lock \
   --attribute-definitions AttributeName=LockID,AttributeType=S \
   --key-schema AttributeName=LockID,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST
@@ -102,10 +102,10 @@ aws dynamodb create-table \
 ```hcl
 # Update backend.tf
 backend "s3" {
-  bucket         = "eks-dx-tfstate-${account_id}"
-  key            = "eks-dx/${workstation_name}/terraform.tfstate"
+  bucket         = "ecp-tfstate-${account_id}"
+  key            = "ecp/${workstation_name}/terraform.tfstate"
   region         = "us-east-1"
-  dynamodb_table = "eks-dx-tfstate-lock"
+  dynamodb_table = "ecp-tfstate-lock"
   use_lockfile   = true
 }
 ```
@@ -196,7 +196,7 @@ ingress {
 - NodePort services: 30000-32767
 
 ### 12. No Backup Strategy for etcd Volume
-**File:** `eks-d-setup/05-prepare-etcd.sh`  
+**File:** `cluster-setup/05-prepare-etcd.sh`  
 **Issue:** EBS volume for etcd has no automated snapshots.
 
 **Recommendation:** Add daily snapshot lifecycle:
@@ -212,7 +212,7 @@ resource "aws_ebs_snapshot" "etcd" {
 ## Low Priority / Nice-to-Have
 
 ### 13. Karpenter Version Hardcoded
-**File:** `eks-d-setup/11-install-karpenter.sh`  
+**File:** `cluster-setup/11-install-karpenter.sh`  
 **Recommendation:** Externalize to variable or SSM parameter.
 
 ### 14. Missing Validation in Shell Scripts

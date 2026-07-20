@@ -1,7 +1,7 @@
 # Packer Migration Design
 
 > ⚠️ **Historical — completed.** `ami-builder/main.tf` (Terraform) has been replaced by
-> `ami-builder/eks-d-xpress.pkr.hcl` (Packer). This document describes the migration
+> `ami-builder/express-compute.pkr.hcl` (Packer). This document describes the migration
 > rationale and is kept for reference only.
 
 ## Problem with the current approach
@@ -26,7 +26,7 @@ Only the orchestration layer changes. All shell scripts are reused as-is.
 
 ```
 ami-builder/
-├── eks-d-xpress.pkr.hcl          ← replaces main.tf + variables.tf
+├── express-compute.pkr.hcl          ← replaces main.tf + variables.tf
 └── scripts/                ← unchanged
     ├── install.sh
     └── discover-eks-d.sh
@@ -38,7 +38,7 @@ ami-builder/
 
 ## Packer HCL structure
 
-### `ami-builder/eks-d-xpress.pkr.hcl`
+### `ami-builder/express-compute.pkr.hcl`
 
 ```hcl
 packer {
@@ -74,8 +74,8 @@ source "amazon-ebs" "eks_dx" {
     most_recent = true
   }
 
-  ami_name        = "eks-dx-${local.ami_arch}-${var.ami_version}"
-  ami_description = "EKS-DX with Karpenter - ${var.ami_version}"
+  ami_name        = "ecp-${local.ami_arch}-${var.ami_version}"
+  ami_description = "Express Compute with Karpenter - ${var.ami_version}"
 
   ssh_username = "ec2-user"
 
@@ -94,7 +94,7 @@ source "amazon-ebs" "eks_dx" {
   }
 
   # Store AMI ID in SSM after build
-  run_tags = { Name = "eks-dx-builder-${var.arch}" }
+  run_tags = { Name = "ecp-builder-${var.arch}" }
 }
 
 build {
@@ -102,8 +102,8 @@ build {
 
   # Upload setup scripts
   provisioner "file" {
-    source      = "${path.root}/../eks-d-setup"
-    destination = "/tmp/eks-d-setup"
+    source      = "${path.root}/../cluster-setup"
+    destination = "/tmp/cluster-setup"
   }
 
   provisioner "file" {
@@ -123,7 +123,7 @@ build {
   # Write AMI ID to SSM
   post-processor "shell-local" {
     inline = [
-      "aws ssm put-parameter --name /eks-dx/ami/${local.ami_arch} --value $PACKER_BUILD_NAME --type String --overwrite --region ${var.aws_region} || true"
+      "aws ssm put-parameter --name /ecp/ami/${local.ami_arch} --value $PACKER_BUILD_NAME --type String --overwrite --region ${var.aws_region} || true"
     ]
   }
 }
@@ -146,8 +146,8 @@ Packer doesn't expose the AMI ID directly in `shell-local`. The clean pattern:
   post-processor "shell-local" {
     inline = [
       "AMI_ID=$(python3 -c \"import json; d=json.load(open('/tmp/packer-manifest.json')); print(d['builds'][-1]['artifact_id'].split(':')[-1])\")",
-      "aws ssm put-parameter --name /eks-dx/ami/${local.ami_arch} --value $AMI_ID --type String --overwrite --region ${var.aws_region}",
-      "echo 'AMI stored at SSM: /eks-dx/ami/${local.ami_arch} -> '$AMI_ID"
+      "aws ssm put-parameter --name /ecp/ami/${local.ami_arch} --value $AMI_ID --type String --overwrite --region ${var.aws_region}",
+      "echo 'AMI stored at SSM: /ecp/ami/${local.ami_arch} -> '$AMI_ID"
     ]
   }
 ```
@@ -159,7 +159,7 @@ Packer doesn't expose the AMI ID directly in `shell-local`. The clean pattern:
 Replace the Terraform block with:
 
 ```bash
-packer init "${AMI_BUILDER_DIR}/eks-d-xpress.pkr.hcl"
+packer init "${AMI_BUILDER_DIR}/express-compute.pkr.hcl"
 
 packer build \
   -var "aws_region=${AWS_REGION}" \
@@ -167,7 +167,7 @@ packer build \
   -var "instance_type=${INSTANCE_TYPE}" \
   -var "kubernetes_version=${KUBERNETES_VERSION:-1.35}" \
   -var "ami_version=${AMI_VERSION}" \
-  "${AMI_BUILDER_DIR}/eks-d-xpress.pkr.hcl"
+  "${AMI_BUILDER_DIR}/express-compute.pkr.hcl"
 ```
 
 No `terraform init`, no `terraform destroy`, no state file, no key pair management
@@ -189,7 +189,7 @@ No `terraform init`, no `terraform destroy`, no state file, no key pair manageme
 | `null_resource.create_ami` (poll loop)  | Built-in (Packer waits for availability) |
 | `null_resource.create_ami` (ssm write)  | `post-processor "shell-local"`           |
 | `terraform destroy`                     | Not needed — Packer terminates builder   |
-| `eks-dx-tfstate-*/ami-builder/...`      | No state file                            |
+| `ecp-tfstate-*/ami-builder/...`      | No state file                            |
 | Temporary key pair in `build.sh`        | Packer manages internally                |
 
 ---
@@ -213,5 +213,5 @@ unzip packer_1.11.2_linux_amd64.zip
 sudo mv packer /usr/local/bin/
 
 # Install amazon plugin (done automatically by packer init)
-packer init ami-builder/eks-d-xpress.pkr.hcl
+packer init ami-builder/express-compute.pkr.hcl
 ```

@@ -1,4 +1,4 @@
-package ai.codriverlabs.eksdxpress.packer;
+package ai.codriverlabs.ecppress.packer;
 
 import software.amazon.awscdk.App;
 import software.amazon.awscdk.Environment;
@@ -8,7 +8,7 @@ public class PackerIamGithubApp {
     public static void main(String[] args) {
         var app = new App();
 
-        new EksDXpressPackerIamStack(app, "EksDXpressPackerIamGithubStack", StackProps.builder()
+        new ExpressComputePackerIamStack(app, "ExpressComputePackerIamGithubStack", StackProps.builder()
                 .env(Environment.builder()
                         .account(System.getenv("CDK_DEFAULT_ACCOUNT"))
                         .region(System.getenv("CDK_DEFAULT_REGION"))

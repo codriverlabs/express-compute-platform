@@ -1,4 +1,4 @@
-# EksDXpress Packer IAM — GitHub OIDC CI Stack
+# Ecp Packer IAM — GitHub OIDC CI Stack
 
 ## Why this exists
 
@@ -16,10 +16,10 @@ sequenceDiagram
     participant Packer as Packer (in GHA runner)
     participant EC2 as AWS EC2
 
-    GHA->>GHOIDC: Request OIDC token (JWT)<br/>sub: repo:plasticity-of-cloud/eks-d-xpress:*
+    GHA->>GHOIDC: Request OIDC token (JWT)<br/>sub: repo:plasticity-of-cloud/express-compute:*
     GHOIDC-->>GHA: Signed JWT (expires ~1h)
 
-    GHA->>STS: AssumeRoleWithWebIdentity<br/>role: eks-d-xpress-packer-ci<br/>token: <JWT>
+    GHA->>STS: AssumeRoleWithWebIdentity<br/>role: express-compute-packer-ci<br/>token: <JWT>
     STS->>STS: Verify JWT signature + conditions<br/>(aud=sts.amazonaws.com, sub matches repo)
     STS-->>GHA: Temporary credentials (15min–1h)
 
@@ -38,10 +38,10 @@ sequenceDiagram
 | Resource | Name | Purpose |
 |---|---|---|
 | IAM OIDC Provider | `token.actions.githubusercontent.com` | Trusts GitHub-issued JWT tokens |
-| IAM Role | `eks-d-xpress-packer-ci` | Assumed by GitHub Actions via OIDC |
-| Managed Policy | `eks-d-xpress-packer-boundary` | Permissions boundary — caps any role Packer creates |
-| KMS Key | `alias/eks-d-xpress-ami-signing` | RSA-4096 key for AMI attestation signatures |
-| SSM Parameter | `/eks-d-xpress/infra/kms/ami-signing-key-arn` | Key ARN for pipeline reference without hardcoding |
+| IAM Role | `express-compute-packer-ci` | Assumed by GitHub Actions via OIDC |
+| Managed Policy | `express-compute-packer-boundary` | Permissions boundary — caps any role Packer creates |
+| KMS Key | `alias/express-compute-ami-signing` | RSA-4096 key for AMI attestation signatures |
+| SSM Parameter | `/express-compute/infra/kms/ami-signing-key-arn` | Key ARN for pipeline reference without hardcoding |
 
 ## Least-privilege design
 
@@ -52,15 +52,15 @@ sequenceDiagram
 `CreateImage`, `CreateKeyPair`, `CreateSnapshot` etc. carry an `aws:RequestedRegion` condition matching the deployment region. A compromised token cannot operate in other regions.
 
 **3. `RunInstances` is instance-type constrained**
-`ec2:RunInstances` is scoped to `c6a.large` (x86_64) and `c6g.large` (arm64) — the exact types declared in `eks-d-xpress.pkr.hcl`. Packer cannot launch arbitrary instance sizes.
+`ec2:RunInstances` is scoped to `c6a.large` (x86_64) and `c6g.large` (arm64) — the exact types declared in `express-compute.pkr.hcl`. Packer cannot launch arbitrary instance sizes.
 
 **4. IAM role creation is boundary-gated**
-`iam:CreateRole` and `iam:PutRolePolicy` require `iam:PermissionsBoundary = eks-d-xpress-packer-boundary`. Without this, Packer could create a role with `AdministratorAccess` and assume it — a privilege escalation path.
+`iam:CreateRole` and `iam:PutRolePolicy` require `iam:PermissionsBoundary = express-compute-packer-boundary`. Without this, Packer could create a role with `AdministratorAccess` and assume it — a privilege escalation path.
 
 **5. Temporary instance profile (`packer_*`)**
 Packer uses `temporary_iam_instance_profile_policy_document` in the HCL to create a short-lived instance profile (named `packer_*`) attached to the builder EC2. The CI role has `iam:CreateInstanceProfile` and `iam:PassRole` scoped to `packer_*` only. The profile grants the builder instance exactly:
 - ECR pull-through cache access (`GetAuthorizationToken`, `BatchCheckLayerAvailability`, `BatchGetImage`, `GetDownloadUrlForLayer`, `CreateRepository`, `BatchImportUpstreamImage`)
-- SSM read for `/eks-d-xpress/*` parameters
+- SSM read for `/express-compute/*` parameters
 - `sts:GetCallerIdentity` (needed by `install.sh` to resolve account/region)
 
 **6. ECR pull on the CI role**
@@ -73,9 +73,9 @@ cd ami-builder/cdk
 export CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
 export CDK_DEFAULT_REGION=us-east-1
 mvn -q compile
-cdk deploy EksDXpressPackerIamGithubStack \
+cdk deploy EcpPackerIamGithubStack \
   -c githubOrg=plasticity-of-cloud \
-  -c githubRepo=eks-d-xpress
+  -c githubRepo=express-compute
 ```
 
 ## GitHub Actions integration
@@ -90,7 +90,7 @@ permissions:
 steps:
   - uses: aws-actions/configure-aws-credentials@v4
     with:
-      role-to-assume: arn:aws:iam::<account>:role/eks-d-xpress-packer-ci
+      role-to-assume: arn:aws:iam::<account>:role/express-compute-packer-ci
       aws-region: us-east-1
 ```
 

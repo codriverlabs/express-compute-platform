@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 source /tmp/ami-build.env
-CHARTS_DIR="/opt/eks-d-setup/charts"
+CHARTS_DIR="/opt/cluster-setup/charts"
 
 echo "  Pulling CloudWatch Observability chart..."
 helm repo add aws-observability \

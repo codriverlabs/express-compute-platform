@@ -24,15 +24,15 @@ build: packer-init
 	  -var "kubernetes_version=$(KUBERNETES_VERSION)" \
 	  -var "ami_version=$(AMI_VERSION)" \
 	  -var "build_type=$(BUILD_TYPE)" \
-	  "$(DIR)eks-d-xpress.pkr.hcl"
+	  "$(DIR)express-compute.pkr.hcl"
 
 stage:
 	@mkdir -p "$(DIR)files"
 	@GOARCHES=$$(case '$(ARCH)' in arm64) echo arm64;; x86_64) echo amd64;; both) echo 'amd64 arm64';; esac); \
 	for GOARCH in $$GOARCHES; do \
 	  ARCH_DIR=$$([ "$$GOARCH" = "amd64" ] && echo x86_64 || echo arm64); \
-	  SRC="$(ROOT)/eks-d-setup/$$ARCH_DIR/ecr-credential-provider-$(KUBERNETES_VERSION)"; \
-	  [ -f "$$SRC" ] || SRC="$(ROOT)/eks-d-setup/$$ARCH_DIR/ecr-credential-provider"; \
+	  SRC="$(ROOT)/cluster-setup/$$ARCH_DIR/ecr-credential-provider-$(KUBERNETES_VERSION)"; \
+	  [ -f "$$SRC" ] || SRC="$(ROOT)/cluster-setup/$$ARCH_DIR/ecr-credential-provider"; \
 	  [ -f "$$SRC" ] || { echo "ERROR: ecr-credential-provider not found for $$GOARCH (k8s $(KUBERNETES_VERSION))"; exit 1; }; \
 	  cp "$$SRC" "$(DIR)files/ecr-credential-provider-$$GOARCH"; \
 	  chmod +x "$(DIR)files/ecr-credential-provider-$$GOARCH"; \
@@ -40,7 +40,7 @@ stage:
 	done
 
 packer-init: ensure-packer
-	packer init "$(DIR)eks-d-xpress.pkr.hcl"
+	packer init "$(DIR)express-compute.pkr.hcl"
 
 ensure-packer:
 	@command -v packer >/dev/null 2>&1 || { \

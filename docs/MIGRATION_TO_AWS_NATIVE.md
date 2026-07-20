@@ -1,12 +1,12 @@
 # Migration Plan: Terraform → AWS-Native (CloudFormation + SSM + Lambda)
 
 > ⚠️ **Historical** — This migration is complete. Terraform has been removed.
-> Packer replaced the Terraform AMI builder; CDK (`EksDxSharedInfraStack` in
-> `eks-d-xpress-infra`) replaced the Terraform VPC stack; Lambda handles tenant
+> Packer replaced the Terraform AMI builder; CDK (`EcpSharedInfraStack` in
+> `express-compute-managed-k8s-infra`) replaced the Terraform VPC stack; Lambda handles tenant
 > lifecycle. This document is kept for context only.
 >
-> Note: SSM path prefixes below use `/eks-dx/` — the actual deployed paths use
-> `/eks-d-xpress/` (see `AMI_PIPELINE_SETUP.md` for current SSM schema).
+> Note: SSM path prefixes below use `/ecp/` — the actual deployed paths use
+> `/express-compute/` (see `AMI_PIPELINE_SETUP.md` for current SSM schema).
 
 ## Motivation
 
@@ -48,41 +48,41 @@
 ### Shared Infrastructure (written by CloudFormation stack)
 
 ```
-/eks-dx/shared-infra/{region}/vpc-id
-/eks-dx/shared-infra/{region}/vpc-cidr
-/eks-dx/shared-infra/{region}/public-route-table-id
-/eks-dx/shared-infra/{region}/private-route-table-id
-/eks-dx/shared-infra/{region}/nat-gateway-id
-/eks-dx/shared-infra/{region}/internet-gateway-id
-/eks-dx/shared-infra/{region}/availability-zones          # comma-separated
-/eks-dx/shared-infra/{region}/launch-template/spot-arm64
-/eks-dx/shared-infra/{region}/launch-template/spot-x86_64
-/eks-dx/shared-infra/{region}/launch-template/ondemand-arm64
-/eks-dx/shared-infra/{region}/launch-template/ondemand-x86_64
+/ecp/shared-infra/{region}/vpc-id
+/ecp/shared-infra/{region}/vpc-cidr
+/ecp/shared-infra/{region}/public-route-table-id
+/ecp/shared-infra/{region}/private-route-table-id
+/ecp/shared-infra/{region}/nat-gateway-id
+/ecp/shared-infra/{region}/internet-gateway-id
+/ecp/shared-infra/{region}/availability-zones          # comma-separated
+/ecp/shared-infra/{region}/launch-template/spot-arm64
+/ecp/shared-infra/{region}/launch-template/spot-x86_64
+/ecp/shared-infra/{region}/launch-template/ondemand-arm64
+/ecp/shared-infra/{region}/launch-template/ondemand-x86_64
 ```
 
 ### AMI Registry (written by AMI builder)
 
 ```
-/eks-dx/ami/{region}/{k8s-version}/arm64
-/eks-dx/ami/{region}/{k8s-version}/x86_64
+/ecp/ami/{region}/{k8s-version}/arm64
+/ecp/ami/{region}/{k8s-version}/x86_64
 ```
 
 ### Tenant Metadata (written by Lambda on provision)
 
 ```
-/eks-dx/tenants/{tenant-id}/instance-id
-/eks-dx/tenants/{tenant-id}/cluster-name
-/eks-dx/tenants/{tenant-id}/public-ip
-/eks-dx/tenants/{tenant-id}/private-ip
-/eks-dx/tenants/{tenant-id}/cluster-endpoint
-/eks-dx/tenants/{tenant-id}/subnet-id
-/eks-dx/tenants/{tenant-id}/security-group-id
-/eks-dx/tenants/{tenant-id}/iam-role-arn
-/eks-dx/tenants/{tenant-id}/sqs-queue-url
-/eks-dx/tenants/{tenant-id}/arch
-/eks-dx/tenants/{tenant-id}/mode                          # spot | ondemand
-/eks-dx/tenants/{tenant-id}/created-at
+/ecp/tenants/{tenant-id}/instance-id
+/ecp/tenants/{tenant-id}/cluster-name
+/ecp/tenants/{tenant-id}/public-ip
+/ecp/tenants/{tenant-id}/private-ip
+/ecp/tenants/{tenant-id}/cluster-endpoint
+/ecp/tenants/{tenant-id}/subnet-id
+/ecp/tenants/{tenant-id}/security-group-id
+/ecp/tenants/{tenant-id}/iam-role-arn
+/ecp/tenants/{tenant-id}/sqs-queue-url
+/ecp/tenants/{tenant-id}/arch
+/ecp/tenants/{tenant-id}/mode                          # spot | ondemand
+/ecp/tenants/{tenant-id}/created-at
 ```
 
 ## Lambda Lookup Pattern
@@ -95,7 +95,7 @@ ssm = boto3.client('ssm')
 def get_shared_infra(region):
     """Load all shared infra params in one call."""
     response = ssm.get_parameters_by_path(
-        Path=f'/eks-dx/shared-infra/{region}/',
+        Path=f'/ecp/shared-infra/{region}/',
         Recursive=True,
         WithDecryption=False
     )
@@ -104,7 +104,7 @@ def get_shared_infra(region):
 def get_tenant(tenant_id):
     """Load tenant metadata."""
     response = ssm.get_parameters_by_path(
-        Path=f'/eks-dx/tenants/{tenant_id}/',
+        Path=f'/ecp/tenants/{tenant_id}/',
         Recursive=True
     )
     return {p['Name'].split('/')[-1]: p['Value'] for p in response['Parameters']}
@@ -126,14 +126,14 @@ Resources:
   SSMVpcId:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /eks-dx/shared-infra/${AWS::Region}/vpc-id
+      Name: !Sub /ecp/shared-infra/${AWS::Region}/vpc-id
       Type: String
       Value: !Ref VPC
 
   SSMVpcCidr:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: !Sub /eks-dx/shared-infra/${AWS::Region}/vpc-cidr
+      Name: !Sub /ecp/shared-infra/${AWS::Region}/vpc-cidr
       Type: String
       Value: !Ref VpcCidr
 ```
@@ -161,7 +161,7 @@ Resources:
 
 - **Packer** — AMI builds (no CloudFormation equivalent)
 - **Shell scripts** — boot-time cluster setup (runs on EC2, not infra-as-code)
-- **SAM** — Lambda deployment (already in eks-dx-control-plane repo)
+- **SAM** — Lambda deployment (already in ecp-control-plane repo)
 
 ## Benefits
 

@@ -1,6 +1,6 @@
-# EKS-D-Xpress Documentation Index
+# Express Compute Documentation Index
 
-This file serves as a knowledge base index for AI assistants working with the EKS-D-Xpress codebase. It provides metadata and navigation guidance for the comprehensive documentation system.
+This file serves as a knowledge base index for AI assistants working with the Express Compute codebase. It provides metadata and navigation guidance for the comprehensive documentation system.
 
 ## Quick Navigation for AI Assistants
 
@@ -111,4 +111,4 @@ This file serves as a knowledge base index for AI assistants working with the EK
 - **AWS Integration**: Covers interfaces.md, dependencies.md, architecture.md  
 - **Monitoring Setup**: Involves components.md, workflows.md, interfaces.md
 
-This index provides sufficient metadata for AI assistants to navigate the documentation effectively and find relevant information for any EKS-D-Xpress development or operational task.
+This index provides sufficient metadata for AI assistants to navigate the documentation effectively and find relevant information for any Express Compute development or operational task.
