@@ -24,7 +24,7 @@ build: packer-init
 	  -var "kubernetes_version=$(KUBERNETES_VERSION)" \
 	  -var "ami_version=$(AMI_VERSION)" \
 	  -var "build_type=$(BUILD_TYPE)" \
-	  "$(DIR)express-compute.pkr.hcl"
+	  "$(DIR)ecp-golden-ami.pkr.hcl"
 
 stage:
 	@mkdir -p "$(DIR)files"
@@ -40,7 +40,7 @@ stage:
 	done
 
 packer-init: ensure-packer
-	packer init "$(DIR)express-compute.pkr.hcl"
+	packer init "$(DIR)ecp-golden-ami.pkr.hcl"
 
 ensure-packer:
 	@command -v packer >/dev/null 2>&1 || { \

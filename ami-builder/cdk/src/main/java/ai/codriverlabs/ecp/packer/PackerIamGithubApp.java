@@ -1,4 +1,4 @@
-package ai.codriverlabs.ecppress.packer;
+package ai.codriverlabs.ecp.packer;
 
 import software.amazon.awscdk.App;
 import software.amazon.awscdk.Environment;

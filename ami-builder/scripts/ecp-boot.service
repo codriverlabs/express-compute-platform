@@ -1,5 +1,5 @@
 [Unit]
-Description=EKS-DX Cluster Bootstrap
+Description=Express Compute Cluster Bootstrap
 After=network-online.target cloud-final.service
 Wants=network-online.target
 ConditionPathExists=!/opt/eks-d/.installation_complete
@@ -8,8 +8,8 @@ ConditionPathExists=!/opt/eks-d/.installation_complete
 Type=oneshot
 RemainAfterExit=true
 Environment=HOME=/root
-WorkingDirectory=/opt/eks-d-setup
-ExecStart=/bin/bash /opt/eks-d-setup/workstation-boot.sh
+WorkingDirectory=/opt/cluster-setup
+ExecStart=/bin/bash /opt/cluster-setup/workstation-boot.sh
 StandardOutput=journal+console
 StandardError=journal+console
 TimeoutStartSec=300
