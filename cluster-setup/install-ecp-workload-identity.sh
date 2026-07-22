@@ -134,14 +134,17 @@ helm upgrade --install express-compute-workload-identity-webhook $(chart_ref exp
 log "✓ ecp-workload-identity-webhook installed"
 
 # ── 4. eks-pod-identity-agent ─────────────────────────────────────────────────
-# The agent image is in AWS ECR us-west-2 — create a pull secret.
-log "Creating ECR pull secret for eks-pod-identity-agent..."
-kubectl create secret docker-registry ecr-pod-identity-agent \
-  --namespace kube-system \
-  --docker-server=602401143452.dkr.ecr.us-west-2.amazonaws.com \
-  --docker-username=AWS \
-  --docker-password="$(aws ecr get-login-password --region us-west-2)" \
-  --dry-run=client -o yaml | kubectl apply -f -
+# In managed mode the agent image is pre-cached in the AMI — no pull secret needed.
+# In self-managed mode we need to authenticate to AWS's ECR (602401143452) at runtime.
+if [[ "$OIDC_MODE" == "self-managed" ]]; then
+  log "Creating ECR pull secret for eks-pod-identity-agent..."
+  kubectl create secret docker-registry ecr-pod-identity-agent \
+    --namespace kube-system \
+    --docker-server=602401143452.dkr.ecr.us-west-2.amazonaws.com \
+    --docker-username=AWS \
+    --docker-password="$(aws ecr get-login-password --region us-west-2)" \
+    --dry-run=client -o yaml | kubectl apply -f -
+fi
 
 log "Installing eks-pod-identity-agent..."
 AGENT_CHART=$(ls "${CHART_DIR}/eks-pod-identity-agent"-*.tgz 2>/dev/null | head -1 || true)
@@ -153,14 +156,19 @@ if [[ -z "$AGENT_CHART" ]]; then
   AGENT_CHART="/tmp/eks-pod-identity-agent"
 fi
 
-helm upgrade --install eks-pod-identity-agent "$AGENT_CHART" \
-  --namespace kube-system \
-  --set clusterName="${CLUSTER_NAME}" \
-  --set env.AWS_REGION="${AWS_REGION}" \
-  --set "agent.additionalArgs.--endpoint=http://ecp-auth-proxy.kube-system.svc.cluster.local:8080" \
-  --set "affinity=" \
-  --set "imagePullSecrets[0].name=ecr-pod-identity-agent" \
+AGENT_HELM_ARGS=(
+  --namespace kube-system
+  --set clusterName="${CLUSTER_NAME}"
+  --set env.AWS_REGION="${AWS_REGION}"
+  --set "agent.additionalArgs.--endpoint=http://ecp-auth-proxy.kube-system.svc.cluster.local:8080"
+  --set "affinity="
   --wait --timeout=120s
+)
+if [[ "$OIDC_MODE" == "self-managed" ]]; then
+  AGENT_HELM_ARGS+=(--set "imagePullSecrets[0].name=ecr-pod-identity-agent")
+fi
+
+helm upgrade --install eks-pod-identity-agent "$AGENT_CHART" "${AGENT_HELM_ARGS[@]}"
 log "✓ eks-pod-identity-agent installed"
 
 log "Express Compute Workload Identity installation complete"
