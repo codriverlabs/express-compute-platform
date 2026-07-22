@@ -5,7 +5,7 @@
 # by registering the cluster with the ecp control plane and deploying three components:
 #   1. ecp-auth-proxy      — in-cluster TokenReview + credential forwarding
 #   2. ecp-workload-identity-webhook — mutating webhook (env + projected token injection)
-#   3. eks-workload-identity-agent — AWS DaemonSet (intercepts 169.254.170.23)
+#   3. eks-pod-identity-agent — AWS DaemonSet (intercepts 169.254.170.23)
 #
 # Required environment variables:
 #   CLUSTER_NAME                 — unique cluster identifier
@@ -133,35 +133,35 @@ helm upgrade --install express-compute-workload-identity-webhook $(chart_ref exp
   --wait --timeout=120s
 log "✓ ecp-workload-identity-webhook installed"
 
-# ── 4. eks-workload-identity-agent ─────────────────────────────────────────────────
+# ── 4. eks-pod-identity-agent ─────────────────────────────────────────────────
 # The agent image is in AWS ECR us-west-2 — create a pull secret.
-log "Creating ECR pull secret for eks-workload-identity-agent..."
-kubectl create secret docker-registry ecr-workload-identity-agent \
+log "Creating ECR pull secret for eks-pod-identity-agent..."
+kubectl create secret docker-registry ecr-pod-identity-agent \
   --namespace kube-system \
   --docker-server=602401143452.dkr.ecr.us-west-2.amazonaws.com \
   --docker-username=AWS \
   --docker-password="$(aws ecr get-login-password --region us-west-2)" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-log "Installing eks-workload-identity-agent..."
-AGENT_CHART=$(ls "${CHART_DIR}/eks-workload-identity-agent"-*.tgz 2>/dev/null | head -1 || true)
+log "Installing eks-pod-identity-agent..."
+AGENT_CHART=$(ls "${CHART_DIR}/eks-pod-identity-agent"-*.tgz 2>/dev/null | head -1 || true)
 if [[ -z "$AGENT_CHART" ]]; then
-  warn "eks-workload-identity-agent chart not in CHART_DIR — downloading from GitHub..."
-  mkdir -p /tmp/eks-workload-identity-agent
-  curl -sL https://github.com/aws/eks-workload-identity-agent/archive/refs/heads/main.tar.gz | \
-    tar xz --strip-components=3 -C /tmp/eks-workload-identity-agent eks-workload-identity-agent-main/charts/eks-workload-identity-agent
-  AGENT_CHART="/tmp/eks-workload-identity-agent"
+  warn "eks-pod-identity-agent chart not in CHART_DIR — downloading from GitHub..."
+  mkdir -p /tmp/eks-pod-identity-agent
+  curl -sL https://github.com/aws/eks-pod-identity-agent/archive/refs/heads/main.tar.gz | \
+    tar xz --strip-components=3 -C /tmp/eks-pod-identity-agent eks-pod-identity-agent-main/charts/eks-pod-identity-agent
+  AGENT_CHART="/tmp/eks-pod-identity-agent"
 fi
 
-helm upgrade --install eks-workload-identity-agent "$AGENT_CHART" \
+helm upgrade --install eks-pod-identity-agent "$AGENT_CHART" \
   --namespace kube-system \
   --set clusterName="${CLUSTER_NAME}" \
   --set env.AWS_REGION="${AWS_REGION}" \
   --set "agent.additionalArgs.--endpoint=http://ecp-auth-proxy.kube-system.svc.cluster.local:8080" \
   --set "affinity=" \
-  --set "imagePullSecrets[0].name=ecr-workload-identity-agent" \
+  --set "imagePullSecrets[0].name=ecr-pod-identity-agent" \
   --wait --timeout=120s
-log "✓ eks-workload-identity-agent installed"
+log "✓ eks-pod-identity-agent installed"
 
 log "Express Compute Workload Identity installation complete"
 log "  Test: kubectl run aws-test --image=amazon/aws-cli:latest --rm -it \\"

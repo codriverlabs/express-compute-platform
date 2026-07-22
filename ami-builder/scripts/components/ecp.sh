@@ -22,23 +22,27 @@ sudo ctr -n k8s.io images pull \
 sudo ctr -n k8s.io images pull \
   "${ECP_GHCR_REGISTRY}/express-compute-workload-identity-webhook:${ECP_CONTROL_PLANE_VERSION}" || true
 
-echo "  Pulling eks-workload-identity-agent chart..."
-mkdir -p /tmp/eks-workload-identity-agent
-curl -sL https://github.com/aws/eks-workload-identity-agent/archive/refs/heads/main.tar.gz | \
-  tar xz --strip-components=3 -C /tmp/eks-workload-identity-agent \
-    eks-workload-identity-agent-main/charts/eks-workload-identity-agent || true
-if [ -f /tmp/eks-workload-identity-agent/Chart.yaml ]; then
-  helm package /tmp/eks-workload-identity-agent --destination /tmp || true
-  sudo mv /tmp/eks-workload-identity-agent-*.tgz "${CHARTS_DIR}/" 2>/dev/null || true
+echo "  Pulling eks-pod-identity-agent chart..."
+mkdir -p /tmp/eks-pod-identity-agent
+curl -sL https://github.com/aws/eks-pod-identity-agent/archive/refs/heads/main.tar.gz | \
+  tar xz --strip-components=3 -C /tmp/eks-pod-identity-agent \
+    eks-pod-identity-agent-main/charts/eks-pod-identity-agent || true
+if [ -f /tmp/eks-pod-identity-agent/Chart.yaml ]; then
+  helm package /tmp/eks-pod-identity-agent --destination /tmp || true
+  sudo mv /tmp/eks-pod-identity-agent-*.tgz "${CHARTS_DIR}/" 2>/dev/null || true
 fi
-rm -rf /tmp/eks-workload-identity-agent
+rm -rf /tmp/eks-pod-identity-agent
 
-echo "  Pulling eks-workload-identity-agent image..."
-EKS_POD_ID_CTR_USER=$(aws ecr get-authorization-token \
-  --registry-ids 602401143452 --region us-west-2 \
-  --query 'authorizationData[0].authorizationToken' --output text | base64 -d)
-sudo ctr -n k8s.io images pull \
-  --user "${EKS_POD_ID_CTR_USER}" \
-  "602401143452.dkr.ecr.us-west-2.amazonaws.com/eks/eks-workload-identity-agent:v1.3.10-eksbuild.3" || true
+echo "  Pulling eks-pod-identity-agent images (auto-discovered from chart)..."
+AGENT_CHART=$(ls "${CHARTS_DIR}"/eks-pod-identity-agent-*.tgz 2>/dev/null | head -1 || true)
+if [[ -n "$AGENT_CHART" ]]; then
+  EKS_POD_ID_CTR_USER=$(aws ecr get-authorization-token \
+    --registry-ids 602401143452 --region us-west-2 \
+    --query 'authorizationData[0].authorizationToken' --output text | base64 -d)
+  helm template eks-pod-identity-agent "$AGENT_CHART" 2>/dev/null | \
+    python3 "${EXTRACT_IMAGES_PY}" | sort -u | while read img; do
+      sudo ctr -n k8s.io images pull --user "${EKS_POD_ID_CTR_USER}" "$img" || true
+    done
+fi
 
 echo "✓ ecp ready"

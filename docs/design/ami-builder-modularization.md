@@ -92,7 +92,7 @@ Each script must:
 | `vpc-cni.sh` | No chart — downloads manifest from GitHub | `602401143452.dkr.ecr.us-west-2` (direct auth) | Also pre-bakes `/opt/cni/bin` from init container; patches manifest for prefix delegation |
 | `cloudwatch.sh` | `aws-observability` Helm repo | `public.ecr.aws` → `PUBLIC_ECR_CACHE` | |
 | `system-images.sh` | No chart | Various | metrics-server, aws-iam-authenticator, kubectl (for kubelet-csr-approver) |
-| `ecp.sh` | OCI GHCR charts | `ghcr.io` (direct) | No-op if `INSTALL_ECP != true`; also pulls eks-workload-identity-agent |
+| `ecp.sh` | OCI GHCR charts | `ghcr.io` (direct) | No-op if `INSTALL_ECP != true`; also pulls eks-pod-identity-agent |
 
 ## `install.sh` After Split
 
