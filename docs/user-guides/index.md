@@ -1,25 +1,50 @@
 # User Guides
 
-This directory contains user-facing documentation for the Express Compute project.
+Comprehensive documentation for the Express Compute Platform.
 
-## Available Guides
+---
+
+## Getting Started
 
 | Guide | Description |
 |-------|-------------|
-| [architecture.md](architecture.md) | System architecture, components, and design decisions |
-| [deployment.md](deployment.md) | Step-by-step deployment instructions |
-| [components.md](components.md) | Component reference and configuration |
+| [Deployment](deployment.md) | Deploy the platform end-to-end using the Docker bundle |
+| [Architecture](architecture.md) | System architecture, components, and design decisions |
+
+## Building AMIs
+
+| Guide | Description |
+|-------|-------------|
+| [AMI Builder](ami-builder.md) | Build, sign, and manage golden AMIs (local and CI) |
+| [Custom Golden AMIs](golden-ami-customization.md) | Extend the AMI with your own software, images, and scripts |
+| [GitHub Actions Pipeline](github-actions-pipeline.md) | Automated CI/CD for AMI builds with OIDC authentication |
+
+## Running Clusters
+
+| Guide | Description |
+|-------|-------------|
+| [Cluster Setup](cluster-setup.md) | Boot sequence, lifecycle, and dev/manual mode |
+| [Node Pools](node-pools.md) | Karpenter NodePool and EC2NodeClass configuration |
+| [Components](components.md) | Component reference — what's installed and where |
+
+---
 
 ## Quick Links
 
-- [Architecture Overview](../README.md) - High-level project overview
-- [Cost Estimation](../../cost-estimation.md) - Cost analysis
-- [Deployment Guide (Root)](../../DEPLOYMENT_GUIDE.md) - Detailed deployment guide
-- [AMI Pipeline Setup](../AMI_PIPELINE_SETUP.md) - AMI signing and OIDC setup
+- [Component Versions](../../COMPONENT_VERSIONS.md) — pinned EKS-D version matrix
+- [Cost Estimation](../../cost-estimation.md) — infrastructure cost breakdown
+- [AMI Pipeline Setup](../AMI_PIPELINE_SETUP.md) — one-time AWS account configuration
+- [AMI Verification](../AMI_VERIFICATION.md) — verify AMI signatures offline
+- [Deployment Bundle](../DEPLOYMENT_BUNDLE.md) — bundle contents and build process
+
+---
 
 ## Prerequisites
 
 Before using these guides, ensure you have:
-- AWS CLI configured
-- SSH key pair created
+
+- AWS account with appropriate IAM permissions
+- AWS CLI configured (`aws sts get-caller-identity` succeeds)
+- Docker installed (for the deployment bundle)
+- For AMI builds: Packer 1.9+, Make, and the CDK-provisioned IAM role
 - Basic understanding of Kubernetes concepts
