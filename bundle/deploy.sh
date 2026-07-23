@@ -59,23 +59,23 @@ cdk_bootstrap() {
 }
 
 deploy_infra() {
-  echo "==> Deploying EcpSharedInfraStack"
+  echo "==> Deploying ExpressComputeManagedK8sInfraStack"
   cd "${SCRIPT_DIR}/infra"
   cdk deploy --app cdk.out --all --require-approval never \
     --region "${REGION}" \
-    --parameters "EcpSharedInfraStack:ProjectName=${PROJECT_NAME}" \
-    --parameters "EcpSharedInfraStack:InstanceTypeArm64=${INSTANCE_TYPE_ARM64}" \
-    --parameters "EcpSharedInfraStack:InstanceTypeX86=${INSTANCE_TYPE_X86}" \
-    --parameters "EcpSharedInfraStack:DiskSizeGb=${DISK_SIZE_GB}" \
-    --parameters "EcpSharedInfraStack:EnableNatGateway=${ENABLE_NAT_GATEWAY}"
+    --parameters "ExpressComputeManagedK8sInfraStack:ProjectName=${PROJECT_NAME}" \
+    --parameters "ExpressComputeManagedK8sInfraStack:InstanceTypeArm64=${INSTANCE_TYPE_ARM64}" \
+    --parameters "ExpressComputeManagedK8sInfraStack:InstanceTypeX86=${INSTANCE_TYPE_X86}" \
+    --parameters "ExpressComputeManagedK8sInfraStack:DiskSizeGb=${DISK_SIZE_GB}" \
+    --parameters "ExpressComputeManagedK8sInfraStack:EnableNatGateway=${ENABLE_NAT_GATEWAY}"
 }
 
 deploy_control_plane() {
-  echo "==> Deploying EcpControlPlaneStack (mode: ${DEPLOYMENT_MODE})"
+  echo "==> Deploying ExpressComputeControlPlaneStack (mode: ${DEPLOYMENT_MODE})"
   cd "${SCRIPT_DIR}/control-plane"
   local params=()
-  [[ -n "${DOMAIN_NAME:-}" ]]      && params+=(--parameters "EcpControlPlaneStack:DomainName=${DOMAIN_NAME}")
-  [[ -n "${CERTIFICATE_ARN:-}" ]]  && params+=(--parameters "EcpControlPlaneStack:CertificateArn=${CERTIFICATE_ARN}")
+  [[ -n "${DOMAIN_NAME:-}" ]]      && params+=(--parameters "ExpressComputeControlPlaneStack:DomainName=${DOMAIN_NAME}")
+  [[ -n "${CERTIFICATE_ARN:-}" ]]  && params+=(--parameters "ExpressComputeControlPlaneStack:CertificateArn=${CERTIFICATE_ARN}")
   cdk deploy --app cdk.out --all --require-approval never \
     --region "${REGION}" \
     --context "deploymentMode=${DEPLOYMENT_MODE}" \
