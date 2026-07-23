@@ -39,6 +39,12 @@ public class ExpressComputePackerIamStack extends Stack {
         String region    = this.getRegion();
         String githubOrg = (String) this.getNode().tryGetContext("githubOrg");
         String githubRepo = (String) this.getNode().tryGetContext("githubRepo");
+        String githubOrgId = (String) this.getNode().tryGetContext("githubOrgId");
+        String githubRepoId = (String) this.getNode().tryGetContext("githubRepoId");
+
+        // Build OIDC subject prefix using immutable IDs (GitHub April 2026 format)
+        String subjectPrefix = "repo:" + githubOrg + "@" + githubOrgId
+                + "/" + githubRepo + "@" + githubRepoId;
 
         // ── GitHub OIDC provider ──────────────────────────────────────────────
         var oidcProvider = CfnOIDCProvider.Builder.create(this, "GitHubOidc")
@@ -114,8 +120,8 @@ public class ExpressComputePackerIamStack extends Stack {
                         Map.of(
                                 "StringEquals", Map.of(oidcHost + ":aud", "sts.amazonaws.com"),
                                 "StringLike",   Map.of(oidcHost + ":sub", List.of(
-                                        "repo:" + githubOrg + "/" + githubRepo + ":ref:refs/heads/main",
-                                        "repo:" + githubOrg + "/" + githubRepo + ":ref:refs/tags/v*"))
+                                        subjectPrefix + ":ref:refs/heads/main",
+                                        subjectPrefix + ":ref:refs/tags/v*"))
                         ),
                         "sts:AssumeRoleWithWebIdentity"
                 ))

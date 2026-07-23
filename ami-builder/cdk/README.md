@@ -75,7 +75,9 @@ export CDK_DEFAULT_REGION=us-east-1
 mvn -q compile
 cdk deploy ExpressComputePackerIamGithubStack \
   -c githubOrg=codriverlabs \
-  -c githubRepo=express-compute-platform
+  -c githubOrgId=236268168 \
+  -c githubRepo=express-compute-platform \
+  -c githubRepoId=1250509430
 ```
 
 ## GitHub Actions integration
