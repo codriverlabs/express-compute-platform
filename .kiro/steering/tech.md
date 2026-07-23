@@ -1,5 +1,12 @@
 # Technical Steering
 
+## Development Workflow
+
+- Always create a dedicated branch for every change. Never commit directly to `main`.
+- Work on the branch, push it, then create a PR.
+- Only merge the PR after all tests pass.
+- Use descriptive branch names (e.g. `fix/oidc-trust-repo-name`, `chore/migrate-org-to-codriverlabs`).
+
 ## Release Tagging
 
 - Never recreate or move an existing tag. Always bump to the next RC number (e.g. `v1.0.0-rc1` → `v1.0.0-rc2`).
