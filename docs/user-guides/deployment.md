@@ -18,7 +18,7 @@ docker run --rm -it \
   -e AWS_PROFILE="${AWS_PROFILE:-default}" \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
   --entrypoint bash \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest
+  ghcr.io/codriverlabs/express-compute-bundle:latest
 ```
 
 ### From an EC2 instance or bastion host (instance profile / environment variables)
@@ -33,7 +33,7 @@ docker run --rm -it \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
   --network host \
   --entrypoint bash \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest
+  ghcr.io/codriverlabs/express-compute-bundle:latest
 ```
 
 > `--network host` lets the container reach the EC2 Instance Metadata Service
@@ -51,7 +51,7 @@ docker run --rm -it \
   -e AWS_SESSION_TOKEN \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
   --entrypoint bash \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest
+  ghcr.io/codriverlabs/express-compute-bundle:latest
 ```
 
 ---

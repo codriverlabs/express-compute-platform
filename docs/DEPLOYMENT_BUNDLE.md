@@ -85,7 +85,7 @@ docker run --rm \
   -v ~/.aws:/root/.aws:ro \
   -e AWS_PROFILE=my-profile \
   -e AWS_REGION=us-east-1 \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest \
+  ghcr.io/codriverlabs/express-compute-bundle:latest \
   deploy --region us-east-1
 ```
 
@@ -97,7 +97,7 @@ docker run --rm \
   -e AWS_SECRET_ACCESS_KEY=... \
   -e AWS_SESSION_TOKEN=... \
   -e AWS_REGION=eu-west-1 \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest \
+  ghcr.io/codriverlabs/express-compute-bundle:latest \
   deploy --region eu-west-1
 ```
 
@@ -106,12 +106,12 @@ docker run --rm \
 ```bash
 # Shared infrastructure only
 docker run --rm -v ~/.aws:/root/.aws:ro \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest \
+  ghcr.io/codriverlabs/express-compute-bundle:latest \
   deploy --stack infra --region us-east-1
 
 # Control plane only (requires infra deployed first)
 docker run --rm -v ~/.aws:/root/.aws:ro \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest \
+  ghcr.io/codriverlabs/express-compute-bundle:latest \
   deploy --stack control-plane --region us-east-1
 ```
 
@@ -119,7 +119,7 @@ docker run --rm -v ~/.aws:/root/.aws:ro \
 
 ```bash
 docker run --rm -v ~/.aws:/root/.aws:ro \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest \
+  ghcr.io/codriverlabs/express-compute-bundle:latest \
   register-amis --region us-east-1
 ```
 
@@ -129,7 +129,7 @@ docker run --rm -v ~/.aws:/root/.aws:ro \
 docker run --rm \
   -v ~/.aws:/root/.aws:ro \
   -v ~/.kube:/root/.kube:ro \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest \
+  ghcr.io/codriverlabs/express-compute-bundle:latest \
   install-charts --kubeconfig /root/.kube/config
 ```
 
@@ -137,7 +137,7 @@ docker run --rm \
 
 ```bash
 docker run --rm -v ~/.aws:/root/.aws:ro \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest \
+  ghcr.io/codriverlabs/express-compute-bundle:latest \
   destroy --region us-east-1
 ```
 
@@ -145,7 +145,7 @@ docker run --rm -v ~/.aws:/root/.aws:ro \
 
 ```bash
 docker run --rm -v ~/.aws:/root/.aws:ro \
-  ghcr.io/plasticity-of-cloud/express-compute-bundle:latest \
+  ghcr.io/codriverlabs/express-compute-bundle:latest \
   ecp clusters list
 ```
 
@@ -230,7 +230,7 @@ The bundle image is built by this repository (`express-compute`) in a GitHub Act
 2. Downloads `ami-manifest.json` from the latest `express-compute` release
 3. Stages everything into the Docker build context
 4. Builds multi-arch images (linux/amd64 + linux/arm64)
-5. Pushes to GHCR as `ghcr.io/plasticity-of-cloud/express-compute-bundle:{tag}`
+5. Pushes to GHCR as `ghcr.io/codriverlabs/express-compute-bundle:{tag}`
 
 See `.github/workflows/bundle-release.yml` for implementation.
 
@@ -265,8 +265,8 @@ Docker pulls the correct architecture automatically.
 ## Versioning
 
 Tags follow the project release convention:
-- `ghcr.io/plasticity-of-cloud/express-compute-bundle:v1.0.3` — pinned
-- `ghcr.io/plasticity-of-cloud/express-compute-bundle:latest` — rolling
+- `ghcr.io/codriverlabs/express-compute-bundle:v1.0.3` — pinned
+- `ghcr.io/codriverlabs/express-compute-bundle:latest` — rolling
 
 Each release bundles specific versions of all components:
 - Control-plane CDK + Lambda zips (from control-plane release)

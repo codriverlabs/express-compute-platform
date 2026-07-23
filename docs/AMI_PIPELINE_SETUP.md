@@ -22,7 +22,7 @@ Run once per AWS account. Requires `AdministratorAccess` or equivalent.
 
 ```bash
 export AWS_REGION=us-east-1
-export GITHUB_ORG=plasticity-of-cloud
+export GITHUB_ORG=codriverlabs
 export GITHUB_REPO=express-compute   # optional, defaults to express-compute
 
 ./ami-builder/setup-iam.sh
@@ -62,13 +62,13 @@ Packer documents as required:
 
 The trust policy restricts `AssumeRoleWithWebIdentity` to:
 - Audience: `sts.amazonaws.com`  
-- Subject: `repo:plasticity-of-cloud/express-compute:*` (any branch/tag/PR)
+- Subject: `repo:codriverlabs/express-compute:*` (any branch/tag/PR)
 
 Narrow to a specific branch for production accounts:
 ```json
 "StringEquals": {
   "token.actions.githubusercontent.com:sub":
-    "repo:plasticity-of-cloud/express-compute:ref:refs/heads/main"
+    "repo:codriverlabs/express-compute:ref:refs/heads/main"
 }
 ```
 
@@ -163,7 +163,7 @@ software installed on the AMI at build time.
 
 ```bash
 # One-time setup (if not done)
-AWS_REGION=us-east-1 GITHUB_ORG=plasticity-of-cloud ./ami-builder/setup-iam.sh
+AWS_REGION=us-east-1 GITHUB_ORG=codriverlabs ./ami-builder/setup-iam.sh
 
 # Build + sign
 ARCH=arm64 AWS_REGION=us-east-1 ./ami-builder/build-golden-amis.sh

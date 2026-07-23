@@ -59,7 +59,7 @@ rm -f /tmp/syft.tar.gz /tmp/syft
 
 echo "==> Installing ecp CLI..."
 if [[ "${INSTALL_ECP:-false}" == "true" ]]; then
-  ECP_CLI_URL="https://github.com/plasticity-of-cloud/express-compute-control-plane/releases/download/v${ECP_CONTROL_PLANE_VERSION}/ecp-cli-${ECP_CONTROL_PLANE_VERSION}-linux-${ARCH}"
+  ECP_CLI_URL="https://github.com/codriverlabs/express-compute-control-plane/releases/download/v${ECP_CONTROL_PLANE_VERSION}/ecp-cli-${ECP_CONTROL_PLANE_VERSION}-linux-${ARCH}"
   curl -fsSL "$ECP_CLI_URL" -o /tmp/ecp
   sudo install -o root -g root -m 0755 /tmp/ecp /usr/local/bin/ecp
   rm -f /tmp/ecp
@@ -198,7 +198,7 @@ REGION=${REGION}
 ACCOUNT_ID=${ACCOUNT_ID}
 INSTALL_ECP=${INSTALL_ECP:-false}
 ECP_CONTROL_PLANE_VERSION=${ECP_CONTROL_PLANE_VERSION}
-ECP_GHCR_REGISTRY=${ECP_GHCR_REGISTRY:-ghcr.io/plasticity-of-cloud}
+ECP_GHCR_REGISTRY=${ECP_GHCR_REGISTRY:-ghcr.io/codriverlabs}
 CERT_MANAGER_VERSION=${CERT_MANAGER_VERSION}
 KARPENTER_VERSION=${KARPENTER_VERSION}
 METRICS_SERVER_IMAGE=${METRICS_SERVER_IMAGE:-}
