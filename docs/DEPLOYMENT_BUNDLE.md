@@ -8,8 +8,8 @@ The bundle downloads pre-built release artifacts from GitHub and combines them i
 
 | Stack | Source Repository | Release Artifact | What It Deploys |
 |-------|-------------------|-----------------|-----------------|
-| `EcpSharedInfraStack` | `express-compute-managed-k8s-infra` | `express-compute-managed-k8s-infra-cdk-{ver}.tar.gz` | VPC, launch templates, ECR cache, S3 endpoint, SSM params |
-| `EcpControlPlaneStack` | `express-compute-control-plane` | `ecp-cdk-{ver}.tar.gz` | Lambdas, API Gateway, DynamoDB, Workload Identity |
+| `ExpressComputeManagedK8sInfraStack` | `express-compute-managed-k8s-infra` | `express-compute-managed-k8s-infra-cdk-{ver}.tar.gz` | VPC, launch templates, ECR cache, S3 endpoint, SSM params |
+| `ExpressComputeControlPlaneStack` | `express-compute-control-plane` | `ecp-cdk-{ver}.tar.gz` | Lambdas, API Gateway, DynamoDB, Workload Identity |
 | Golden AMIs | `express-compute` | `ami-manifest.json` | Pre-built machine images per region/arch |
 
 Plus:
@@ -36,7 +36,7 @@ checksums.sha256
 ```
 
 The **pre-synthesized CDK** (`ecp-cdk-{ver}.tar.gz`) contains a `cdk.out/` directory with:
-- `EcpControlPlaneStack.template.json` — CloudFormation template
+- `ExpressComputeControlPlaneStack.template.json` — CloudFormation template
 - `asset.*.zip` — Lambda function zips (already bundled)
 - `manifest.json` — CDK cloud assembly manifest
 
@@ -53,9 +53,9 @@ This means **no Java compilation at deploy time** — `cdk deploy --app cdk.out`
 │  /opt/ecp/                                                       │
 │  ├── deploy.sh                  # Orchestrator entrypoint           │
 │  ├── ami-manifest.json          # Golden AMI IDs by region/arch     │
-│  ├── infra/                     # EcpSharedInfraStack             │
+│  ├── infra/                     # ExpressComputeManagedK8sInfraStack             │
 │  │   └── cdk.out/              # Pre-synthesized (from release)     │
-│  ├── control-plane/             # EcpControlPlaneStack       │
+│  ├── control-plane/             # ExpressComputeControlPlaneStack       │
 │  │   └── cdk.out/              # Pre-synthesized (from release)     │
 │  ├── helm/                      # Helm charts (.tar.gz)             │
 │  │   ├── express-compute-auth-proxy-{ver}.tar.gz                       │
@@ -155,9 +155,19 @@ The orchestrator (`deploy.sh`) enforces the correct order:
 
 ```
 1. CDK Bootstrap (idempotent)
-2. EcpSharedInfraStack        → VPC, LTs, ECR cache, SSM params
-3. Register AMI IDs to SSM      → /express-compute/infra/ami/{arch}/{k8s-version}
-4. EcpControlPlaneStack  → Lambdas read SSM params from steps 2+3
+2. ExpressComputeManagedK8sInfraStack   → VPC, LTs, ECR cache, SSM params
+3. Register AMI IDs to SSM             → /express-compute/infra/ami/{arch}/{k8s-version}
+4. ExpressComputeControlPlaneStack     → Lambdas read SSM params from steps 2+3
+```
+
+### Self-Managed Mode
+
+For self-managed clusters that only need Workload Identity, use `--deployment-mode self-managed`.
+This skips steps 2 and 3, deploying only the control plane (credential-service + mgmt-service):
+
+```
+1. CDK Bootstrap (idempotent)
+2. ExpressComputeControlPlaneStack (self-managed) → credential-service + mgmt-service only
 ```
 
 Steps 2 and 3 write SSM parameters that step 4 reads at deploy time:

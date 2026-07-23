@@ -65,8 +65,8 @@ Once inside you have a fully equipped environment:
 ├── deploy.sh          ← deployment orchestrator
 ├── bin/ecp         ← cluster management CLI
 ├── ami-manifest.json  ← golden AMI IDs by region and arch
-├── infra/cdk.out/     ← EcpSharedInfraStack (pre-synthesized)
-├── control-plane/cdk.out/  ← EcpControlPlaneStack
+├── infra/cdk.out/     ← ExpressComputeManagedK8sInfraStack (pre-synthesized)
+├── control-plane/cdk.out/  ← ExpressComputeControlPlaneStack
 └── helm/              ← Helm charts
 ```
 
@@ -98,7 +98,29 @@ Run the full deployment (CDK bootstrap → shared infra → AMI registration →
 ./deploy.sh deploy --region us-east-1
 ```
 
-Or step by step if you want to inspect between stages:
+### Self-Managed Mode (Workload Identity Only)
+
+For existing clusters (k3s, microk8s, EKS-D) that only need Express Compute Workload Identity
+without managed infrastructure:
+
+```bash
+./deploy.sh deploy --deployment-mode self-managed --region us-east-1
+```
+
+This skips the infra stack and AMI registration, deploying only the control plane
+(credential-service and management-service).
+
+### Deployment Modes
+
+| Mode | What it deploys | Use case |
+|------|----------------|----------|
+| `self-managed` | Control plane only (credential + mgmt services) | Existing clusters needing Workload Identity |
+| `managed` | Full stack (infra + control plane with tenant service) | Managed cluster provisioning |
+| `hybrid` | Both flows enabled (default) | Full platform |
+
+### Step-by-Step Deployment
+
+Or deploy step by step if you want to inspect between stages:
 
 ```bash
 # Step 1: shared VPC, launch templates, ECR pull-through cache
@@ -115,9 +137,9 @@ What gets deployed:
 
 | Stack | What it creates |
 |-------|----------------|
-| `EcpSharedInfraStack` | VPC, launch templates, ECR pull-through cache, S3 endpoint, SSM params |
+| `ExpressComputeManagedK8sInfraStack` | VPC, launch templates, ECR pull-through cache, S3 endpoint, SSM params |
 | AMI registration | `/express-compute/infra/ami/{arch}/{k8s-version}` SSM parameters |
-| `EcpControlPlaneStack` | Lambdas, API Gateway, DynamoDB, Workload Identity webhook |
+| `ExpressComputeControlPlaneStack` | Lambdas, API Gateway, DynamoDB, Workload Identity webhook |
 
 ---
 
