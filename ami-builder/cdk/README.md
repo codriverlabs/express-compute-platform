@@ -16,7 +16,7 @@ sequenceDiagram
     participant Packer as Packer (in GHA runner)
     participant EC2 as AWS EC2
 
-    GHA->>GHOIDC: Request OIDC token (JWT)<br/>sub: repo:codriverlabs/express-compute:*
+    GHA->>GHOIDC: Request OIDC token (JWT)<br/>sub: repo:codriverlabs/express-compute-platform:*
     GHOIDC-->>GHA: Signed JWT (expires ~1h)
 
     GHA->>STS: AssumeRoleWithWebIdentity<br/>role: express-compute-packer-ci<br/>token: <JWT>
@@ -73,9 +73,9 @@ cd ami-builder/cdk
 export CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
 export CDK_DEFAULT_REGION=us-east-1
 mvn -q compile
-cdk deploy EcpPackerIamGithubStack \
+cdk deploy ExpressComputePackerIamGithubStack \
   -c githubOrg=codriverlabs \
-  -c githubRepo=express-compute
+  -c githubRepo=express-compute-platform
 ```
 
 ## GitHub Actions integration

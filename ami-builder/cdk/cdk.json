@@ -2,6 +2,6 @@
   "app": "mvn -e -q compile exec:java",
   "context": {
     "githubOrg": "codriverlabs",
-    "githubRepo": "express-compute"
+    "githubRepo": "express-compute-platform"
   }
 }

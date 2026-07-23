@@ -62,13 +62,13 @@ Packer documents as required:
 
 The trust policy restricts `AssumeRoleWithWebIdentity` to:
 - Audience: `sts.amazonaws.com`  
-- Subject: `repo:codriverlabs/express-compute:*` (any branch/tag/PR)
+- Subject: `repo:codriverlabs/express-compute-platform:*` (any branch/tag/PR)
 
 Narrow to a specific branch for production accounts:
 ```json
 "StringEquals": {
   "token.actions.githubusercontent.com:sub":
-    "repo:codriverlabs/express-compute:ref:refs/heads/main"
+    "repo:codriverlabs/express-compute-platform:ref:refs/heads/main"
 }
 ```
 
