@@ -13,7 +13,7 @@ mvn -q compile
 
 cdk deploy ExpressComputePackerIamGithubStack \
   -c githubOrg=codriverlabs \
-  -c githubRepo=express-compute-platform-platform \
+  -c githubRepo=express-compute-platform \
   --require-approval never
 
 echo "✓ Done"

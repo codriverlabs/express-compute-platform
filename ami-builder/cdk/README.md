@@ -73,7 +73,7 @@ cd ami-builder/cdk
 export CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
 export CDK_DEFAULT_REGION=us-east-1
 mvn -q compile
-cdk deploy EcpPackerIamGithubStack \
+cdk deploy ExpressComputePackerIamGithubStack \
   -c githubOrg=codriverlabs \
   -c githubRepo=express-compute-platform
 ```
