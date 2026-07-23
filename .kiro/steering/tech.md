@@ -6,11 +6,6 @@
 - Ensure all required files are committed and pushed to `main` before creating a release tag.
 - Tags trigger the `release.yml` workflow (AMI builds). The `bundle-release.yml` workflow is manual (`workflow_dispatch`).
 
-## Git Identity
-
-- Use `kp-codriverlabs` / `karol.piatek@codriverlabs.ai` for commits on this repo.
-- SSH uses the `github-codriverlabs` host alias (key: `~/.ssh/id_ed25519_codriverlabs`).
-
 ## GitHub OIDC (AWS)
 
 - GitHub uses immutable OIDC subject claims with org/repo IDs appended: `repo:codriverlabs@236268168/express-compute-platform@1250509430:ref:...`
