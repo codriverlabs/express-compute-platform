@@ -17,8 +17,8 @@ CP_VER="${CONTROL_PLANE_VERSION}"
 INFRA_VER="${INFRA_VERSION}"
 ARCH=$(uname -m); [ "${ARCH}" = "aarch64" ] && ARCH="arm64" || ARCH="amd64"
 
-CP_BASE="https://github.com/plasticity-of-cloud/express-compute-control-plane/releases/download/v${CP_VER}"
-INFRA_BASE="https://github.com/plasticity-of-cloud/express-compute-managed-k8s-infra/releases/download/v${INFRA_VER}"
+CP_BASE="https://github.com/codriverlabs/express-compute-control-plane/releases/download/v${CP_VER}"
+INFRA_BASE="https://github.com/codriverlabs/express-compute-managed-k8s-infra/releases/download/v${INFRA_VER}"
 
 # ── Authenticate to ECR public gallery (required to pull base image) ─────────
 echo "==> Authenticating to ECR public gallery..."

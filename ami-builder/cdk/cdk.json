@@ -1,7 +1,7 @@
 {
   "app": "mvn -e -q compile exec:java",
   "context": {
-    "githubOrg": "plasticity-of-cloud",
+    "githubOrg": "codriverlabs",
     "githubRepo": "express-compute"
   }
 }

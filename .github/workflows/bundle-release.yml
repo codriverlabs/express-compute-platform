@@ -21,7 +21,7 @@ permissions:
   packages: write
 
 env:
-  REGISTRY: ghcr.io/plasticity-of-cloud
+  REGISTRY: ghcr.io/codriverlabs
   IMAGE_NAME: express-compute-bundle
 
 jobs:
@@ -49,20 +49,20 @@ jobs:
 
           # CDK full source
           gh release download "${CP_VERSION}" \
-            --repo plasticity-of-cloud/express-compute-control-plane \
+            --repo codriverlabs/express-compute-control-plane \
             --pattern "express-compute-control-plane-${VER}.tar.gz" --dir /tmp
           mkdir -p build/control-plane-cdk
           tar xzf /tmp/express-compute-control-plane-${VER}.tar.gz -C build/control-plane-cdk --strip-components=1
 
           # CLI binary (arch-specific)
           gh release download "${CP_VERSION}" \
-            --repo plasticity-of-cloud/express-compute-control-plane \
+            --repo codriverlabs/express-compute-control-plane \
             --pattern "ecp-cli-${VER}-linux-${{ matrix.arch }}" --dir build
           mv build/ecp-cli-${VER}-linux-${{ matrix.arch }} build/ecp-cli
 
           # Helm charts
           gh release download "${CP_VERSION}" \
-            --repo plasticity-of-cloud/express-compute-control-plane \
+            --repo codriverlabs/express-compute-control-plane \
             --pattern "express-compute-*.tar.gz" --dir build/helm
 
       - name: Download infra release artifacts
@@ -72,7 +72,7 @@ jobs:
         run: |
           VER="${INFRA_VERSION#v}"
           gh release download "${INFRA_VERSION}" \
-            --repo plasticity-of-cloud/express-compute-managed-k8s-infra \
+            --repo codriverlabs/express-compute-managed-k8s-infra \
             --pattern "express-compute-managed-k8s-infra-${VER}.tar.gz" --dir /tmp
           mkdir -p build/infra-cdk
           tar xzf /tmp/express-compute-managed-k8s-infra-${VER}.tar.gz -C build/infra-cdk
@@ -82,7 +82,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release download "${{ inputs.release_version }}" \
-            --repo plasticity-of-cloud/express-compute \
+            --repo codriverlabs/express-compute \
             --pattern 'ami-manifest.json' \
             --pattern 'ami-signatures.json' \
             --dir build

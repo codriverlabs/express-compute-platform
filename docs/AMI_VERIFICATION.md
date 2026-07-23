@@ -8,14 +8,14 @@ without needing access to our AWS account.
 
 - `openssl` (any modern version)
 - `python3`
-- `ami-signatures.json` from the [GitHub release](https://github.com/plasticity-of-cloud/express-compute/releases)
+- `ami-signatures.json` from the [GitHub release](https://github.com/codriverlabs/express-compute/releases)
 
 ## Verify an AMI
 
 ```bash
 # Download verification assets from the release
 gh release download v1.0.3 \
-  --repo plasticity-of-cloud/express-compute \
+  --repo codriverlabs/express-compute \
   --pattern "verify-ami.sh" \
   --pattern "ami-signatures.json" \
   --pattern "express-compute-ami-signing.pub.pem"

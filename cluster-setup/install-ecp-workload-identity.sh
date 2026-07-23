@@ -19,7 +19,7 @@
 #                                  falls back to GHCR OCI pull if not set or charts not found
 #
 # Usage:
-#   curl -sL https://github.com/plasticity-of-cloud/express-compute-control-plane/releases/download/vVERSION/install-ecp-workload-identity.sh \
+#   curl -sL https://github.com/codriverlabs/express-compute-control-plane/releases/download/vVERSION/install-ecp-workload-identity.sh \
 #     | CLUSTER_NAME=my-cluster AWS_REGION=us-east-1 bash
 #
 set -euo pipefail
@@ -55,7 +55,7 @@ fi
 
 CHART_DIR="${CHART_DIR:-/opt/cluster-setup/charts}"
 
-ECP_GHCR_REGISTRY="${ECP_GHCR_REGISTRY:-ghcr.io/plasticity-of-cloud}"
+ECP_GHCR_REGISTRY="${ECP_GHCR_REGISTRY:-ghcr.io/codriverlabs}"
 
 log "Express Compute Workload Identity installation"
 log "  Cluster:  ${CLUSTER_NAME}"

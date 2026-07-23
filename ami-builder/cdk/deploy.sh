@@ -12,7 +12,7 @@ echo "==> Deploying ExpressComputePackerIamGithubStack to ${CDK_DEFAULT_ACCOUNT}
 mvn -q compile
 
 cdk deploy ExpressComputePackerIamGithubStack \
-  -c githubOrg=plasticity-of-cloud \
+  -c githubOrg=codriverlabs \
   -c githubRepo=express-compute-platform \
   --require-approval never
 

@@ -32,7 +32,7 @@ err()  { echo -e "${RED}[✗]${NC} $*" >&2; exit 1; }
 
 CHART_DIR="${CHART_DIR:-/opt/cluster-setup/charts}"
 
-ECP_GHCR_REGISTRY="${ECP_GHCR_REGISTRY:-ghcr.io/plasticity-of-cloud}"
+ECP_GHCR_REGISTRY="${ECP_GHCR_REGISTRY:-ghcr.io/codriverlabs}"
 
 log "ecp-karpenter-support installation"
 log "  Cluster:  ${CLUSTER_NAME}"
