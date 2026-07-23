@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REGION="${AWS_REGION:-us-east-1}"
 PROJECT_NAME="ecp-infra"
+DEPLOYMENT_MODE="hybrid"
 INSTANCE_TYPE_ARM64="c6g.xlarge"
 INSTANCE_TYPE_X86="m7i.large"
 DISK_SIZE_GB="20"
@@ -15,6 +16,7 @@ Express Compute Deployment Bundle
 
 Usage:
   deploy.sh deploy [--stack <name>] [--region <region>] [--project-name <n>]
+                   [--deployment-mode <mode>]
                    [--instance-type-arm64 <type>] [--instance-type-x86 <type>]
                    [--disk-size-gb <n>] [--enable-nat-gateway]
                    [--domain-name <fqdn>] [--certificate-arn <arn>]
@@ -26,13 +28,19 @@ Usage:
   deploy.sh ecp <cli-args...>
   deploy.sh --help
 
+Deployment Modes:
+  self-managed    Control plane only (Workload Identity for existing clusters)
+  managed         Full deployment including managed k8s infrastructure
+  hybrid          Both flows enabled (default)
+
 Stacks:
-  infra           Shared VPC infrastructure
+  infra           Shared VPC infrastructure (skipped in self-managed mode)
   control-plane   Serverless control plane (Lambdas, API GW, DynamoDB)
-  all             Deploy all stacks in order (default)
+  all             Deploy all applicable stacks in order (default)
 
 Examples:
   deploy.sh deploy --region eu-west-1
+  deploy.sh deploy --deployment-mode self-managed
   deploy.sh deploy --stack infra
   deploy.sh destroy --stack control-plane
   deploy.sh register-amis --region us-east-1
@@ -51,25 +59,27 @@ cdk_bootstrap() {
 }
 
 deploy_infra() {
-  echo "==> Deploying EcpSharedInfraStack"
+  echo "==> Deploying ExpressComputeManagedK8sInfraStack"
   cd "${SCRIPT_DIR}/infra"
   cdk deploy --app cdk.out --all --require-approval never \
     --region "${REGION}" \
-    --parameters "EcpSharedInfraStack:ProjectName=${PROJECT_NAME}" \
-    --parameters "EcpSharedInfraStack:InstanceTypeArm64=${INSTANCE_TYPE_ARM64}" \
-    --parameters "EcpSharedInfraStack:InstanceTypeX86=${INSTANCE_TYPE_X86}" \
-    --parameters "EcpSharedInfraStack:DiskSizeGb=${DISK_SIZE_GB}" \
-    --parameters "EcpSharedInfraStack:EnableNatGateway=${ENABLE_NAT_GATEWAY}"
+    --parameters "ExpressComputeManagedK8sInfraStack:ProjectName=${PROJECT_NAME}" \
+    --parameters "ExpressComputeManagedK8sInfraStack:InstanceTypeArm64=${INSTANCE_TYPE_ARM64}" \
+    --parameters "ExpressComputeManagedK8sInfraStack:InstanceTypeX86=${INSTANCE_TYPE_X86}" \
+    --parameters "ExpressComputeManagedK8sInfraStack:DiskSizeGb=${DISK_SIZE_GB}" \
+    --parameters "ExpressComputeManagedK8sInfraStack:EnableNatGateway=${ENABLE_NAT_GATEWAY}"
 }
 
 deploy_control_plane() {
-  echo "==> Deploying EcpControlPlaneStack"
+  echo "==> Deploying ExpressComputeControlPlaneStack (mode: ${DEPLOYMENT_MODE})"
   cd "${SCRIPT_DIR}/control-plane"
   local params=()
-  [[ -n "${DOMAIN_NAME:-}" ]]      && params+=(--parameters "EcpControlPlaneStack:DomainName=${DOMAIN_NAME}")
-  [[ -n "${CERTIFICATE_ARN:-}" ]]  && params+=(--parameters "EcpControlPlaneStack:CertificateArn=${CERTIFICATE_ARN}")
+  [[ -n "${DOMAIN_NAME:-}" ]]      && params+=(--parameters "ExpressComputeControlPlaneStack:DomainName=${DOMAIN_NAME}")
+  [[ -n "${CERTIFICATE_ARN:-}" ]]  && params+=(--parameters "ExpressComputeControlPlaneStack:CertificateArn=${CERTIFICATE_ARN}")
   cdk deploy --app cdk.out --all --require-approval never \
-    --region "${REGION}" "${params[@]}"
+    --region "${REGION}" \
+    --context "deploymentMode=${DEPLOYMENT_MODE}" \
+    "${params[@]}"
 }
 
 register_amis() {
@@ -124,6 +134,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --stack)               STACK="$2";                  shift 2 ;;
     --region)              REGION="$2"; export AWS_REGION="$2"; shift 2 ;;
+    --deployment-mode)     DEPLOYMENT_MODE="$2";        shift 2 ;;
     --project-name)        PROJECT_NAME="$2";           shift 2 ;;
     --instance-type-arm64) INSTANCE_TYPE_ARM64="$2";   shift 2 ;;
     --instance-type-x86)   INSTANCE_TYPE_X86="$2";     shift 2 ;;
@@ -144,15 +155,25 @@ case "$COMMAND" in
     cdk_bootstrap
     case "$STACK" in
       all)
-        deploy_infra
-        register_amis
-        deploy_control_plane
+        if [[ "$DEPLOYMENT_MODE" == "self-managed" ]]; then
+          echo "==> Self-managed mode: skipping infra stack and AMI registration"
+          deploy_control_plane
+        else
+          deploy_infra
+          register_amis
+          deploy_control_plane
+        fi
         ;;
-      infra)          deploy_infra ;;
+      infra)
+        if [[ "$DEPLOYMENT_MODE" == "self-managed" ]]; then
+          echo "ERROR: infra stack is not applicable in self-managed mode"; exit 1
+        fi
+        deploy_infra
+        ;;
       control-plane)  deploy_control_plane ;;
       *) echo "Unknown stack: $STACK"; exit 1 ;;
     esac
-    echo ""; echo "✓ Deployment complete (region=${REGION})"
+    echo ""; echo "✓ Deployment complete (region=${REGION}, mode=${DEPLOYMENT_MODE})"
     ;;
   destroy)
     case "$STACK" in
