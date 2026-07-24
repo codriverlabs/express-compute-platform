@@ -314,7 +314,7 @@ ls /opt/cluster-setup/charts/my-tool-*
 
 5. **Document your additions** — update `COMPONENT_VERSIONS.md` if you add new components, and add notes to the boot sequence section if you add cluster-setup steps.
 
-6. **Respect the boot time budget** — the goal is sub-3-minute boot. Pre-pull everything possible at AMI build time. Network-dependent operations at boot time are the primary risk.
+6. **Respect the boot time budget** — the goal is sub-4-minute boot. Pre-pull everything possible at AMI build time. Network-dependent operations at boot time are the primary risk.
 
 ---
 

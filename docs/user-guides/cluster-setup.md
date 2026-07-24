@@ -29,7 +29,7 @@ Instance boot
             └─ 18-install-ecp-karpenter-support.sh  EC2NodeClass webhook
 ```
 
-Total boot time: **under 3 minutes** (all images and charts are pre-pulled in the AMI).
+Total boot time: **under 4 minutes** (all images and charts are pre-pulled in the AMI).
 
 ---
 

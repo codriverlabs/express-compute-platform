@@ -1,6 +1,6 @@
 # Express Compute Platform
 
-Production-ready, EKS-compatible Kubernetes clusters with Karpenter autoscaling — deployed in under 3 minutes.
+Production-ready, EKS-compatible Kubernetes clusters with Karpenter autoscaling — deployed in under 4 minutes.
 
 Express Compute uses EKS-D (Amazon EKS Distro) on EC2 with a golden AMI strategy to eliminate runtime provisioning delays. Every component is pre-baked: binaries, container images, Helm charts, and system configuration. At boot time, the cluster simply starts what's already there.
 
@@ -8,7 +8,7 @@ Express Compute uses EKS-D (Amazon EKS Distro) on EC2 with a golden AMI strategy
 
 ## Key Features
 
-- **Sub-3-minute cluster boot** — all components pre-installed in the golden AMI
+- **Sub-4-minute cluster boot** — all components pre-installed in the golden AMI
 - **EKS compatibility** — runs the same EKS-D binaries as Amazon EKS
 - **Karpenter autoscaling** — Spot-first worker node provisioning with right-sizing
 - **Multi-architecture** — ARM64 (Graviton) and x86_64 AMIs built in parallel
@@ -126,7 +126,7 @@ express-compute-platform/
 │  │                   │    │                         │     │
 │  │  setup-eks-d.sh   │    │  VPC + Subnets         │     │
 │  │  ↓ 05→18 scripts  │    │  IAM Roles             │     │
-│  │  ↓ ~3 min boot    │    │  SSM Parameters        │     │
+│  │  ↓ ~4 min boot    │    │  SSM Parameters        │     │
 │  │  ↓ Cluster ready  │    │  Launch Templates      │     │
 │  └────────┬──────────┘    └────────────────────────┘     │
 │           │                                              │

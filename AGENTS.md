@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Express Compute is a rapid Kubernetes deployment system that creates EKS-compatible clusters with Karpenter autoscaling in under 3 minutes. The system combines infrastructure automation (AWS CDK), custom AMI building (Packer), and streamlined EKS-D installation to deliver production-ready clusters quickly.
+Express Compute is a rapid Kubernetes deployment system that creates EKS-compatible clusters with Karpenter autoscaling in under 4 minutes. The system combines infrastructure automation (AWS CDK), custom AMI building (Packer), and streamlined EKS-D installation to deliver production-ready clusters quickly.
 
 ## Repository Structure and Navigation
 
