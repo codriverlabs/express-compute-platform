@@ -82,7 +82,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release download "${{ inputs.release_version }}" \
-            --repo codriverlabs/express-compute \
+            --repo codriverlabs/express-compute-platform \
             --pattern 'ami-manifest.json' \
             --pattern 'ami-signatures.json' \
             --dir build
