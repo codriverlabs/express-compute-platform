@@ -151,7 +151,7 @@ Once the platform is deployed, use the `ecp` CLI inside the same shell:
 # List clusters in your account
 ecp clusters list
 
-# Create a cluster (Lambda provisions an EC2 instance, boot takes ~3 min)
+# Create a cluster (Lambda provisions an EC2 instance, boot takes ~4 min)
 ecp clusters create --name my-cluster --region us-east-1
 
 # Get kubeconfig
@@ -202,7 +202,7 @@ automatically via systemd. The full install sequence is:
 18-install-ecp-karpenter-support.sh
 ```
 
-Total: under 3 minutes.
+Total: under 4 minutes.
 
 ### Dev / manual mode
 

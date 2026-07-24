@@ -1,6 +1,6 @@
 # AMI Builder Guide
 
-The AMI builder creates golden AMIs containing all software needed to boot an EKS-D cluster in under 3 minutes. It uses Packer to provision an EC2 instance, install everything, snapshot it, and optionally sign the result with a KMS key.
+The AMI builder creates golden AMIs containing all software needed to boot an EKS-D cluster in under 4 minutes. It uses Packer to provision an EC2 instance, install everything, snapshot it, and optionally sign the result with a KMS key.
 
 ---
 
