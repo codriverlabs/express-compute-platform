@@ -144,7 +144,7 @@ jobs:
       - name: Generate checksums
         run: sha256sum ecr-credential-provider-* ami-manifest.json sbom-*.spdx.json install-ecp-workload-identity.sh > checksums.txt
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: |
             ecr-credential-provider-*
