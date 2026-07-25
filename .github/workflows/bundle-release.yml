@@ -37,7 +37,7 @@ jobs:
             platform: linux/arm64
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download control-plane release artifacts
         env:
@@ -103,7 +103,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: build
           file: build/Dockerfile
