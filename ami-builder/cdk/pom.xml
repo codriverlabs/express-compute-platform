@@ -13,7 +13,7 @@
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <cdk.version>2.257.0</cdk.version>
-    <constructs.version>10.4.2</constructs.version>
+    <constructs.version>10.7.1</constructs.version>
     <mainClass>ai.codriverlabs.ecp.packer.PackerIamGithubApp</mainClass>
   </properties>
 
