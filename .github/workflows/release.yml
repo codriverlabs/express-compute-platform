@@ -78,7 +78,7 @@ jobs:
           make -C ami-builder sign AWS_REGION="$AWS_REGION" AMI_VERSION="$AMI_VERSION"
 
       - name: Upload SBOM
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-${{ matrix.k8s_version }}-${{ matrix.arch }}
           path: |
@@ -86,7 +86,7 @@ jobs:
             ami-builder/output/ami-signatures-entries.json
           retention-days: 90
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ami-manifest-${{ matrix.k8s_version }}-${{ matrix.arch }}
           path: ami-manifest-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
