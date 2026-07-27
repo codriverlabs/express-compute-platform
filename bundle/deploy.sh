@@ -165,7 +165,6 @@ for k8s_ver, arches in manifest.items():
         ], check=True)
         print(f'  ✓ {param} = {ami_id}')
 "
-"
 }
 
 install_charts() {
