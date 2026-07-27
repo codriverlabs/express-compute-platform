@@ -14,6 +14,7 @@ Pick the snippet that matches your environment and paste it into your terminal.
 
 ```bash
 docker run --rm -it \
+  --name express-compute-installer \
   -v ~/.aws:/root/.aws:ro \
   -e AWS_PROFILE="${AWS_PROFILE:-default}" \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
@@ -27,6 +28,7 @@ No credential files needed — the container inherits the environment:
 
 ```bash
 docker run --rm -it \
+  --name express-compute-installer \
   -e AWS_ACCESS_KEY_ID \
   -e AWS_SECRET_ACCESS_KEY \
   -e AWS_SESSION_TOKEN \
@@ -46,6 +48,7 @@ CloudShell injects STS credentials as environment variables. Pass them through:
 
 ```bash
 docker run --rm -it \
+  --name express-compute-installer \
   -e AWS_ACCESS_KEY_ID \
   -e AWS_SECRET_ACCESS_KEY \
   -e AWS_SESSION_TOKEN \

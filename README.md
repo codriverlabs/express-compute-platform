@@ -25,6 +25,7 @@ Express Compute uses EKS-D (Amazon EKS Distro) on EC2 with a golden AMI strategy
 
 ```bash
 docker run --rm -it \
+  --name express-compute-installer \
   -v ~/.aws:/root/.aws:ro \
   -e AWS_PROFILE="${AWS_PROFILE:-default}" \
   -e AWS_REGION="${AWS_REGION:-us-east-1}" \
