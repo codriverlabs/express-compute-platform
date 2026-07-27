@@ -116,7 +116,7 @@ sequenceDiagram
     participant Worker as Worker Node
 
     Dev->>Bundle: docker run deploy --region us-east-1
-    Bundle-->>Dev: EcpSharedInfraStack + ExpressComputeControlPlaneStack deployed
+    Bundle-->>Dev: ExpressComputeManagedK8sInfraStack + ExpressComputeControlPlaneStack deployed
 
     Dev->>Lambda: ecp clusters create
     Lambda->>EC2: Launch EC2 with user-data (cluster.env pre-seeded)

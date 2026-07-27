@@ -46,8 +46,8 @@ This means **no Java compilation at deploy time** — `cdk deploy --app cdk.out`
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  Docker Image: public.ecr.aws/amazoncorretto/amazoncorretto:25.0.3  │
-│  (al2023-headless, linux/amd64 + linux/arm64)                       │
+│  Docker Image: public.ecr.aws/amazonlinux/amazonlinux:2023             │
+│  (linux/amd64 + linux/arm64)                                            │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  /opt/ecp/                                                       │
@@ -70,8 +70,8 @@ This means **no Java compilation at deploy time** — `cdk deploy --app cdk.out`
 │  • Node.js            — CDK CLI runtime                             │
 │  • Helm              — for chart installation on clusters           │
 │                                                                     │
-│  NOT needed at runtime (pre-synthesized):                           │
-│  • Java / Maven (only needed if re-synth with custom context)       │
+│  NOT needed at runtime (CDK stacks pre-synthesized):                │
+│  • Java / Maven / JVM                                               │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -191,16 +191,10 @@ Steps 2 and 3 write SSM parameters that step 4 reads at deploy time:
 ## Dockerfile
 
 ```dockerfile
-FROM public.ecr.aws/amazoncorretto/amazoncorretto:25.0.3-al2023-headless
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
-# System dependencies
-RUN dnf install -y nodejs22 npm unzip tar gzip findutils && dnf clean all
-
-# AWS CLI v2
-RUN curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscli.zip \
-    && unzip -q /tmp/awscli.zip -d /tmp \
-    && /tmp/aws/install \
-    && rm -rf /tmp/aws /tmp/awscli.zip
+# System dependencies (no JVM — CDK stacks are pre-synthesized)
+RUN dnf install -y nodejs22 aws-cli unzip tar gzip findutils less && dnf clean all
 
 # AWS CDK CLI + Helm
 RUN npm install -g aws-cdk \

@@ -5,8 +5,10 @@
 ### Control Plane (Always Running)
 | Component | Instance Type | Hours/Month | On-Demand Price | With Savings Plan | Monthly Cost |
 |-----------|---------------|-------------|-----------------|-------------------|--------------|
-| Control Plane | m6g.large | 744 | $0.077/hr | $0.055/hr (29% off) | ~$41 |
-| Control Plane | m6g.xlarge | 744 | $0.154/hr | $0.110/hr (29% off) | ~$82 |
+| Control Plane (default) | c6g.xlarge | 744 | $0.136/hr | $0.097/hr (29% off) | ~$72 |
+
+> The default control plane instance is `c6g.xlarge` (4 vCPU / 8 GiB, Graviton2 compute-optimized).
+> Override with `--instance-type-arm64` in `deploy.sh` if needed.
 
 ### Storage (Always Running)
 | Component | Size | Type | Monthly Cost |
@@ -31,68 +33,67 @@
 
 ## Total Monthly Cost Estimates
 
-### Realistic Usage Scenarios (m6g.xlarge)
+### Realistic Usage Scenarios (c6g.xlarge)
 
 #### Scenario 1: Full Development Workday (8 hours/day)
-- **Control Plane**: 176 hrs/month × $0.154/hr = $27.10
-- **With Savings Plan**: 176 hrs/month × $0.110/hr = $19.36
+- **Control Plane**: 176 hrs/month × $0.136/hr = $23.94
+- **With Savings Plan**: 176 hrs/month × $0.097/hr = $17.07
 - **Storage**: $5.60 (always running)
 - **Networking**: $35.00 (shared)
 - **Worker Nodes**: $10-25 (Spot, as needed)
-- **Total**: **$69-85/month per developer** (vs. $132-142 full-time)
+- **Total**: **$74-86/month per developer** (vs. $113 full-time)
 
 #### Scenario 2: Business Hours Only (9-5, weekdays)
-- **Control Plane**: 160 hrs/month × $0.110/hr = $17.60
+- **Control Plane**: 160 hrs/month × $0.097/hr = $15.52
 - **Storage**: $5.60
 - **Networking**: $35.00 (shared)
 - **Worker Nodes**: $5-15 (limited usage)
-- **Total**: **$63-73/month per developer** (vs. $132-142 full-time)
+- **Total**: **$61-71/month per developer** (vs. $113 full-time)
 
 #### Scenario 3: Spot + Hibernation (Ultimate Savings)
-- **Control Plane**: Spot pricing (~70% off) + hibernation
-- **Estimated**: 160 hrs/month × $0.046/hr = $7.36
+- **Control Plane**: Spot pricing (~65% off) + hibernation
+- **Estimated**: 160 hrs/month × $0.048/hr = $7.68
 - **Storage**: $5.60
 - **Networking**: $35.00 (shared)
 - **Worker Nodes**: $5-15 (Spot)
-- **Total**: **$52-62/month per developer** (vs. $132-142 full-time)
+- **Total**: **$53-63/month per developer** (vs. $113 full-time)
 
 ## Cost Optimization Strategies
 
 ### 1. Hibernation & Scheduling (Major Savings)
 ```bash
-# Control plane usage patterns
-Full-time (744 hrs/month): $82/month (m6g.xlarge)
-8 hours/day (176 hrs/month): $19.50/month (74% savings)
-Business hours only (160 hrs/month): $17.70/month (78% savings)
+# Control plane usage patterns (c6g.xlarge)
+Full-time (744 hrs/month): $101/month on-demand, $72/month with Savings Plan
+8 hours/day (176 hrs/month): $17/month with SP (76% savings vs full-time on-demand)
+Business hours only (160 hrs/month): $15.50/month with SP (85% savings)
 ```
 
 **Implementation Options:**
 - **Manual**: Stop/start instances via AWS Console or CLI
 - **Scheduled**: CloudWatch Events + Lambda for auto start/stop
 - **Hibernation**: EBS-backed hibernation for instant resume
-- **Spot + Hibernation**: Additional 60-90% savings on compute
+- **Spot + Hibernation**: Additional 60-70% savings on compute
 
 ### 2. Compute Savings Plans
 ```bash
-# 1-year commitment examples
-t3.medium: $0.0416 → $0.0270 (35% savings)
-t3.large:  $0.0832 → $0.0541 (35% savings)
+# 1-year commitment (no upfront) — c6g.xlarge example
+c6g.xlarge: $0.136/hr → $0.097/hr (29% savings)
 ```
 
-### 2. Spot Instance Savings
+### 3. Spot Instance Savings
 ```bash
-# Typical spot discounts
-t3.medium: $0.0416 → $0.0125 (70% savings)
-m5.large:  $0.0960 → $0.0288 (70% savings)
-c5.xlarge: $0.1700 → $0.0510 (70% savings)
+# Typical spot discounts (worker nodes)
+c6g.xlarge:  $0.136 → $0.048 (65% savings)
+m6g.large:   $0.077 → $0.025 (68% savings)
+c5.xlarge:   $0.170 → $0.051 (70% savings)
 ```
 
-### 3. Shared Infrastructure
+### 4. Shared Infrastructure
 - **Shared NAT Gateway**: Split $32.40 across team members
 - **Shared VPC**: Reduce networking costs per person
 - **Resource Tagging**: Track individual usage
 
-### 4. Auto-Scaling Configuration
+### 5. Auto-Scaling Configuration
 ```yaml
 # Aggressive scale-down for cost savings
 disruption:
@@ -109,37 +110,35 @@ limits:
 ### 5-Person Team (8-hour workdays)
 | Scenario | Individual Cost | Team Total | Annual Savings vs. Full-Time |
 |----------|----------------|------------|------------------------------|
-| Business Hours | $69/month | $345/month | $4,680/year |
-| Spot + Hibernation | $57/month | $285/month | $6,300/year |
+| Business Hours | $66/month | $330/month | $2,820/year |
+| Spot + Hibernation | $58/month | $290/month | $4,380/year |
 
 ### 10-Person Team (8-hour workdays)
 | Scenario | Individual Cost | Team Total | Annual Savings vs. Full-Time |
 |----------|----------------|------------|------------------------------|
-| Business Hours | $69/month | $690/month | $9,360/year |
-| Spot + Hibernation | $57/month | $570/month | $12,600/year |
-
-## Comparison with Alternatives
+| Business Hours | $66/month | $660/month | $5,640/year |
+| Spot + Hibernation | $58/month | $580/month | $8,760/year |
 
 ## Comparison with Alternatives
 
 ### vs. Managed EKS
 | Component | EKS-D (per cluster) | Managed EKS | Savings |
 |-----------|-------------------|-------------|---------|
-| Control Plane | $41-82/month | $73/month | Break-even to $32/month |
+| Control Plane | $72/month (c6g.xlarge + SP) | $73/month | Break-even |
 | Worker Nodes | Same (Spot) | Same (Spot) | $0 |
-| **Total Savings** | | | **Break-even to 44% savings** |
+| **Total Savings** | | | **Break-even on compute; savings from isolation + no throttling** |
 
 ### Key Advantages Over Managed EKS
-- **Isolation**: Dedicated cluster per team member - no resource contention
+- **Isolation**: Dedicated cluster per team member — no resource contention
 - **Full Karpenter**: Complete Karpenter v1 integration with NodePools
 - **No API Limits**: No EKS API server throttling
 - **Complete Control**: Customize control plane, etcd, scheduler settings
-- **Better Performance**: m6g.xlarge handles cert-manager, KEDA, operators smoothly
+- **Performance**: c6g.xlarge (4 vCPU / 8 GiB) handles cert-manager, KEDA, operators smoothly
 - **Use Case 1 - CI/CD**: Instant isolated clusters per PR/branch for integration testing
 - **Use Case 2 - Development**: Safe environment for CRD/operator development without affecting shared clusters
 - **Use Case 3 - Complex Workloads**: Run cert-manager, KEDA, Istio, ArgoCD without resource conflicts
 
-### Additional Benefits with m6g.xlarge
+### Additional Benefits with c6g.xlarge
 - **Cert-Manager**: Handles certificate lifecycle without CPU throttling
 - **KEDA**: Smooth autoscaling decisions with adequate resources
 - **Operators**: Multiple operators (Prometheus, Grafana, ArgoCD) run efficiently
@@ -161,21 +160,21 @@ limits:
 ### vs. Local Development
 | Component | EKS-D | Local (Docker Desktop) | Trade-offs |
 |-----------|-------|----------------------|------------|
-| Cost | $65-90/month | $0 | Cloud integration vs. free |
+| Cost | $58-74/month | $0 | Cloud integration vs. free |
 | AWS Integration | Full | Limited | Native vs. simulated |
 | Scalability | Unlimited | Limited by laptop | Real vs. constrained |
 
 ## Budget Planning
 
 ### Monthly Budget per Team Member (Realistic Usage)
-- **Business Hours**: $69/month (8 hours/day)
-- **Spot + Hibernation**: $57/month (ultimate optimization)
-- **Full-Time**: $132/month (always-on for CI/CD)
+- **Business Hours**: $66/month (8 hours/day, Savings Plan)
+- **Spot + Hibernation**: $58/month (ultimate optimization)
+- **Full-Time**: $113/month (always-on with Savings Plan)
 
 ### Annual Budget (10-person team)
-- **Business Hours**: $8,280/year
-- **Spot + Hibernation**: $6,840/year  
-- **Full-Time**: $15,840/year
+- **Business Hours**: $7,920/year
+- **Spot + Hibernation**: $6,960/year
+- **Full-Time**: $13,560/year
 
 ## Cost Monitoring
 
