@@ -78,7 +78,7 @@ jobs:
           make -C ami-builder sign AWS_REGION="$AWS_REGION" AMI_VERSION="$AMI_VERSION"
           # Rename to avoid collision when merge-multiple flattens artifacts
           cp ami-builder/output/ami-signatures-entries.json \
-             ami-signatures-entries-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
+             ami-builder/output/ami-signatures-entries-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v7
@@ -86,7 +86,7 @@ jobs:
           name: sbom-${{ matrix.k8s_version }}-${{ matrix.arch }}
           path: |
             ami-builder/output/sbom-${{ matrix.arch }}-*.spdx.json
-            ami-signatures-entries-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
+            ami-builder/output/ami-signatures-entries-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
           retention-days: 90
 
       - uses: actions/upload-artifact@v7
