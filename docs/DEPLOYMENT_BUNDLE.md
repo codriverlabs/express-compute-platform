@@ -82,6 +82,7 @@ This means **no Java compilation at deploy time** — `cdk deploy --app cdk.out`
 
 ```bash
 docker run --rm \
+  --name express-compute-installer \
   -v ~/.aws:/root/.aws:ro \
   -e AWS_PROFILE=my-profile \
   -e AWS_REGION=us-east-1 \
@@ -93,6 +94,7 @@ docker run --rm \
 
 ```bash
 docker run --rm \
+  --name express-compute-installer \
   -e AWS_ACCESS_KEY_ID=AKIA... \
   -e AWS_SECRET_ACCESS_KEY=... \
   -e AWS_SESSION_TOKEN=... \
@@ -105,12 +107,16 @@ docker run --rm \
 
 ```bash
 # Shared infrastructure only
-docker run --rm -v ~/.aws:/root/.aws:ro \
+docker run --rm \
+  --name express-compute-installer \
+  -v ~/.aws:/root/.aws:ro \
   ghcr.io/codriverlabs/express-compute-bundle:latest \
   deploy --stack infra --region us-east-1
 
 # Control plane only (requires infra deployed first)
-docker run --rm -v ~/.aws:/root/.aws:ro \
+docker run --rm \
+  --name express-compute-installer \
+  -v ~/.aws:/root/.aws:ro \
   ghcr.io/codriverlabs/express-compute-bundle:latest \
   deploy --stack control-plane --region us-east-1
 ```
@@ -118,7 +124,9 @@ docker run --rm -v ~/.aws:/root/.aws:ro \
 ### Register AMIs (Write AMI IDs to SSM)
 
 ```bash
-docker run --rm -v ~/.aws:/root/.aws:ro \
+docker run --rm \
+  --name express-compute-installer \
+  -v ~/.aws:/root/.aws:ro \
   ghcr.io/codriverlabs/express-compute-bundle:latest \
   register-amis --region us-east-1
 ```
@@ -127,6 +135,7 @@ docker run --rm -v ~/.aws:/root/.aws:ro \
 
 ```bash
 docker run --rm \
+  --name express-compute-installer \
   -v ~/.aws:/root/.aws:ro \
   -v ~/.kube:/root/.kube:ro \
   ghcr.io/codriverlabs/express-compute-bundle:latest \
@@ -136,7 +145,9 @@ docker run --rm \
 ### Destroy
 
 ```bash
-docker run --rm -v ~/.aws:/root/.aws:ro \
+docker run --rm \
+  --name express-compute-installer \
+  -v ~/.aws:/root/.aws:ro \
   ghcr.io/codriverlabs/express-compute-bundle:latest \
   destroy --region us-east-1
 ```
@@ -144,7 +155,9 @@ docker run --rm -v ~/.aws:/root/.aws:ro \
 ### Use the CLI
 
 ```bash
-docker run --rm -v ~/.aws:/root/.aws:ro \
+docker run --rm \
+  --name express-compute-installer \
+  -v ~/.aws:/root/.aws:ro \
   ghcr.io/codriverlabs/express-compute-bundle:latest \
   ecp clusters list
 ```
