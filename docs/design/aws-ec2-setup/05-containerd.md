@@ -1,5 +1,9 @@
 # containerd Configuration
 
+> ⚠️ **Historical.** These issues have been resolved. containerd is configured during AMI
+> build (`ami-builder/scripts/00-configure-containerd.sh`). References to `06-install-eks-d.sh`
+> map to the current `07-install-eks-d.sh`.
+
 ## Required Configuration
 
 Two containerd settings must be correct for EKS-D to work:

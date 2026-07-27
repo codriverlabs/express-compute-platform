@@ -1,5 +1,10 @@
 # Corrected Installation Order
 
+> ⚠️ **Historical.** The script renumbering described here has been applied. The current
+> boot sequence is `setup-eks-d.sh` calling scripts 05–18. References to `install-all.sh`
+> and `terraform/main.tf` are obsolete — Terraform was replaced by CDK in
+> `express-compute-managed-k8s-infra`.
+
 ## Current Order (Broken)
 
 ```

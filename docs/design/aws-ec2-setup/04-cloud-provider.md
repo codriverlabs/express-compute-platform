@@ -1,5 +1,9 @@
 # AWS Cloud Controller Manager
 
+> ⚠️ **Historical.** These issues have been resolved in the current
+> `09-install-cloud-provider.sh`. References to `install-all.sh` map to `setup-eks-d.sh`;
+> `07.5-install-cloud-provider.sh` was renumbered to `09-install-cloud-provider.sh`.
+
 ## Purpose
 
 The AWS Cloud Controller Manager (cloud-provider-aws) is the external cloud provider for

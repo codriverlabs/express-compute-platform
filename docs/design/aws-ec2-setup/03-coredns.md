@@ -1,5 +1,9 @@
 # CoreDNS
 
+> ⚠️ **Historical.** These issues have been resolved. The broken `08-install-coredns.sh`
+> script was deleted; CoreDNS is handled by `kubeadm init` in `07-install-eks-d.sh`.
+> References to `install-all.sh` map to the current `setup-eks-d.sh`.
+
 ## How kubeadm Handles CoreDNS
 
 `kubeadm init` automatically deploys CoreDNS as a Deployment in `kube-system`. It:
