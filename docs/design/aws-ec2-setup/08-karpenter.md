@@ -1,5 +1,9 @@
 # Karpenter Installation
 
+> ⚠️ **Historical.** These issues have been resolved in the current
+> `15-install-karpenter.sh`. References to `11-install-karpenter.sh` reflect the old
+> numbering. The OCI registry migration and `dnsPolicy: Default` fix are already applied.
+
 ## EKS-D Requirement: `clusterEndpoint` Must Be Set Explicitly
 
 On EKS managed clusters, Karpenter discovers the API server endpoint by calling

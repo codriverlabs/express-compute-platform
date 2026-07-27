@@ -1,5 +1,9 @@
 # kubeadm Init Configuration for EKS-D
 
+> ⚠️ **Historical.** These issues have been resolved in the current `07-install-eks-d.sh`.
+> References to `06-install-eks-d.sh` below reflect the old script numbering. See the
+> [directory README](README.md) for mapping to current file names.
+
 ## Problem
 
 `06-install-eks-d.sh` runs `kubeadm init` with bare CLI flags:
