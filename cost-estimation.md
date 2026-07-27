@@ -10,6 +10,21 @@
 > The default control plane instance is `c6g.xlarge` (4 vCPU / 8 GiB, Graviton2 compute-optimized).
 > Override with `--instance-type-arm64` in `deploy.sh` if needed.
 
+### Savings Plan Options (c6g.xlarge, us-east-1)
+
+| Plan Type | Term | Payment | Hourly Rate | Monthly (744h) | Discount |
+|-----------|------|---------|-------------|-----------------|----------|
+| On-Demand | — | — | $0.136 | $101 | — |
+| Compute Savings Plan | 1yr | No upfront | $0.097 | $72 | 29% |
+| **EC2 Instance Savings Plan** | **1yr** | **No upfront** | **$0.082** | **$61** | **40%** |
+| EC2 Instance Savings Plan | 1yr | All upfront | $0.078 | $58 | 43% |
+| EC2 Instance Savings Plan | 3yr | No upfront | $0.062 | $46 | 54% |
+
+> **EC2 Instance Savings Plans** offer the deepest discounts when you commit to a specific
+> instance family (c6g) in a specific region. Ideal for teams that have standardized on
+> Express Compute with Graviton in a single region. Unlike Compute Savings Plans, they do
+> not cover other instance families or regions.
+
 ### Storage (Always Running)
 | Component | Size | Type | Monthly Cost |
 |-----------|------|------|--------------|
@@ -36,19 +51,19 @@
 ### Realistic Usage Scenarios (c6g.xlarge)
 
 #### Scenario 1: Full Development Workday (8 hours/day)
-- **Control Plane**: 176 hrs/month × $0.136/hr = $23.94
-- **With Savings Plan**: 176 hrs/month × $0.097/hr = $17.07
-- **Storage**: $5.60 (always running)
-- **Networking**: $35.00 (shared)
-- **Worker Nodes**: $10-25 (Spot, as needed)
-- **Total**: **$74-86/month per developer** (vs. $113 full-time)
+| Pricing Model | Control Plane | Storage | Networking | Workers | **Total** |
+|---------------|--------------|---------|------------|---------|-----------|
+| On-Demand | 176h × $0.136 = $23.94 | $5.60 | $35 | $10-25 | **$75-90** |
+| Compute SP | 176h × $0.097 = $17.07 | $5.60 | $35 | $10-25 | **$68-83** |
+| **EC2 Instance SP (1yr)** | 176h × $0.082 = $14.43 | $5.60 | $35 | $10-25 | **$65-80** |
+| EC2 Instance SP (3yr) | 176h × $0.062 = $10.91 | $5.60 | $35 | $10-25 | **$62-77** |
 
 #### Scenario 2: Business Hours Only (9-5, weekdays)
-- **Control Plane**: 160 hrs/month × $0.097/hr = $15.52
-- **Storage**: $5.60
-- **Networking**: $35.00 (shared)
-- **Worker Nodes**: $5-15 (limited usage)
-- **Total**: **$61-71/month per developer** (vs. $113 full-time)
+| Pricing Model | Control Plane | Storage | Networking | Workers | **Total** |
+|---------------|--------------|---------|------------|---------|-----------|
+| Compute SP | 160h × $0.097 = $15.52 | $5.60 | $35 | $5-15 | **$61-71** |
+| **EC2 Instance SP (1yr)** | 160h × $0.082 = $13.12 | $5.60 | $35 | $5-15 | **$59-69** |
+| EC2 Instance SP (3yr) | 160h × $0.062 = $9.92 | $5.60 | $35 | $5-15 | **$55-65** |
 
 #### Scenario 3: Spot + Hibernation (Ultimate Savings)
 - **Control Plane**: Spot pricing (~65% off) + hibernation
@@ -56,17 +71,24 @@
 - **Storage**: $5.60
 - **Networking**: $35.00 (shared)
 - **Worker Nodes**: $5-15 (Spot)
-- **Total**: **$53-63/month per developer** (vs. $113 full-time)
+- **Total**: **$53-63/month per developer**
+
+> Spot cannot be combined with Savings Plans. Use Spot for maximum discount where
+> occasional interruption (with hibernation) is acceptable.
 
 ## Cost Optimization Strategies
 
 ### 1. Hibernation & Scheduling (Major Savings)
 ```bash
-# Control plane usage patterns (c6g.xlarge)
-Full-time (744 hrs/month): $101/month on-demand, $72/month with Savings Plan
-8 hours/day (176 hrs/month): $17/month with SP (76% savings vs full-time on-demand)
-Business hours only (160 hrs/month): $15.50/month with SP (85% savings)
+# Control plane usage patterns (c6g.xlarge, EC2 Instance SP 1yr)
+Full-time (744 hrs/month): $61/month
+8 hours/day (176 hrs/month): $14.43/month (86% savings vs full-time on-demand)
+Business hours only (160 hrs/month): $13.12/month (87% savings)
 ```
+
+> EC2 Instance Savings Plans apply per-hour-of-use — you only pay the SP rate for hours
+> the instance is running. Combining scheduling (stop/start) with EC2 Instance SP is the
+> optimal strategy for dev workstations.
 
 **Implementation Options:**
 - **Manual**: Stop/start instances via AWS Console or CLI
@@ -74,11 +96,31 @@ Business hours only (160 hrs/month): $15.50/month with SP (85% savings)
 - **Hibernation**: EBS-backed hibernation for instant resume
 - **Spot + Hibernation**: Additional 60-70% savings on compute
 
-### 2. Compute Savings Plans
+### 2. Savings Plans
+
+Two options depending on flexibility needs:
+
 ```bash
-# 1-year commitment (no upfront) — c6g.xlarge example
+# Compute Savings Plan (flexible — covers any instance family, region, OS)
 c6g.xlarge: $0.136/hr → $0.097/hr (29% savings)
+# Good if you might switch instance types or regions later
+
+# EC2 Instance Savings Plan (locked to c6g in one region — deeper discount)
+c6g.xlarge: $0.136/hr → $0.082/hr (40% savings, 1yr no upfront)
+c6g.xlarge: $0.136/hr → $0.062/hr (54% savings, 3yr no upfront)
+# Best for teams committed to c6g.xlarge in a specific region
 ```
+
+**Choosing between them:**
+| Factor | Compute SP | EC2 Instance SP |
+|--------|-----------|-----------------|
+| Discount | 29% | 40-54% |
+| Flexibility | Any instance, any region | One family + one region |
+| Risk | Low (portable) | Medium (locked in) |
+| Best for | Experimentation, multi-region | Production teams, stable config |
+
+> EC2 Instance Savings Plans still cover *any size* within the family — a c6g.xlarge
+> commitment also covers c6g.medium, c6g.2xlarge, etc. if you resize later.
 
 ### 3. Spot Instance Savings
 ```bash
@@ -108,25 +150,31 @@ limits:
 ## Team Cost Scenarios
 
 ### 5-Person Team (8-hour workdays)
-| Scenario | Individual Cost | Team Total | Annual Savings vs. Full-Time |
-|----------|----------------|------------|------------------------------|
-| Business Hours | $66/month | $330/month | $2,820/year |
-| Spot + Hibernation | $58/month | $290/month | $4,380/year |
+| Scenario | Pricing Model | Individual Cost | Team Total | Annual Cost |
+|----------|--------------|----------------|------------|-------------|
+| Business Hours | Compute SP | $68/month | $340/month | $4,080/year |
+| Business Hours | EC2 Instance SP (1yr) | $65/month | $325/month | $3,900/year |
+| Business Hours | EC2 Instance SP (3yr) | $62/month | $310/month | $3,720/year |
+| Spot + Hibernation | Spot | $58/month | $290/month | $3,480/year |
 
 ### 10-Person Team (8-hour workdays)
-| Scenario | Individual Cost | Team Total | Annual Savings vs. Full-Time |
-|----------|----------------|------------|------------------------------|
-| Business Hours | $66/month | $660/month | $5,640/year |
-| Spot + Hibernation | $58/month | $580/month | $8,760/year |
+| Scenario | Pricing Model | Individual Cost | Team Total | Annual Cost |
+|----------|--------------|----------------|------------|-------------|
+| Business Hours | Compute SP | $68/month | $680/month | $8,160/year |
+| Business Hours | EC2 Instance SP (1yr) | $65/month | $650/month | $7,800/year |
+| Business Hours | EC2 Instance SP (3yr) | $62/month | $620/month | $7,440/year |
+| Spot + Hibernation | Spot | $58/month | $580/month | $6,960/year |
+
+> For a 10-person team on EC2 Instance SP (1yr) vs. on-demand always-on: **$4,560/year saved**.
 
 ## Comparison with Alternatives
 
 ### vs. Managed EKS
-| Component | EKS-D (per cluster) | Managed EKS | Savings |
+| Component | EKS-D (EC2 Instance SP 1yr) | Managed EKS | Savings |
 |-----------|-------------------|-------------|---------|
-| Control Plane | $72/month (c6g.xlarge + SP) | $73/month | Break-even |
+| Control Plane | $61/month (c6g.xlarge) | $73/month | **16% cheaper** |
 | Worker Nodes | Same (Spot) | Same (Spot) | $0 |
-| **Total Savings** | | | **Break-even on compute; savings from isolation + no throttling** |
+| **Total** | | | **$144/year saved per cluster + isolation benefits** |
 
 ### Key Advantages Over Managed EKS
 - **Isolation**: Dedicated cluster per team member — no resource contention
@@ -160,21 +208,29 @@ limits:
 ### vs. Local Development
 | Component | EKS-D | Local (Docker Desktop) | Trade-offs |
 |-----------|-------|----------------------|------------|
-| Cost | $58-74/month | $0 | Cloud integration vs. free |
+| Cost | $58-65/month | $0 | Cloud integration vs. free |
 | AWS Integration | Full | Limited | Native vs. simulated |
 | Scalability | Unlimited | Limited by laptop | Real vs. constrained |
 
 ## Budget Planning
 
 ### Monthly Budget per Team Member (Realistic Usage)
-- **Business Hours**: $66/month (8 hours/day, Savings Plan)
-- **Spot + Hibernation**: $58/month (ultimate optimization)
-- **Full-Time**: $113/month (always-on with Savings Plan)
+
+| Pricing Model | Business Hours | Full-Time (always-on) |
+|---------------|---------------|-----------------------|
+| On-Demand | $90/month | $142/month |
+| Compute SP (1yr) | $68/month | $113/month |
+| EC2 Instance SP (1yr) | $65/month | $102/month |
+| EC2 Instance SP (3yr) | $62/month | $87/month |
+| Spot + Hibernation | $58/month | N/A |
 
 ### Annual Budget (10-person team)
-- **Business Hours**: $7,920/year
-- **Spot + Hibernation**: $6,960/year
-- **Full-Time**: $13,560/year
+
+| Pricing Model | Business Hours | Full-Time |
+|---------------|---------------|-----------|
+| Compute SP | $8,160/year | $13,560/year |
+| EC2 Instance SP (1yr) | $7,800/year | $12,240/year |
+| EC2 Instance SP (3yr) | $7,440/year | $10,440/year |
 
 ## Cost Monitoring
 
