@@ -24,9 +24,9 @@ components:
 ```
 
 ### Infrastructure Configuration
-The only CDK stack in this repo is `EcpPackerIamStack` (IAM/OIDC for Packer CI).
+The only CDK stack in this repo is `ExpressComputePackerIamStack` (IAM/OIDC for Packer CI).
 Shared infra (VPC, launch templates) lives in the `express-compute-managed-k8s-infra` repo
-(`EcpSharedInfraStack`), configurable via CDK context keys:
+(`ExpressComputeManagedK8sInfraStack`), configurable via CDK context keys:
 
 ```
 projectName         ecp (resource name prefix)
