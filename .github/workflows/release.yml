@@ -80,6 +80,17 @@ jobs:
           cp ami-builder/output/ami-signatures-entries.json \
              ami-builder/output/ami-signatures-entries-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
 
+      - name: Make AMI public
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          AMI_ID=$(jq -r '.[0].ami_id' ami-builder/output/ami-manifest-entries.json)
+          echo "==> Making ${AMI_ID} public"
+          aws ec2 modify-image-attribute \
+            --image-id "${AMI_ID}" \
+            --region "${AWS_REGION}" \
+            --launch-permission "Add=[{Group=all}]"
+
       - name: Upload SBOM
         uses: actions/upload-artifact@v7
         with:
