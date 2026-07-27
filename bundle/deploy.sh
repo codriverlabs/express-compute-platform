@@ -63,6 +63,7 @@ deploy_infra() {
   cd "${SCRIPT_DIR}/infra"
   cdk deploy --app cdk.out --all --require-approval never \
     --region "${REGION}" \
+    --parameters "ExpressComputeManagedK8sInfraStack:Region=${REGION}" \
     --parameters "ExpressComputeManagedK8sInfraStack:ProjectName=${PROJECT_NAME}" \
     --parameters "ExpressComputeManagedK8sInfraStack:InstanceTypeArm64=${INSTANCE_TYPE_ARM64}" \
     --parameters "ExpressComputeManagedK8sInfraStack:InstanceTypeX86=${INSTANCE_TYPE_X86}" \

@@ -76,6 +76,9 @@ jobs:
         run: |
           AMI_VERSION=$(date +%Y%m%d-%H%M)
           make -C ami-builder sign AWS_REGION="$AWS_REGION" AMI_VERSION="$AMI_VERSION"
+          # Rename to avoid collision when merge-multiple flattens artifacts
+          cp ami-builder/output/ami-signatures-entries.json \
+             ami-signatures-entries-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v7
@@ -83,7 +86,7 @@ jobs:
           name: sbom-${{ matrix.k8s_version }}-${{ matrix.arch }}
           path: |
             ami-builder/output/sbom-${{ matrix.arch }}-*.spdx.json
-            ami-builder/output/ami-signatures-entries.json
+            ami-signatures-entries-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
           retention-days: 90
 
       - uses: actions/upload-artifact@v7
@@ -130,10 +133,7 @@ jobs:
 
           # Merge signature entries: keyed by ami_id for O(1) lookup by verifier
           sig_entries = []
-          for f in glob.glob("sbom-*/ami-signatures-entries.json"):
-              sig_entries.extend(json.load(open(f)))
-          # Also check root if uploaded flat
-          for f in glob.glob("ami-signatures-entries-*.json"):
+          for f in sorted(glob.glob("ami-signatures-entries-*.json")):
               sig_entries.extend(json.load(open(f)))
 
           signatures = {e["ami_id"]: {k: v for k, v in e.items() if k != "ami_id"}
