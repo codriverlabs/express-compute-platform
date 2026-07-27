@@ -18,7 +18,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 AMI_ID=""
-SRC_REGION="${AWS_REGION:-us-east-1}"
+SRC_REGION=""
 REGIONS=""
 SIG_FILE="${SCRIPT_DIR}/../ami-signatures.json"
 
@@ -32,8 +32,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "${AMI_ID}" ]]   || { echo "ERROR: --ami-id is required" >&2; exit 1; }
-[[ -n "${REGIONS}" ]]  || { echo "ERROR: --regions required (comma-separated)" >&2; exit 1; }
+[[ -n "${AMI_ID}" ]]      || { echo "ERROR: --ami-id is required" >&2; exit 1; }
+[[ -n "${SRC_REGION}" ]] || { echo "ERROR: --src-region is required" >&2; exit 1; }
+[[ -n "${REGIONS}" ]]    || { echo "ERROR: --regions required (comma-separated)" >&2; exit 1; }
 
 # ── Step 1: verify signature ──────────────────────────────────────────────
 echo "==> Verifying AMI signature..."

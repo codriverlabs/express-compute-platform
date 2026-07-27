@@ -24,7 +24,7 @@ Usage:
   deploy.sh register-amis [--region <region>]
   deploy.sh install-charts [--kubeconfig <path>]
   deploy.sh verify-ami --ami-id <id> [--sig-file <path>]
-  deploy.sh import-ami --ami-id <id> --regions <r1,r2> [--src-region <r>]
+  deploy.sh import-ami --ami-id <id> --src-region <r> --regions <r1,r2>
   deploy.sh ecp <cli-args...>
   deploy.sh --help
 
@@ -45,7 +45,7 @@ Examples:
   deploy.sh destroy --stack control-plane
   deploy.sh register-amis --region us-east-1
   deploy.sh verify-ami --ami-id ami-0abc1234def56789
-  deploy.sh import-ami --ami-id ami-0abc1234def56789 --regions us-east-1,eu-west-1
+  deploy.sh import-ami --ami-id ami-0abc1234def56789 --src-region us-east-1 --regions us-east-1,eu-west-1
   deploy.sh ecp clusters list
 EOF
   exit 0
@@ -89,17 +89,71 @@ register_amis() {
   [[ -f "$manifest" ]] || { echo "ERROR: ami-manifest.json not found"; exit 1; }
 
   python3 -c "
-import json, subprocess, os
+import json, subprocess, os, sys
 
 region = os.environ.get('AWS_REGION', 'us-east-1')
 manifest = json.load(open('${manifest}'))
 
 for k8s_ver, arches in manifest.items():
-    for arch, regions in arches.items():
-        ami_id = regions.get(region)
+    for arch, regions_map in arches.items():
+        # Find the AMI — check if one exists for the target region directly
+        ami_id = regions_map.get(region)
+        src_region = region
+
         if not ami_id:
-            print(f'  SKIP: No AMI for {arch}/{k8s_ver} in {region}')
-            continue
+            # AMI not built for this region — find it in another region and copy
+            src_region, ami_id = next(iter(regions_map.items()), (None, None))
+            if not ami_id:
+                print(f'  SKIP: No AMI for {arch}/{k8s_ver} in any region')
+                continue
+
+            print(f'  Importing {ami_id} ({arch}/{k8s_ver}) from {src_region} to {region}...')
+
+            # Verify signature before importing
+            subprocess.run([
+                '${SCRIPT_DIR}/bin/verify-ami.sh',
+                '--ami-id', ami_id,
+                '--sig-file', '${SCRIPT_DIR}/ami-signatures.json',
+                '--pubkey', '${SCRIPT_DIR}/express-compute-ami-signing.pub.pem'
+            ], check=True)
+
+            # Check if already imported (idempotent)
+            check = subprocess.run([
+                'aws', 'ec2', 'describe-images',
+                '--region', region,
+                '--filters', f'Name=name,Values=express-compute-{arch}-*-{k8s_ver}',
+                '--owners', 'self',
+                '--query', 'Images | sort_by(@, &CreationDate) | [-1].ImageId',
+                '--output', 'text'
+            ], capture_output=True, text=True)
+            existing = check.stdout.strip()
+            if existing and existing != 'None':
+                print(f'  ✓ Already imported: {existing}')
+                ami_id = existing
+            else:
+                # Copy from source region (works because AMI is public)
+                result = subprocess.run([
+                    'aws', 'ec2', 'copy-image',
+                    '--source-image-id', ami_id,
+                    '--source-region', src_region,
+                    '--region', region,
+                    '--name', f'express-compute-{arch}-imported-{k8s_ver}',
+                    '--description', f'Express Compute k8s-{k8s_ver} {arch} imported from {src_region}',
+                    '--query', 'ImageId', '--output', 'text'
+                ], capture_output=True, text=True, check=True)
+                ami_id = result.stdout.strip()
+                print(f'  ✓ Copy started: {ami_id} (async — will wait)')
+
+                # Wait for the copy to complete
+                print(f'    Waiting for {ami_id} to become available...')
+                subprocess.run([
+                    'aws', 'ec2', 'wait', 'image-available',
+                    '--region', region,
+                    '--image-ids', ami_id
+                ], check=True)
+                print(f'    ✓ {ami_id} available')
+
+        # Register in SSM
         param = f'/express-compute/infra/ami/{arch}/{k8s_ver}'
         subprocess.run([
             'aws', 'ssm', 'put-parameter',
@@ -110,6 +164,7 @@ for k8s_ver, arches in manifest.items():
             '--region', region
         ], check=True)
         print(f'  ✓ {param} = {ami_id}')
+"
 "
 }
 
