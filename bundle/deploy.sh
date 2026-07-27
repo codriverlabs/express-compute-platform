@@ -117,18 +117,20 @@ for k8s_ver, arches in manifest.items():
                 '--pubkey', '${SCRIPT_DIR}/express-compute-ami-signing.pub.pem'
             ], check=True)
 
-            # Check if already imported (idempotent)
+            # Check if already imported by looking for tag with source AMI ID
             check = subprocess.run([
                 'aws', 'ec2', 'describe-images',
                 '--region', region,
-                '--filters', f'Name=name,Values=express-compute-{arch}-*-{k8s_ver}',
                 '--owners', 'self',
-                '--query', 'Images | sort_by(@, &CreationDate) | [-1].ImageId',
+                '--filters',
+                f'Name=tag:SourceAmiId,Values={ami_id}',
+                'Name=state,Values=available',
+                '--query', 'Images[0].ImageId',
                 '--output', 'text'
             ], capture_output=True, text=True)
             existing = check.stdout.strip()
             if existing and existing != 'None':
-                print(f'  ✓ Already imported: {existing}')
+                print(f'  ✓ Already imported: {existing} (source: {ami_id})')
                 ami_id = existing
             else:
                 # Copy from source region (works because AMI is public)
@@ -141,17 +143,31 @@ for k8s_ver, arches in manifest.items():
                     '--description', f'Express Compute k8s-{k8s_ver} {arch} imported from {src_region}',
                     '--query', 'ImageId', '--output', 'text'
                 ], capture_output=True, text=True, check=True)
-                ami_id = result.stdout.strip()
-                print(f'  ✓ Copy started: {ami_id} (async — will wait)')
+                new_ami_id = result.stdout.strip()
+                print(f'  ✓ Copy started: {new_ami_id} (async — will wait)')
 
                 # Wait for the copy to complete
-                print(f'    Waiting for {ami_id} to become available...')
+                print(f'    Waiting for {new_ami_id} to become available...')
                 subprocess.run([
                     'aws', 'ec2', 'wait', 'image-available',
                     '--region', region,
-                    '--image-ids', ami_id
+                    '--image-ids', new_ami_id
                 ], check=True)
-                print(f'    ✓ {ami_id} available')
+                print(f'    ✓ {new_ami_id} available')
+
+                # Tag with source provenance for idempotent re-runs
+                subprocess.run([
+                    'aws', 'ec2', 'create-tags',
+                    '--region', region,
+                    '--resources', new_ami_id,
+                    '--tags',
+                    f'Key=SourceAmiId,Value={ami_id}',
+                    f'Key=SourceRegion,Value={src_region}',
+                    f'Key=KubernetesVersion,Value={k8s_ver}',
+                    f'Key=Architecture,Value={arch}',
+                    'Key=ManagedBy,Value=express-compute',
+                ], check=True)
+                ami_id = new_ami_id
 
         # Register in SSM
         param = f'/express-compute/infra/ami/{arch}/{k8s_ver}'
