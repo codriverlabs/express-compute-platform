@@ -9,7 +9,7 @@ Pods get temporary IAM credentials automatically, without node-level IAM roles o
 ## Prerequisites
 
 - A running Kubernetes cluster with `kubectl` access
-- AWS credentials with permissions to the Express Compute control plane
+- AWS CLI configured with permissions to create IAM roles and S3 buckets
 - `helm` v3 installed
 - `ecp` CLI on PATH (or inside the bundle container)
 
@@ -40,19 +40,8 @@ Register your existing cluster with the Express Compute control plane. This
 publishes the cluster's OIDC/JWKS configuration so AWS STS can validate pod tokens.
 
 ```bash
-# Option A: auto-discover JWKS from kubeconfig (recommended)
+# Auto-discover JWKS from kubeconfig (recommended)
 ecp create-cluster my-k3s --kubeconfig ~/.kube/config
-
-# Option B: explicit JWKS file
-kubectl get --raw /openid/v1/jwks > /tmp/jwks.json
-ecp create-cluster my-k3s \
-  --issuer "https://kubernetes.default.svc" \
-  --jwks-file /tmp/jwks.json
-
-# Option C: JWKS via public URL (if your cluster API is internet-reachable)
-ecp create-cluster my-k3s \
-  --issuer "https://my-cluster.example.com" \
-  --jwks-uri "https://my-cluster.example.com/openid/v1/jwks"
 ```
 
 Verify registration:
@@ -69,15 +58,15 @@ Download the installer from the latest release and verify its checksum:
 
 ```bash
 VERSION="1.0.0-rc11"  # replace with your target version
+BASE_URL="https://github.com/codriverlabs/express-compute-platform/releases/download/v${VERSION}"
 
-curl -fsSL "https://github.com/codriverlabs/express-compute-platform/releases/download/v${VERSION}/install-ecp-workload-identity.sh" \
+curl -fsSL "${BASE_URL}/install-ecp-workload-identity.sh" \
   -o install-ecp-workload-identity.sh
 
-curl -fsSL "https://github.com/codriverlabs/express-compute-platform/releases/download/v${VERSION}/checksums.txt" \
-  -o checksums.txt
+curl -fsSL "${BASE_URL}/install-ecp-workload-identity.sh.sha256" \
+  -o install-ecp-workload-identity.sh.sha256
 
-# Verify checksum
-grep install-ecp-workload-identity.sh checksums.txt | sha256sum --check
+sha256sum --check install-ecp-workload-identity.sh.sha256
 chmod +x install-ecp-workload-identity.sh
 ```
 
@@ -99,27 +88,107 @@ The script installs:
 
 ---
 
-## 4. Create a Workload Identity (Pod Identity Association)
+## 4. Create an IAM Role and S3 Bucket for Testing
 
-Bind a Kubernetes service account to an IAM role:
+Create a test S3 bucket and an IAM role that allows access to it:
 
 ```bash
-ecp create-association \
-  --cluster-name my-k3s \
-  --namespace default \
-  --service-account my-app \
-  --role-arn arn:aws:iam::123456789012:role/MyAppRole
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+BUCKET_NAME="ecp-test-${ACCOUNT_ID}-${AWS_REGION}"
+
+# Create test bucket
+aws s3 mb "s3://${BUCKET_NAME}" --region "${AWS_REGION}"
+
+# Create IAM policy
+cat > /tmp/ecp-test-policy.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::${BUCKET_NAME}",
+        "arn:aws:s3:::${BUCKET_NAME}/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "sts:GetCallerIdentity",
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+
+aws iam create-policy \
+  --policy-name ecp-test-s3-access \
+  --policy-document file:///tmp/ecp-test-policy.json
+
+# Create IAM role with trust policy for Express Compute
+ECP_ENDPOINT=$(aws ssm get-parameter \
+  --name /express-compute/control-plane/api/endpoint \
+  --region "${AWS_REGION}" --query Parameter.Value --output text)
+
+cat > /tmp/ecp-test-trust.json <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "pods.eks.amazonaws.com"
+      },
+      "Action": [
+        "sts:AssumeRole",
+        "sts:TagSession"
+      ]
+    }
+  ]
+}
+EOF
+
+aws iam create-role \
+  --role-name ecp-test-s3-role \
+  --assume-role-policy-document file:///tmp/ecp-test-trust.json
+
+aws iam attach-role-policy \
+  --role-name ecp-test-s3-role \
+  --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/ecp-test-s3-access"
 ```
 
 ---
 
-## 5. Test It
-
-Deploy a pod using that service account — it should get AWS credentials automatically:
+## 5. Create the Service Account and Association
 
 ```bash
-kubectl run aws-test --image=amazon/aws-cli:latest --rm -it \
-  --overrides='{"spec":{"serviceAccountName":"my-app"}}' \
+# Create a Kubernetes service account
+kubectl create serviceaccount ecp-test-sa -n default
+
+# Bind it to the IAM role via Express Compute
+ecp create-association \
+  --cluster-name my-k3s \
+  --namespace default \
+  --service-account ecp-test-sa \
+  --role-arn "arn:aws:iam::${ACCOUNT_ID}:role/ecp-test-s3-role"
+```
+
+---
+
+## 6. Test — Pod Gets AWS Credentials Automatically
+
+Run a pod with the test service account. It will receive AWS credentials via the
+injected projected token and the pod identity agent:
+
+```bash
+# Verify identity
+kubectl run aws-test --image=public.ecr.aws/aws-cli/aws-cli:latest --rm -it \
+  --restart=Never \
+  --overrides='{"spec":{"serviceAccountName":"ecp-test-sa"}}' \
   -- sts get-caller-identity
 ```
 
@@ -127,15 +196,31 @@ Expected output:
 
 ```json
 {
-    "UserId": "AROA...:my-k3s-default-my-app",
+    "UserId": "AROA...:my-k3s-default-ecp-test-sa",
     "Account": "123456789012",
-    "Arn": "arn:aws:sts::123456789012:assumed-role/MyAppRole/my-k3s-default-my-app"
+    "Arn": "arn:aws:sts::123456789012:assumed-role/ecp-test-s3-role/my-k3s-default-ecp-test-sa"
 }
+```
+
+Test S3 access:
+
+```bash
+# Upload a test file
+kubectl run s3-write --image=public.ecr.aws/aws-cli/aws-cli:latest --rm -it \
+  --restart=Never \
+  --overrides='{"spec":{"serviceAccountName":"ecp-test-sa"}}' \
+  -- s3 cp - "s3://${BUCKET_NAME}/hello.txt" <<< "Hello from Workload Identity!"
+
+# Read it back
+kubectl run s3-read --image=public.ecr.aws/aws-cli/aws-cli:latest --rm -it \
+  --restart=Never \
+  --overrides='{"spec":{"serviceAccountName":"ecp-test-sa"}}' \
+  -- s3 cp "s3://${BUCKET_NAME}/hello.txt" -
 ```
 
 ---
 
-## 6. Refresh JWKS (After Certificate Rotation)
+## 7. Refresh JWKS (After Certificate Rotation)
 
 If your cluster's service account signing key rotates:
 
@@ -145,15 +230,29 @@ ecp update-cluster my-k3s --refresh-jwks --kubeconfig ~/.kube/config
 
 ---
 
-## Uninstall
+## Cleanup
 
 ```bash
+# Delete test pod identity association
+ecp delete-association --cluster-name my-k3s --association-id <id-from-list>
+
+# Remove Kubernetes resources
+kubectl delete serviceaccount ecp-test-sa -n default
+
+# Remove Workload Identity components
 helm uninstall eks-pod-identity-agent -n kube-system
 helm uninstall express-compute-workload-identity-webhook -n kube-system
 helm uninstall express-compute-auth-proxy -n kube-system
 
-# Deregister from control plane
+# Deregister cluster
 ecp delete-cluster my-k3s
+
+# Clean up AWS resources
+aws s3 rb "s3://${BUCKET_NAME}" --force
+aws iam detach-role-policy --role-name ecp-test-s3-role \
+  --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/ecp-test-s3-access"
+aws iam delete-role --role-name ecp-test-s3-role
+aws iam delete-policy --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/ecp-test-s3-access"
 ```
 
 ---
@@ -165,7 +264,7 @@ ecp delete-cluster my-k3s
 # Check webhook is injecting the projected token volume
 kubectl get pod <pod-name> -o yaml | grep -A5 projected
 
-# Check agent is running
+# Check agent is running on each node
 kubectl get pods -n kube-system -l app=eks-pod-identity-agent
 
 # Check auth-proxy logs
@@ -181,12 +280,21 @@ kubectl get --raw /openid/v1/jwks | python3 -m json.tool
 ecp describe-cluster my-k3s
 ```
 
+**AssumeRole fails with "Not authorized to perform sts:AssumeRole"**
+```bash
+# Verify the trust policy on the role allows pods.eks.amazonaws.com
+aws iam get-role --role-name ecp-test-s3-role --query Role.AssumeRolePolicyDocument
+
+# Verify the association exists
+ecp list-associations --cluster-name my-k3s
+```
+
 **ECR pull failures (eks-pod-identity-agent image)**
 ```bash
 # The installer creates an ECR pull secret — check it exists
 kubectl get secret ecr-pod-identity-agent -n kube-system
 
-# If expired, re-run the installer or manually refresh:
+# If expired (~12h), refresh manually:
 kubectl create secret docker-registry ecr-pod-identity-agent \
   --namespace kube-system \
   --docker-server=602401143452.dkr.ecr.us-west-2.amazonaws.com \
