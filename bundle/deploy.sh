@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REGION="${AWS_REGION:-us-east-1}"
-PROJECT_NAME="ecp-infra"
+PROJECT_NAME="express-compute-managed-k8s-infra"
 DEPLOYMENT_MODE="hybrid"
 INSTANCE_TYPE_ARM64="c6g.xlarge"
 INSTANCE_TYPE_X86="m7i.large"
