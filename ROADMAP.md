@@ -77,8 +77,7 @@ Package Express Compute Workload Identity as an OLM-managed operator for OpenShi
 | **Health Checks** | `ecp health-check` — validate cluster state, add-on versions, certificate expiry | PRO: continuous monitoring + auto-remediation |
 | **Addon CLI** | `ecp install-addon` / `ecp list-addons` — core add-on management | PRO: enterprise add-on catalog + approval workflows |
 | **Backup (manual)** | `ecp backup-cluster` — etcd snapshot to S3 | PRO: scheduled backups + cross-region DR |
-| **Single-cluster dashboard** | Basic web UI showing cluster status, pods, events | PRO: multi-cluster fleet view |
-| **GitOps bootstrap** | `ecp enable-gitops` — install ArgoCD/Flux with cluster repo | PRO: fleet-wide GitOps with policy gates |
+| **Cross-cloud Workload Identity** | Validated guides for WI from on-prem, Azure, GCP, Oracle Cloud | PRO: multi-cloud identity federation with central policy |
 | **Security scan** | `ecp scan-cluster` — CIS benchmark, outdated images, exposed services | Enterprise: continuous compliance + audit trail |
 
 ### PRO
@@ -92,7 +91,7 @@ Package Express Compute Workload Identity as an OLM-managed operator for OpenShi
 | **Custom blueprints + policy** | Organization-specific cluster templates with guardrails |
 | **Priority support** | 8-hour SLA, dedicated Slack channel |
 | **GPU/ML workload profiles** | NVIDIA operator, MIG partitioning, training job scheduling |
-| **Multi-cluster networking** | Service mesh (Istio/Linkerd) across clusters, cross-cluster DNS |
+| **Multi-cloud identity federation** | Centralized WI policy across AWS, Azure, GCP, OCI clusters |
 
 ### Enterprise
 
