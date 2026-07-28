@@ -32,9 +32,10 @@ pip install robotframework
 ```
 
 The environment must have:
-- `ecp` binary on PATH (inside the bundle container: already done via Dockerfile)
 - Valid AWS credentials for the target region
 - Control plane deployed (`deploy.sh deploy` completed)
+- `ecp` CLI on PATH **OR** internet access (auto-downloaded from GitHub release if missing)
+- `curl` for CLI download and SSH CIDR resolution
 
 ## Quick Start
 
