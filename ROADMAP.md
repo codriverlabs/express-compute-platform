@@ -77,7 +77,7 @@ Package Express Compute Workload Identity as an OLM-managed operator for OpenShi
 | **Health Checks** | `ecp health-check` — validate cluster state, add-on versions, certificate expiry | PRO: continuous monitoring + auto-remediation |
 | **Addon CLI** | `ecp install-addon` / `ecp list-addons` — core add-on management | PRO: enterprise add-on catalog + approval workflows |
 | **Backup (manual)** | `ecp backup-cluster` — etcd snapshot to S3 | PRO: scheduled backups + cross-region DR |
-| **Cross-cloud Workload Identity** | Validated guides for WI from on-prem, Azure, GCP, Oracle Cloud | PRO: multi-cloud identity federation with central policy |
+| **Hybrid Workload Identity** | Validated guides for accessing AWS services from clusters on Azure VMs, developer laptops, and on-premises infrastructure | PRO: priority support + advanced troubleshooting |
 | **Security scan** | `ecp scan-cluster` — CIS benchmark, outdated images, exposed services | Enterprise: continuous compliance + audit trail |
 
 ### PRO
