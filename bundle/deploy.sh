@@ -279,6 +279,29 @@ case "$COMMAND" in
     echo ""; echo "✓ Deployment complete (region=${REGION}, mode=${DEPLOYMENT_MODE})"
     ;;
   destroy)
+    # Safety check: ensure no clusters are still registered
+    if command -v "${SCRIPT_DIR}/bin/ecp" &>/dev/null || command -v ecp &>/dev/null; then
+      ECP_BIN="${SCRIPT_DIR}/bin/ecp"
+      [[ -x "$ECP_BIN" ]] || ECP_BIN="ecp"
+      CLUSTERS=$("$ECP_BIN" list-clusters 2>/dev/null || true)
+      if [[ -n "$CLUSTERS" ]] && ! echo "$CLUSTERS" | grep -qi "no clusters"; then
+        echo "==> WARNING: Active clusters detected in this region:"
+        echo ""
+        echo "$CLUSTERS"
+        echo ""
+        echo "Destroying the platform with active clusters will leave orphaned EC2 instances,"
+        echo "EBS volumes, and stale DynamoDB entries."
+        echo ""
+        echo "Please delete all clusters first:"
+        echo "  ecp delete-cluster <name> --region ${REGION}"
+        echo ""
+        read -r -p "Continue anyway? (yes/no): " CONFIRM
+        if [[ "$CONFIRM" != "yes" ]]; then
+          echo "Aborted."
+          exit 1
+        fi
+      fi
+    fi
     case "$STACK" in
       all)
         cd "${SCRIPT_DIR}/control-plane" && cdk destroy --app cdk.out --all --force --region "${REGION}" || true
