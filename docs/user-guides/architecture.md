@@ -118,7 +118,7 @@ sequenceDiagram
     Dev->>Bundle: docker run deploy --region us-east-1
     Bundle-->>Dev: ExpressComputeManagedK8sInfraStack + ExpressComputeControlPlaneStack deployed
 
-    Dev->>Lambda: ecp clusters create
+    Dev->>Lambda: ecp create-cluster my-cluster --arch=arm64 --pricing=spot --wait
     Lambda->>EC2: Launch EC2 with user-data (cluster.env pre-seeded)
     EC2->>EKS: setup-eks-d.sh runs (05→18)
     EC2->>K: Karpenter installed (step 15)

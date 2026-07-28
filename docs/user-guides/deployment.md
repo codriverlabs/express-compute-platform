@@ -129,7 +129,7 @@ Or deploy step by step if you want to inspect between stages:
 # Step 1: shared VPC, launch templates, ECR pull-through cache
 ./deploy.sh deploy --stack infra --region us-east-1
 
-# Step 2: register golden AMI IDs into SSM
+# Step 2: register golden AMI IDs into SSM (defaults: arm64, k8s 1.35)
 ./deploy.sh register-amis --region us-east-1
 
 # Step 3: Lambdas, API Gateway, DynamoDB, Workload Identity
@@ -151,21 +151,33 @@ What gets deployed:
 Once the platform is deployed, use the `ecp` CLI inside the same shell:
 
 ```bash
-# List clusters in your account
-ecp clusters list
+# Configure endpoint (done once — stored locally)
+ecp configure --endpoint https://ecp.codriverlabs.ai --region us-east-1
 
-# Create a cluster (Lambda provisions an EC2 instance, boot takes ~4 min)
-ecp clusters create --name my-cluster --region us-east-1
+# List clusters
+ecp list-clusters
 
-# Get kubeconfig
-ecp clusters kubeconfig --name my-cluster > /tmp/kubeconfig
+# Create a cluster (~4 min, SSH locked to your IP)
+ecp create-cluster my-cluster \
+  --arch=arm64 \
+  --pricing=spot \
+  --ssh-cidr "$(curl -s https://checkip.amazonaws.com/)/32" \
+  --wait
+
+# Get SSH access details (saves key to local .pem file)
+ecp get-cluster-access my-cluster --save-key
+
+# Stop cluster (EBS preserved, no compute charges)
+ecp stop-cluster my-cluster
+
+# Resume cluster
+ecp resume-cluster my-cluster --wait
+
+# Delete cluster (full teardown)
+ecp delete-cluster my-cluster
 ```
 
-Install Helm charts on a running cluster:
-
-```bash
-./deploy.sh install-charts --kubeconfig /tmp/kubeconfig
-```
+See the [ecp CLI Reference](ecp-cli/README.md) for all commands and options.
 
 ---
 

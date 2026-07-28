@@ -34,6 +34,13 @@ docker run --rm -it \
 
 # Inside the container:
 ./deploy.sh deploy --region us-east-1
+
+# Create your first cluster (arm64, spot, ~4 min)
+ecp create-cluster my-cluster \
+  --arch=arm64 \
+  --pricing=spot \
+  --ssh-cidr "$(curl -s https://checkip.amazonaws.com/)/32" \
+  --wait
 ```
 
 ### Build a golden AMI locally

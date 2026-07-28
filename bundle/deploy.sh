@@ -9,6 +9,8 @@ INSTANCE_TYPE_ARM64="c6g.xlarge"
 INSTANCE_TYPE_X86="m7i.large"
 DISK_SIZE_GB="20"
 ENABLE_NAT_GATEWAY="false"
+K8S_VERSION="1.35"
+ARCH="arm64"
 
 usage() {
   cat <<EOF
@@ -20,13 +22,15 @@ Usage:
                    [--instance-type-arm64 <type>] [--instance-type-x86 <type>]
                    [--disk-size-gb <n>] [--enable-nat-gateway]
                    [--domain-name <fqdn>] [--certificate-arn <arn>]
+                   [--k8s-version <ver>] [--arch <arch>]
   deploy.sh destroy [--stack <name>] [--region <region>]
-  deploy.sh register-amis [--region <region>]
+  deploy.sh register-amis [--region <region>] [--k8s-version <ver>] [--arch <arch>]
   deploy.sh install-charts [--kubeconfig <path>]
   deploy.sh verify-ami --ami-id <id> [--sig-file <path>]
   deploy.sh import-ami --ami-id <id> --src-region <r> --regions <r1,r2>
-  deploy.sh ecp <cli-args...>
   deploy.sh --help
+
+  Cluster management: use 'ecp' directly (on PATH). Run 'ecp --help' for commands.
 
 Deployment Modes:
   self-managed    Control plane only (Workload Identity for existing clusters)
@@ -38,15 +42,20 @@ Stacks:
   control-plane   Serverless control plane (Lambdas, API GW, DynamoDB)
   all             Deploy all applicable stacks in order (default)
 
+AMI Filtering (defaults: --arch=arm64, --k8s-version=1.35):
+  --k8s-version   Import only AMIs for this Kubernetes version (e.g. "1.35")
+  --arch          Import only AMIs for this architecture ("arm64" or "x86_64")
+
 Examples:
   deploy.sh deploy --region eu-west-1
+  deploy.sh deploy --region eu-west-1 --k8s-version 1.35 --arch arm64
   deploy.sh deploy --deployment-mode self-managed
   deploy.sh deploy --stack infra
   deploy.sh destroy --stack control-plane
-  deploy.sh register-amis --region us-east-1
+  deploy.sh register-amis --region us-east-1 --arch arm64
   deploy.sh verify-ami --ami-id ami-0abc1234def56789
   deploy.sh import-ami --ami-id ami-0abc1234def56789 --src-region us-east-1 --regions us-east-1,eu-west-1
-  deploy.sh ecp clusters list
+  ecp list-clusters    # use ecp directly (on PATH)
 EOF
   exit 0
 }
@@ -88,14 +97,25 @@ register_amis() {
   local manifest="${SCRIPT_DIR}/ami-manifest.json"
   [[ -f "$manifest" ]] || { echo "ERROR: ami-manifest.json not found"; exit 1; }
 
+  local filter_k8s_version="${K8S_VERSION:-}"
+  local filter_arch="${ARCH:-}"
+  [[ -n "$filter_k8s_version" ]] && echo "    Filtering: k8s-version=${filter_k8s_version}"
+  [[ -n "$filter_arch" ]]        && echo "    Filtering: arch=${filter_arch}"
+
   python3 -c "
 import json, subprocess, os, sys
 
 region = os.environ.get('AWS_REGION', 'us-east-1')
+filter_k8s_version = '${filter_k8s_version}'
+filter_arch = '${filter_arch}'
 manifest = json.load(open('${manifest}'))
 
 for k8s_ver, arches in manifest.items():
+    if filter_k8s_version and k8s_ver != filter_k8s_version:
+        continue
     for arch, regions_map in arches.items():
+        if filter_arch and arch != filter_arch:
+            continue
         # Find the AMI — check if one exists for the target region directly
         ami_id = regions_map.get(region)
         src_region = region
@@ -169,17 +189,27 @@ for k8s_ver, arches in manifest.items():
                 ], check=True)
                 ami_id = new_ami_id
 
-        # Register in SSM
+        # Register in SSM (only if value changed)
         param = f'/express-compute/infra/ami/{arch}/{k8s_ver}'
-        subprocess.run([
-            'aws', 'ssm', 'put-parameter',
+        current = subprocess.run([
+            'aws', 'ssm', 'get-parameter',
             '--name', param,
-            '--value', ami_id,
-            '--type', 'String',
-            '--overwrite',
-            '--region', region
-        ], check=True)
-        print(f'  ✓ {param} = {ami_id}')
+            '--region', region,
+            '--query', 'Parameter.Value',
+            '--output', 'text'
+        ], capture_output=True, text=True)
+        if current.returncode == 0 and current.stdout.strip() == ami_id:
+            print(f'  ✓ {param} = {ami_id} (unchanged)')
+        else:
+            subprocess.run([
+                'aws', 'ssm', 'put-parameter',
+                '--name', param,
+                '--value', ami_id,
+                '--type', 'String',
+                '--overwrite',
+                '--region', region
+            ], check=True)
+            print(f'  ✓ {param} = {ami_id}')
 "
 }
 
@@ -214,6 +244,8 @@ while [[ $# -gt 0 ]]; do
     --domain-name)         DOMAIN_NAME="$2";           shift 2 ;;
     --certificate-arn)     CERTIFICATE_ARN="$2";       shift 2 ;;
     --kubeconfig)          export KUBECONFIG="$2";      shift 2 ;;
+    --k8s-version)         K8S_VERSION="$2";           shift 2 ;;
+    --arch)                ARCH="$2";                  shift 2 ;;
     *)            break ;;
   esac
 done
