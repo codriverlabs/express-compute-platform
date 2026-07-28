@@ -1,1 +1,2 @@
 robotframework>=7.0
+# Install: pip3 install -r requirements.txt

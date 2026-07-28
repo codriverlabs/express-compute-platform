@@ -28,7 +28,7 @@ ecp configure               Configure control plane endpoint and region
 ## Prerequisites
 
 ```bash
-pip install robotframework
+pip3 install robotframework
 ```
 
 The environment must have:
