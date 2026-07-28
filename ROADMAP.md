@@ -91,7 +91,7 @@ Package Express Compute Workload Identity as an OLM-managed operator for OpenShi
 | **Custom blueprints + policy** | Organization-specific cluster templates with guardrails |
 | **Priority support** | 8-hour SLA, dedicated Slack channel |
 | **GPU/ML workload profiles** | NVIDIA operator, MIG partitioning, training job scheduling |
-| **Multi-cloud identity federation** | Centralized WI policy across AWS, Azure, GCP, OCI clusters |
+| **Advanced backup + DR** | Scheduled etcd snapshots, cross-region restore, RTO/RPO targets |
 
 ### Enterprise
 
