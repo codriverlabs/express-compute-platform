@@ -78,3 +78,19 @@ Wait For Cluster Terminated
         Sleep    10s
     END
     Fail    Cluster ${name} still exists after ${timeout}s
+
+Wait For Cluster Access
+    [Documentation]    Polls get-cluster-access until it succeeds (cluster IP available) or timeout.
+    [Arguments]    ${name}    ${timeout}=420
+    FOR    ${i}    IN RANGE    ${{int($timeout) // 15}}
+        ${result}=    ECP CLI    get-cluster-access    ${name}    --region    ${REGION}
+        IF    ${result.rc} == 0
+            ${has_ip}=    Evaluate    bool(__import__('re').search(r'\\d+\\.\\d+\\.\\d+\\.\\d+', '''${result.stdout}'''))
+            IF    ${has_ip}
+                Log    Cluster accessible: ${result.stdout}
+                RETURN
+            END
+        END
+        Sleep    15s
+    END
+    Fail    Cluster ${name} not accessible within ${timeout}s

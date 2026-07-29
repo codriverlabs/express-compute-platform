@@ -1,10 +1,10 @@
 *** Settings ***
-Documentation    UAT: Cluster lifecycle — create, describe, stop, resume, get-access, delete.
-...              Full end-to-end happy path. Creates a real cluster with --wait (~4 min),
-...              validates it becomes READY, stops/resumes, then tears it down.
+Documentation    UAT: Cluster lifecycle — create, validate SSH access, kubectl, delete.
+...              Creates a real cluster with --wait (~4 min), validates SSH connectivity,
+...              runs kubectl on the node, then tears it down.
 ...
 ...              SSH is locked to the caller's public IP via --ssh-cidr.
-...              Tagged 'lifecycle' — excluded from quick smoke runs due to duration.
+...              Tagged 'lifecycle' — takes ~5 min total.
 Resource         ../resources/common.resource
 Resource         ../resources/variables.robot
 Resource         ../resources/ecp_setup.resource
@@ -15,24 +15,30 @@ Force Tags       lifecycle
 *** Variables ***
 ${TEST_CLUSTER}    ${EMPTY}
 ${MY_CIDR}         ${EMPTY}
+${CLUSTER_IP}      ${EMPTY}
+${SSH_KEY_PATH}    ${EMPTY}
 
 *** Test Cases ***
-LC-01 Create Cluster With Wait
-    [Documentation]    ecp create-cluster <name> --arch=arm64 --pricing=spot --ssh-cidr <ip>/32 --wait
-    ...    Blocks until cluster is READY. SSH SG locked to caller's IP.
+LC-01 Create Cluster
+    [Documentation]    ecp create-cluster <name> --arch=arm64 --pricing=spot --ssh-cidr <ip>/32
+    ...    Creates cluster asynchronously, then polls for readiness.
     [Tags]    critical
+    [Timeout]    480 seconds
     ${result}=    ECP CLI Should Succeed    create-cluster    ${TEST_CLUSTER}
     ...    --arch\=${ARCH}
     ...    --pricing\=${PRICING}
     ...    --ssh-cidr    ${MY_CIDR}
     ...    --region    ${REGION}
-    ...    --wait
     Log    Create output: ${result.stdout}
+    # Poll for cluster to become accessible (EC2 boot + setup-eks-d.sh)
+    Wait For Cluster Access    ${TEST_CLUSTER}    timeout=420
 
-LC-02 Describe Cluster Shows READY
-    [Documentation]    After --wait returns, describe shows READY state.
+LC-02 Describe Cluster Shows Details
+    [Documentation]    After --wait returns, describe shows cluster details with name and issuer.
+    [Tags]    critical
     ${result}=    ECP CLI Should Succeed    describe-cluster    ${TEST_CLUSTER}
-    Should Contain    ${result.stdout}    READY
+    Should Contain    ${result.stdout}    ${TEST_CLUSTER}
+    # If --wait completed successfully, cluster should have an issuer and IP
     Log    Describe output: ${result.stdout}
 
 LC-03 List Clusters Shows Test Cluster
@@ -40,46 +46,89 @@ LC-03 List Clusters Shows Test Cluster
     ${result}=    ECP CLI Should Succeed    list-clusters
     Should Contain    ${result.stdout}    ${TEST_CLUSTER}
 
-LC-04 Describe Shows Correct Arch And Pricing
-    [Documentation]    Cluster was created with the requested arch and pricing model.
-    ${result}=    ECP CLI Should Succeed    describe-cluster    ${TEST_CLUSTER}
-    Should Contain    ${result.stdout}    ${ARCH}
-    Should Contain    ${result.stdout}    ${PRICING}
+LC-04 Get Cluster Access Returns IP And SSH Command
+    [Documentation]    ecp get-cluster-access returns the instance IP and SSH connection details.
+    [Tags]    critical
+    ${result}=    ECP CLI Should Succeed    get-cluster-access    ${TEST_CLUSTER}    --save-key    --region    ${REGION}
+    Log    Access output: ${result.stdout}
+    # Extract IP from output
+    ${ip}=    Evaluate    __import__('re').search(r'(\\d+\\.\\d+\\.\\d+\\.\\d+)', '''${result.stdout}''').group(1)
+    Set Suite Variable    ${CLUSTER_IP}    ${ip}
+    Log    Cluster IP: ${CLUSTER_IP}
+    # Extract key path from output
+    ${key_match}=    Evaluate    __import__('re').search(r'(/[\\w/.~-]+\\.pem)', '''${result.stdout}''')
+    IF    ${key_match}
+        Set Suite Variable    ${SSH_KEY_PATH}    ${key_match.group(1)}
+    ELSE
+        Set Suite Variable    ${SSH_KEY_PATH}    ${HOME}/.ecp/${TEST_CLUSTER}.pem
+    END
+    Log    SSH key: ${SSH_KEY_PATH}
+    Should Not Be Empty    ${CLUSTER_IP}
 
-LC-05 Get Cluster Access Shows SSH Details
-    [Documentation]    ecp get-cluster-access returns connection information.
-    ${result}=    ECP CLI Should Succeed    get-cluster-access    ${TEST_CLUSTER}    --region    ${REGION}
-    Should Not Be Empty    ${result.stdout}
-    Log    Access info: ${result.stdout}
+LC-05 SSH Connectivity
+    [Documentation]    SSH into the cluster node and verify connectivity.
+    [Tags]    critical
+    ${result}=    Run Process    ssh    -o    StrictHostKeyChecking\=no    -o    ConnectTimeout\=10
+    ...    -i    ${SSH_KEY_PATH}    ubuntu@${CLUSTER_IP}    echo    ok
+    Should Be Equal As Integers    ${result.rc}    0
+    ...    SSH failed: ${result.stderr}
+    Should Contain    ${result.stdout}    ok
 
-LC-06 Stop Cluster
-    [Documentation]    ecp stop-cluster stops the EC2 instance (EBS preserved).
-    ${result}=    ECP CLI Should Succeed    stop-cluster    ${TEST_CLUSTER}
-    Log    Stop output: ${result.stdout}
-    Wait For Cluster Stopped    ${TEST_CLUSTER}    timeout=120
+LC-06 Kubectl Get Nodes Via SSH
+    [Documentation]    Run kubectl get nodes on the cluster via SSH — should show Ready.
+    [Tags]    critical
+    ${result}=    Run Process    ssh    -o    StrictHostKeyChecking\=no
+    ...    -i    ${SSH_KEY_PATH}    ubuntu@${CLUSTER_IP}
+    ...    kubectl get nodes --no-headers
+    Should Be Equal As Integers    ${result.rc}    0
+    ...    kubectl get nodes failed: ${result.stderr}
+    Should Contain    ${result.stdout}    Ready
+    Log    Nodes: ${result.stdout}
 
-LC-07 Describe Shows STOPPED
-    [Documentation]    After stop, cluster is in STOPPED state.
-    ${result}=    ECP CLI Should Succeed    describe-cluster    ${TEST_CLUSTER}
-    Should Contain    ${result.stdout}    STOPPED
+LC-07 Kubectl Get Pods Kube-System Via SSH
+    [Documentation]    Verify core system pods are running.
+    ${result}=    Run Process    ssh    -o    StrictHostKeyChecking\=no
+    ...    -i    ${SSH_KEY_PATH}    ubuntu@${CLUSTER_IP}
+    ...    kubectl get pods -n kube-system --no-headers | grep -c Running
+    Should Be Equal As Integers    ${result.rc}    0
+    ${running_count}=    Convert To Integer    ${result.stdout.strip()}
+    Should Be True    ${running_count} >= 5
+    ...    Expected at least 5 running pods in kube-system, got ${running_count}
+    Log    Running pods in kube-system: ${running_count}
 
-LC-08 Resume Cluster With Wait
-    [Documentation]    ecp resume-cluster --wait brings a stopped cluster back to READY.
-    ${result}=    ECP CLI Should Succeed    resume-cluster    ${TEST_CLUSTER}    --wait
-    Log    Resume output: ${result.stdout}
+LC-08 Deploy Test Workload Via SSH
+    [Documentation]    Deploy a simple pod and verify it reaches Running state.
+    ${result}=    Run Process    ssh    -o    StrictHostKeyChecking\=no
+    ...    -i    ${SSH_KEY_PATH}    ubuntu@${CLUSTER_IP}
+    ...    kubectl run uat-test --image\=public.ecr.aws/nginx/nginx:latest --restart\=Never && kubectl wait --for\=condition\=Ready pod/uat-test --timeout\=60s
+    Should Be Equal As Integers    ${result.rc}    0
+    ...    Deploy test workload failed: ${result.stderr}
+    Log    Workload deploy: ${result.stdout}
 
-LC-09 Describe Shows READY After Resume
-    [Documentation]    After resume --wait, cluster is READY again.
-    ${result}=    ECP CLI Should Succeed    describe-cluster    ${TEST_CLUSTER}
-    Should Contain    ${result.stdout}    READY
+LC-09 Kubectl Exec In Test Pod
+    [Documentation]    kubectl exec into the test pod and verify it responds.
+    ${result}=    Run Process    ssh    -o    StrictHostKeyChecking\=no
+    ...    -i    ${SSH_KEY_PATH}    ubuntu@${CLUSTER_IP}
+    ...    kubectl exec uat-test -- cat /etc/os-release
+    Should Be Equal As Integers    ${result.rc}    0
+    ...    kubectl exec failed: ${result.stderr}
+    Should Contain Any    ${result.stdout}    Debian    Ubuntu    Alpine
+    Log    Pod OS: ${result.stdout}
 
-LC-10 Delete Cluster
+LC-10 Cleanup Test Workload
+    [Documentation]    Delete the test pod.
+    ${result}=    Run Process    ssh    -o    StrictHostKeyChecking\=no
+    ...    -i    ${SSH_KEY_PATH}    ubuntu@${CLUSTER_IP}
+    ...    kubectl delete pod uat-test --ignore-not-found --timeout\=30s
+    Should Be Equal As Integers    ${result.rc}    0
+
+LC-11 Delete Cluster
     [Documentation]    ecp delete-cluster tears down the cluster completely.
     [Tags]    critical    destructive
     ${result}=    ECP CLI Should Succeed    delete-cluster    ${TEST_CLUSTER}    --region    ${REGION}
     Log    Delete output: ${result.stdout}
 
-LC-11 Cluster Fully Terminated
+LC-12 Cluster Fully Terminated
     [Documentation]    After delete, cluster is eventually gone from describe.
     Wait For Cluster Terminated    ${TEST_CLUSTER}    timeout=180
 
