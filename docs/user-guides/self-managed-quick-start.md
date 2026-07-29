@@ -90,6 +90,9 @@ The script installs:
 
 ## 4. Create an IAM Role and S3 Bucket for Testing
 
+> **Full IAM reference:** See [IAM Role Setup for Express Compute Workload Identity](https://github.com/codriverlabs/express-compute-control-plane/blob/main/docs/user-guides/iam/iam-role-setup.md)
+> for session tags, manual trust policies, dual-use roles (EKS + ECP), and ABAC patterns.
+
 Create a test S3 bucket and an IAM role that allows access to it:
 
 ```bash
