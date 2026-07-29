@@ -9,15 +9,15 @@ Resource   common.resource
 
 *** Keywords ***
 Verify CLI Ready
-    [Documentation]    Validates that ecp binary is on PATH and responds to --version.
+    [Documentation]    Validates that ecp binary is on PATH and responds to --help.
     ...    If not found, downloads from GitHub release.
     ${result}=    Run Process    which    ${ECP_CLI}
     IF    ${result.rc} != 0
         Download ECP CLI
     END
-    ${version}=    ECP CLI Should Succeed    --version
-    Should Not Be Empty    ${version.stdout}    ecp --version returned empty output
-    Log    CLI version: ${version.stdout}
+    ${help}=    ECP CLI Should Succeed    --help
+    Should Contain    ${help.stdout}    Usage
+    Log    CLI ready: ecp --help returns usage
 
 Download ECP CLI
     [Documentation]    Downloads ecp CLI from GitHub release, verifies checksum, installs to /usr/local/bin.
