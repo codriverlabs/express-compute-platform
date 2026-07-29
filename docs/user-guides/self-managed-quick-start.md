@@ -130,25 +130,11 @@ aws iam create-policy \
   --policy-document file:///tmp/ecp-test-policy.json
 
 # Create IAM role with trust policy for Express Compute
-ECP_ENDPOINT=$(aws ssm get-parameter \
-  --name /express-compute/control-plane/api/endpoint \
-  --region "${AWS_REGION}" --query Parameter.Value --output text)
-
+# Option A (recommended): tag the role so ECP auto-configures trust policy
 cat > /tmp/ecp-test-trust.json <<EOF
 {
   "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "pods.eks.amazonaws.com"
-      },
-      "Action": [
-        "sts:AssumeRole",
-        "sts:TagSession"
-      ]
-    }
-  ]
+  "Statement": []
 }
 EOF
 
@@ -156,8 +142,15 @@ aws iam create-role \
   --role-name ecp-test-s3-role \
   --assume-role-policy-document file:///tmp/ecp-test-trust.json
 
+# Tag the role — Express Compute will auto-configure the trust policy
+# when you create the association in the next step
+aws iam tag-role \
+  --role-name ecp-test-s3-role \
+  --tags Key=ecp-managed,Value=true
+
 aws iam attach-role-policy \
   --role-name ecp-test-s3-role \
+  --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/ecp-test-s3-access"
   --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/ecp-test-s3-access"
 ```
 
@@ -282,7 +275,10 @@ ecp describe-cluster my-k3s
 
 **AssumeRole fails with "Not authorized to perform sts:AssumeRole"**
 ```bash
-# Verify the trust policy on the role allows pods.eks.amazonaws.com
+# Verify the role has the ecp-managed tag
+aws iam list-role-tags --role-name ecp-test-s3-role
+
+# Verify the trust policy was auto-configured (should reference ECPCredentialBroker)
 aws iam get-role --role-name ecp-test-s3-role --query Role.AssumeRolePolicyDocument
 
 # Verify the association exists
