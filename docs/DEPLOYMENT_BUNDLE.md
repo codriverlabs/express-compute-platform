@@ -159,7 +159,7 @@ docker run --rm \
   --name express-compute-installer \
   -v ~/.aws:/root/.aws:ro \
   ghcr.io/codriverlabs/express-compute-bundle:latest \
-  ecp clusters list
+  ecp list-clusters
 ```
 
 ## Deployment Sequence

@@ -153,7 +153,9 @@ jobs:
           EOF
 
       - name: Generate checksums
-        run: sha256sum ecr-credential-provider-* ami-manifest.json sbom-*.spdx.json install-ecp-workload-identity.sh > checksums.txt
+        run: |
+          sha256sum ecr-credential-provider-* ami-manifest.json sbom-*.spdx.json install-ecp-workload-identity.sh > checksums.txt
+          sha256sum install-ecp-workload-identity.sh > install-ecp-workload-identity.sh.sha256
 
       - uses: softprops/action-gh-release@v3
         with:
@@ -162,6 +164,7 @@ jobs:
             ami-manifest.json
             ami-signatures.json
             install-ecp-workload-identity.sh
+            install-ecp-workload-identity.sh.sha256
             verify-ami.sh
             import-ami.sh
             express-compute-ami-signing.pub.pem

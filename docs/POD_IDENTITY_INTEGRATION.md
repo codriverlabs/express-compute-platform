@@ -1,119 +1,179 @@
-# Express Compute Workload Identity Integration — Requirements
+# Express Compute Workload Identity Integration
 
-## Current State
+Documents the integration points for Workload Identity across the platform:
+- AMI bake-time pre-caching
+- Boot-time installation (managed clusters)
+- Standalone installation (self-managed clusters)
 
-- ✅ `cluster-setup/12-install-ecp-workload-identity.sh` — script exists, handles:
-  - JWKS extraction from running cluster
-  - Cluster registration with Express Compute control plane (`ecp register-cluster`)
-  - Helm install of `ecp-auth-proxy`
-  - Helm install of `ecp-workload-identity-webhook`
-  - Graceful skip if `ECP_ENDPOINT` not set
+---
 
-- ✅ Wired into `setup-eks-d.sh` as step 6c (runs after cert-manager, skipped in dev mode
-  when `ECP_ENDPOINT` is not set)
-- ❌ Helm charts not pre-pulled in AMI builder
-- ❌ Container images not pre-pulled in AMI builder
-- ❌ `ecp` CLI binary not installed in AMI
+## Architecture
 
-## AMI Builder Requirements
-
-Add to `ami-builder/scripts/install.sh`:
-
-```bash
-# Pre-pull Express Compute Workload Identity charts (from private ECR or bundled artifact)
-echo "==> Pre-pulling Express Compute Workload Identity charts..."
-# Source TBD — either private ECR OCI registry or S3 artifact
-# helm pull oci://<registry>/ecp-auth-proxy --destination /tmp
-# helm pull oci://<registry>/ecp-workload-identity-webhook --destination /tmp
-
-# Install ecp CLI
-echo "==> Installing ecp CLI..."
-# Source TBD — S3 artifact or GitHub release
-# curl -sL <url> -o /usr/local/bin/ecp && chmod +x /usr/local/bin/ecp
-
-# Pre-pull container images for ecp-auth-proxy and ecp-workload-identity-webhook
-# sudo ctr -n k8s.io images pull <registry>/ecp-auth-proxy:<tag>
-# sudo ctr -n k8s.io images pull <registry>/ecp-workload-identity-webhook:<tag>
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  AMI Build Time (ami-builder/scripts/components/ecp.sh)          │
+│                                                                   │
+│  • ecp CLI binary → /usr/local/bin/ecp                           │
+│  • Helm charts → /opt/cluster-setup/charts/                      │
+│  • Container images → containerd image store                     │
+└──────────────────────────────────────────────────────────────────┘
+                              ↓
+┌──────────────────────────────────────────────────────────────────┐
+│  Boot Time (cluster-setup/12-install-ecp-workload-identity.sh)   │
+│                                                                   │
+│  Guards: INSTALL_ECP=true AND ECP_ENDPOINT set                   │
+│  Delegates to: cluster-setup/install-ecp-workload-identity.sh    │
+│  Mode: --oidc-mode managed (cluster pre-registered by Lambda)    │
+│  Charts: local from /opt/cluster-setup/charts/ (no network pull) │
+└──────────────────────────────────────────────────────────────────┘
+                              ↓
+┌──────────────────────────────────────────────────────────────────┐
+│  Standalone (curl | bash for self-managed clusters)              │
+│                                                                   │
+│  Script: install-ecp-workload-identity.sh (published in release) │
+│  Mode: --oidc-mode self-managed (registers cluster via ecp CLI)  │
+│  Charts: pulled from GHCR OCI at runtime                         │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-### Artifacts needed from ecp-control-plane repo:
-1. `ecp` CLI binary (arm64 + x86_64)
-2. `ecp-auth-proxy` Helm chart tarball
-3. `ecp-workload-identity-webhook` Helm chart tarball
-4. Container images for both components
+---
 
-## Boot Sequence Integration
+## Scripts
 
-In `setup-eks-d.sh`, add after CloudWatch (step 10) as an optional step:
+### `cluster-setup/12-install-ecp-workload-identity.sh`
+
+Thin wrapper invoked by `setup-eks-d.sh` at boot (step 12). Guards:
+
+1. `INSTALL_ECP=true` (set in `/opt/eks-d/version.env` at AMI build time)
+2. `ECP_ENDPOINT` is set (injected via user-data by provisioner Lambda)
+
+If both pass, delegates to the canonical script with `--oidc-mode managed`.
+
+### `cluster-setup/install-ecp-workload-identity.sh`
+
+The canonical installer. Handles both managed and self-managed modes:
+
+| Component | Managed (AMI boot) | Self-Managed (curl) |
+|-----------|-------------------|---------------------|
+| cert-manager | ✅ pre-installed (step 11) | ✅ installed if missing |
+| Cluster registration | Skipped (Lambda did it) | ✅ `ecp create-cluster --jwks-file` |
+| ecp-auth-proxy | ✅ from local charts | ✅ from GHCR OCI |
+| ecp-workload-identity-webhook | ✅ from local charts | ✅ from GHCR OCI |
+| eks-pod-identity-agent | ✅ from local charts + pre-pulled image | ✅ with ECR pull secret |
+
+---
+
+## AMI Builder Integration
+
+### `ami-builder/scripts/install.sh`
+
+- ✅ Validates `ECP_CONTROL_PLANE_VERSION` from `component-versions.env`
+- ✅ Persists version to `/opt/eks-d/version.env`
+- ✅ Downloads `ecp` CLI from GitHub release (arch-matched)
+
+### `ami-builder/scripts/components/ecp.sh`
+
+Gated by `INSTALL_ECP=true`. Pre-caches:
+
+- ✅ Helm charts: `express-compute-auth-proxy`, `express-compute-workload-identity-webhook`, `express-compute-karpenter-support`
+- ✅ Container images: `express-compute-auth-proxy`, `express-compute-workload-identity-webhook`
+- ✅ `eks-pod-identity-agent` chart (from GitHub `aws/eks-pod-identity-agent`)
+- ✅ `eks-pod-identity-agent` images (from ECR `602401143452`)
+
+---
+
+## Boot Sequence Position
+
+```
+11-install-cert-manager.sh         ← prerequisite (webhook TLS)
+11b-install-kubelet-csr-approver.sh
+12-install-ecp-workload-identity.sh ← THIS (conditional)
+13-install-ebs-csi.sh
+```
+
+In `setup-eks-d.sh`:
 
 ```bash
-# Step 11 (optional): Express Compute Workload Identity integration
-# Only runs if ECP_ENDPOINT is set (provisioned by Lambda, not manual dev setup)
-if [ -n "${ECP_ENDPOINT:-}" ]; then
-  echo "Step 11: Registering with Express Compute control plane..."
-  update_progress "registering" "Registering cluster with Express Compute" 97
-  bash "${SCRIPT_DIR}/14-install-ecp-workload-identity.sh"
+if [[ "${INSTALL_ECP:-false}" == "true" && -n "${ECP_ENDPOINT:-}" ]]; then
+  run_step 12 "Express Compute Workload Identity" "12-install-ecp-workload-identity.sh"
 fi
 ```
 
-## Progress Reporting
-
-With the modular plugin architecture, this step belongs in a new group:
-
-```
-addons/
-├── identity/                    # Pod identity & auth
-│   └── ecp-workload-identity.sh   # Registers cluster + installs webhook
-```
-
-Progress mapping when integrated:
-| Phase | Progress | Description |
-|-------|----------|-------------|
-| Core complete | 65% | Node ready, cert-manager installed |
-| Addons (parallel) | 70-95% | storage + orchestration + telemetry |
-| Express Compute registration | 97% | Cluster registered, webhooks installed |
-| Ready | 100% | All components running |
-
-Note: Express Compute registration should run AFTER cert-manager (needs webhook TLS certs)
-and AFTER the cluster is fully functional. It's the last step before `ready`.
+---
 
 ## Environment Variables
 
-Passed via EC2 user-data (set by provisioner Lambda):
+### At AMI build time (`component-versions.env`)
 
-```bash
-ECP_ENDPOINT=https://<function-url>.lambda-url.us-east-1.on.aws
-ECP_API_URL=https://<api-id>.execute-api.us-east-1.amazonaws.com/prod
-ECP_TENANTS_TABLE=ecp-tenants
-```
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `ECP_CONTROL_PLANE_VERSION` | `1.0.0-rc11` | Version for CLI + charts |
+| `INSTALL_ECP` | `true` | Gate for ECP component caching |
+| `ECP_GHCR_REGISTRY` | `ghcr.io/codriverlabs` | OCI registry for charts + images |
 
-For dev/manual provisioning (current `provision-tenant.sh`), these are not set
-and the script gracefully skips — no Workload Identity integration in dev mode.
+### At boot time (`/opt/eks-d/cluster.env`, injected by Lambda)
+
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `ECP_ENDPOINT` | `https://ecp.codriverlabs.ai` | Control plane API |
+| `CLUSTER_NAME` | `alice-ecp-arm64` | Cluster identifier |
+| `AWS_REGION` | `us-east-1` | AWS region |
+| `TENANT_ID` | `alice` | Tenant identifier |
+
+### At standalone install time (user-set)
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `CLUSTER_NAME` | Yes | Cluster identifier |
+| `AWS_REGION` | Yes | AWS region |
+| `ECP_CONTROL_PLANE_VERSION` | Yes | Chart/image version to pull |
+| `ECP_ENDPOINT` | No | Auto-resolved from SSM if not set |
+| `CHART_DIR` | No | Override local chart path |
+
+---
 
 ## IAM Permissions
 
-The instance profile role needs (added by provisioner Lambda, not Terraform):
+### Managed clusters (instance profile)
+
+The provisioner Lambda attaches these to the instance role:
 
 | Action | Resource | Purpose |
 |--------|----------|---------|
-| `lambda:InvokeFunctionUrl` | Express Compute Lambda | Cluster registration |
-| `execute-api:Invoke` | Express Compute API Gateway | In-cluster component auth |
+| `ssm:GetParameter` | `/express-compute/*` | Resolve endpoint |
+| `ecr:GetAuthorizationToken` | `*` | Pull eks-pod-identity-agent |
+| `ecr:BatchGetImage` | `602401143452.dkr.ecr.*.amazonaws.com/*` | Pull agent image |
 
-## User-Data Changes
+### Self-managed clusters (user credentials)
 
-When provisioned by Lambda (not Terraform), user-data includes additional env vars:
+The user running the installer needs:
+
+| Action | Resource | Purpose |
+|--------|----------|---------|
+| `ssm:GetParameter` | `/express-compute/control-plane/api/endpoint` | Resolve endpoint |
+| `execute-api:Invoke` | Control plane API Gateway | Register cluster |
+| `ecr:GetAuthorizationToken` | `*` | Pull eks-pod-identity-agent |
+
+---
+
+## Release Assets
+
+Published in every `express-compute-platform` release:
+
+| File | Purpose |
+|------|---------|
+| `install-ecp-workload-identity.sh` | Standalone installer for self-managed clusters |
+| `install-ecp-workload-identity.sh.sha256` | SHA256 checksum for verification |
+| `checksums.txt` | Combined checksums for all release artifacts |
+
+Download and verify:
 
 ```bash
-#!/bin/bash
-mkdir -p /opt/eks-d
-cat > /opt/eks-d/cluster.env <<CONF
-TENANT_ID="<tenant-id>"
-CLUSTER_NAME="<cluster-name>"
-ECP_ENDPOINT="<lambda-function-url>"
-ECP_API_URL="<api-gateway-url>"
-ECP_TENANTS_TABLE="ecp-tenants"
-CONF
-```
+VERSION="1.0.0-rc11"
+BASE="https://github.com/codriverlabs/express-compute-platform/releases/download/v${VERSION}"
 
-The boot script sources `cluster.env` and the presence of `ECP_ENDPOINT`
-triggers the Workload Identity integration step.
+curl -fsSL "${BASE}/install-ecp-workload-identity.sh" -o install-ecp-workload-identity.sh
+curl -fsSL "${BASE}/install-ecp-workload-identity.sh.sha256" -o install-ecp-workload-identity.sh.sha256
+sha256sum --check install-ecp-workload-identity.sh.sha256
+chmod +x install-ecp-workload-identity.sh
+```

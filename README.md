@@ -34,6 +34,13 @@ docker run --rm -it \
 
 # Inside the container:
 ./deploy.sh deploy --region us-east-1
+
+# Create your first cluster (arm64, spot, ~4 min)
+ecp create-cluster my-cluster \
+  --arch=arm64 \
+  --pricing=spot \
+  --ssh-cidr "$(curl -s https://checkip.amazonaws.com/)/32" \
+  --wait
 ```
 
 ### Build a golden AMI locally
@@ -54,6 +61,8 @@ See the [Deployment Guide](docs/user-guides/deployment.md) for full instructions
 | Guide | Description |
 |-------|-------------|
 | [Deployment](docs/user-guides/deployment.md) | Deploy the platform end-to-end |
+| [Self-Managed Quick Start](docs/user-guides/self-managed-quick-start.md) | Add Workload Identity to existing clusters (k3s, microk8s, EKS-D) |
+| [ecp CLI Reference](docs/user-guides/ecp-cli/README.md) | CLI command reference |
 | [Architecture](docs/user-guides/architecture.md) | System design and component relationships |
 | [Components](docs/user-guides/components.md) | Component reference and configuration |
 | [AMI Builder](docs/user-guides/ami-builder.md) | Build, sign, and manage golden AMIs |
