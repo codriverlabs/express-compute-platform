@@ -20,18 +20,16 @@ ${SSH_KEY_PATH}    ${EMPTY}
 
 *** Test Cases ***
 LC-01 Create Cluster
-    [Documentation]    ecp create-cluster <name> --arch=arm64 --pricing=spot --ssh-cidr <ip>/32
-    ...    Creates cluster asynchronously, then polls for readiness.
+    [Documentation]    ecp create-cluster <name> --arch=arm64 --pricing=spot --ssh-cidr <ip>/32 --wait
+    ...    Blocks until cluster is READY with progress streaming.
     [Tags]    critical
-    [Timeout]    480 seconds
+    [Timeout]    10 minutes
     ${result}=    ECP CLI Should Succeed    create-cluster    ${TEST_CLUSTER}
     ...    --arch\=${ARCH}
     ...    --pricing\=${PRICING}
     ...    --ssh-cidr    ${MY_CIDR}
-    ...    --region    ${REGION}
+    ...    --wait
     Log    Create output: ${result.stdout}
-    # Poll for cluster to become accessible (EC2 boot + setup-eks-d.sh)
-    Wait For Cluster Access    ${TEST_CLUSTER}    timeout=420
 
 LC-02 Describe Cluster Shows Details
     [Documentation]    After --wait returns, describe shows cluster details with name and issuer.
@@ -49,7 +47,7 @@ LC-03 List Clusters Shows Test Cluster
 LC-04 Get Cluster Access Returns IP And SSH Command
     [Documentation]    ecp get-cluster-access returns the instance IP and SSH connection details.
     [Tags]    critical
-    ${result}=    ECP CLI Should Succeed    get-cluster-access    ${TEST_CLUSTER}    --save-key    --region    ${REGION}
+    ${result}=    ECP CLI Should Succeed    get-cluster-access    ${TEST_CLUSTER}    --save-key
     Log    Access output: ${result.stdout}
     # Extract IP from output
     ${ip}=    Evaluate    __import__('re').search(r'(\\d+\\.\\d+\\.\\d+\\.\\d+)', '''${result.stdout}''').group(1)
