@@ -62,17 +62,29 @@ NAT_ENABLED=$(aws ssm get-parameter \
   --query Parameter.Value --output text --region "$REGION" 2>/dev/null || echo "false")
 if [ "$NAT_ENABLED" = "true" ]; then
   ASSOCIATE_PUBLIC_IP="false"
+  # Workers go in private subnet — NAT provides internet access
+  SUBNET_ID="${PRIVATE_SUBNET_ID:-}"
 else
   ASSOCIATE_PUBLIC_IP="true"
+  # Workers need public IPs — no NAT available
+  SUBNET_ID="${PUBLIC_SUBNET_ID:-}"
 fi
 
-SUBNET_ID=$(aws ec2 describe-subnets \
-  --filters "Name=tag:Developer,Values=${TENANT_ID}" "Name=tag:SubnetType,Values=Public" \
-  --query 'Subnets[0].SubnetId' --output text --region "$REGION")
+if [[ -z "$SUBNET_ID" || "$SUBNET_ID" == "None" ]]; then
+  # Fallback: discover by tag
+  SUBNET_TYPE="Public"
+  [[ "$NAT_ENABLED" == "true" ]] && SUBNET_TYPE="Private"
+  SUBNET_ID=$(aws ec2 describe-subnets \
+    --filters "Name=tag:ecp-tenant,Values=${TENANT_ID}" "Name=tag:SubnetType,Values=${SUBNET_TYPE}" \
+    --query 'Subnets[0].SubnetId' --output text --region "$REGION")
+fi
 
-SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
-  --filters "Name=group-name,Values=${TENANT_ID}-express-compute" \
-  --query 'SecurityGroups[0].GroupId' --output text --region "$REGION")
+SECURITY_GROUP_ID="${SECURITY_GROUP_ID:-}"
+if [[ -z "$SECURITY_GROUP_ID" || "$SECURITY_GROUP_ID" == "None" ]]; then
+  SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
+    --filters "Name=tag:ecp-tenant,Values=${TENANT_ID}" \
+    --query 'SecurityGroups[0].GroupId' --output text --region "$REGION")
+fi
 
 # Discover cluster details
 API_SERVER="https://$(kubectl get endpoints kubernetes -n default -o jsonpath='{.subsets[0].addresses[0].ip}'):6443"

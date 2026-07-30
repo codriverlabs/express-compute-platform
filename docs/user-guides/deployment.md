@@ -150,6 +150,10 @@ What gets deployed:
 
 Once the platform is deployed, use the `ecp` CLI inside the same shell:
 
+> **Default limit:** The control plane allows **1 cluster per IAM caller** by default.
+> Delete an existing cluster before creating a new one, or increase the limit by
+> redeploying with `--parameters ExpressComputeControlPlaneStack:MaxClustersPerCaller=5`.
+
 ```bash
 # Configure endpoint (done once — stored locally)
 ecp configure --endpoint https://ecp.codriverlabs.ai --region us-east-1

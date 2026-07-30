@@ -10,3 +10,4 @@ cdk.out/
 
 # Bundle build artifacts
 bundle/.build/
+chat.md
