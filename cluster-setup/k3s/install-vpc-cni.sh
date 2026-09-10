@@ -7,7 +7,7 @@
 #   - VPC CNI manifest pre-baked at /opt/k3s-xpress/manifests/aws-vpc-cni.yaml
 #   - CNI binaries pre-baked at /opt/cni/bin/
 #   - VPC CNI images pre-loaded in airgap tarball
-set -eo pipefail
+set -e
 
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
@@ -39,7 +39,7 @@ ip rule show | grep "proto static" | while read line; do
   prio=$(echo "$line" | cut -d: -f1)
   rule=$(echo "$line" | sed "s/^[0-9]*:\t//")
   sudo ip rule del priority "$prio" $rule 2>/dev/null || true
-done || true
+done
 sudo ip route flush cache 2>/dev/null || true
 echo "  ✓ ec2-net-utils policy-routes disabled"
 

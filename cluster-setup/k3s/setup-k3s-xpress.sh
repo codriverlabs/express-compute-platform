@@ -18,7 +18,7 @@
 #   6.  Install add-ons (cert-manager → ECP WI → CloudWatch → EBS CSI → metrics-server)
 #   7.  Install Karpenter + ecp-karpenter-support
 #   8.  Mark complete
-set -eo pipefail
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

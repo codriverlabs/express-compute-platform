@@ -17,7 +17,7 @@
 #   - cert-manager installed (for webhook TLS)
 #   - Karpenter chart pre-cached in /opt/k3s-xpress/charts/
 #   - CLUSTER_NAME, AWS_REGION, TENANT_ID set
-set -eo pipefail
+set -e
 
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 

@@ -19,7 +19,7 @@
 #   /etc/kubernetes/aws-iam-authenticator/kubeconfig.yaml — webhook kubeconfig for API server
 #   /var/lib/rancher/k3s/server/manifests/aws-iam-authenticator.yaml — auto-deploy manifest
 #
-set -eo pipefail
+set -e
 
 source /opt/k3s-xpress/cluster.env
 source /opt/k3s-xpress/version.env

@@ -4,7 +4,7 @@
 #
 # Provides persistent EBS-backed volumes (gp3 default StorageClass).
 # The chart and images are pre-cached in the golden AMI.
-set -eo pipefail
+set -e
 
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 

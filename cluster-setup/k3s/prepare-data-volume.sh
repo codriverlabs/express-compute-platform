@@ -6,7 +6,7 @@
 # SQLite state.db lives here, surviving root volume replacement.
 #
 # Must run BEFORE k3s server starts.
-set -eo pipefail
+set -e
 
 DATA_DIR="/var/lib/rancher/k3s/server/db"
 DATA_LABEL="k3s-data"

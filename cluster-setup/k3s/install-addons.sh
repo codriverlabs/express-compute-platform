@@ -11,7 +11,7 @@
 #
 # All charts are pre-cached in /opt/k3s-xpress/charts/ by the AMI builder.
 # All images are pre-loaded via the airgap tarball.
-set -eo pipefail
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
