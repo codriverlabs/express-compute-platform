@@ -220,6 +220,84 @@ if [[ "${INSTALL_ECP:-false}" == "true" ]]; then
   rm -rf /tmp/eks-pod-identity-agent
 fi
 
+# ── 10b. VPC CNI manifest + binaries ──────────────────────────────────────────
+# Same as EKS-D vpc-cni.sh — download manifest, patch for prefix delegation,
+# pull images, and pre-bake CNI binaries from the init container.
+VPC_CNI_VERSION="v1.22.3"
+MANIFESTS_DIR="/opt/k3s-xpress/manifests"
+echo "==> Downloading VPC CNI manifest (${VPC_CNI_VERSION})..."
+sudo mkdir -p "${MANIFESTS_DIR}"
+sudo curl -fsSL --retry 3 --retry-delay 5 \
+  "https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/${VPC_CNI_VERSION}/config/master/aws-k8s-cni.yaml" \
+  -o "${MANIFESTS_DIR}/aws-vpc-cni.yaml"
+
+echo "  Patching manifest for prefix delegation..."
+python3 - "${MANIFESTS_DIR}/aws-vpc-cni.yaml" <<'PYEOF'
+import sys, yaml
+
+path = sys.argv[1]
+with open(path) as f:
+    docs = list(yaml.safe_load_all(f))
+
+REMOVE_VARS = {"WARM_IP_TARGET", "MINIMUM_IP_TARGET"}
+SET_VARS = {"ENABLE_PREFIX_DELEGATION": "true", "WARM_PREFIX_TARGET": "1", "WARM_ENI_TARGET": "0"}
+
+for doc in docs:
+    if not isinstance(doc, dict) or doc.get("kind") != "DaemonSet":
+        continue
+    for container in doc["spec"]["template"]["spec"].get("containers", []):
+        env = [e for e in container.get("env", []) if e.get("name") not in REMOVE_VARS]
+        seen = {e["name"] for e in env if e.get("name") in SET_VARS}
+        for e in env:
+            if e.get("name") in SET_VARS:
+                e["value"] = SET_VARS[e["name"]]
+        env += [{"name": k, "value": v} for k, v in SET_VARS.items() if k not in seen]
+        container["env"] = env
+
+with open(path, "w") as f:
+    yaml.dump_all(docs, f, default_flow_style=False, allow_unicode=True)
+PYEOF
+sudo chown root:root "${MANIFESTS_DIR}/aws-vpc-cni.yaml"
+echo "  ✓ Manifest patched (ENABLE_PREFIX_DELEGATION=true, WARM_PREFIX_TARGET=1)"
+
+echo "  Pulling VPC CNI images..."
+VPC_CNI_ECR_REGION="us-west-2"
+VPC_CNI_CTR_USER=$(aws ecr get-authorization-token \
+  --registry-ids 602401143452 --region "${VPC_CNI_ECR_REGION}" \
+  --query 'authorizationData[0].authorizationToken' --output text | base64 -d)
+
+# Start Docker for image pulling (if not already running)
+sudo systemctl start docker 2>/dev/null || true
+
+python3 /tmp/extract-images.py < "${MANIFESTS_DIR}/aws-vpc-cni.yaml" | sort -u | while read img; do
+  sudo docker pull "$img" 2>/dev/null || true
+done
+
+echo "  Pre-baking CNI binaries from init container..."
+CNI_INIT_IMG=$(grep "image:" "${MANIFESTS_DIR}/aws-vpc-cni.yaml" | grep "cni-init" | head -1 | awk '{print $2}')
+if [ -n "$CNI_INIT_IMG" ]; then
+  sudo mkdir -p /opt/cni/bin
+  # Extract CNI binaries from the init container image
+  CONTAINER_ID=$(sudo docker create "$CNI_INIT_IMG" true 2>/dev/null || true)
+  if [ -n "$CONTAINER_ID" ]; then
+    # Try /init first (v1.22+), then /opt/cni/bin (older)
+    for src_path in /init /opt/cni/bin; do
+      sudo docker cp "${CONTAINER_ID}:${src_path}/." /opt/cni/bin/ 2>/dev/null && break || true
+    done
+    sudo docker rm "$CONTAINER_ID" 2>/dev/null || true
+  fi
+  CNI_BIN_COUNT=$(ls /opt/cni/bin 2>/dev/null | wc -l)
+  if [ "$CNI_BIN_COUNT" -gt 0 ]; then
+    echo "  ✓ CNI binaries baked to /opt/cni/bin (${CNI_BIN_COUNT} files)"
+  else
+    echo "  WARNING: CNI binary extraction failed — init container will handle at boot"
+  fi
+else
+  echo "  WARNING: could not determine cni-init image from manifest"
+fi
+
+echo "✓ VPC CNI ready"
+
 # ── 11. Build add-on airgap tarball ───────────────────────────────────────────
 echo "==> Building add-on airgap image tarball..."
 bash "${SCRIPT_DIR}/airgap-images.sh"

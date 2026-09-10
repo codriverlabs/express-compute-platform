@@ -43,6 +43,12 @@ if [ -n "$EBS_CHART" ]; then
     grep -Ev 'windows|nvidia|neuron|e2e-test|kubekins-e2e|k8s-staging-test-infra' | sort -u >> "${IMAGE_LIST}"
 fi
 
+# VPC CNI images (from pre-downloaded manifest)
+VPC_CNI_MANIFEST="/opt/k3s-xpress/manifests/aws-vpc-cni.yaml"
+if [ -f "$VPC_CNI_MANIFEST" ]; then
+  python3 "${EXTRACT_IMAGES_PY}" < "$VPC_CNI_MANIFEST" | sort -u >> "${IMAGE_LIST}"
+fi
+
 # ECP Workload Identity images
 if [[ "${INSTALL_ECP:-false}" == "true" ]]; then
   echo "${ECP_GHCR_REGISTRY}/express-compute-auth-proxy:${ECP_CONTROL_PLANE_VERSION}" >> "${IMAGE_LIST}"
