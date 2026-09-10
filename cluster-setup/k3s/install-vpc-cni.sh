@@ -39,7 +39,7 @@ ip rule show | grep "proto static" | while read line; do
   prio=$(echo "$line" | cut -d: -f1)
   rule=$(echo "$line" | sed "s/^[0-9]*:\t//")
   sudo ip rule del priority "$prio" $rule 2>/dev/null || true
-done
+done || true
 sudo ip route flush cache 2>/dev/null || true
 echo "  ✓ ec2-net-utils policy-routes disabled"
 
