@@ -150,6 +150,11 @@ build {
   }
 
   provisioner "file" {
+    source      = "${path.root}/../node-pools"
+    destination = "/tmp/node-pools"
+  }
+
+  provisioner "file" {
     source      = "${path.root}/scripts/k3s"
     destination = "/tmp/scripts-k3s"
   }
