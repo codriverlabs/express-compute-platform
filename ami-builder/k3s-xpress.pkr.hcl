@@ -140,6 +140,16 @@ build {
   }
 
   provisioner "file" {
+    source      = "${path.root}/../cluster-setup/install-ecp-workload-identity.sh"
+    destination = "/tmp/cluster-setup-k3s/install-ecp-workload-identity.sh"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/../cluster-setup/install-ecp-karpenter-support.sh"
+    destination = "/tmp/cluster-setup-k3s/install-ecp-karpenter-support.sh"
+  }
+
+  provisioner "file" {
     source      = "${path.root}/scripts/k3s"
     destination = "/tmp/scripts-k3s"
   }
