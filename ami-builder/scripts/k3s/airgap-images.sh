@@ -49,6 +49,9 @@ if [ -f "$VPC_CNI_MANIFEST" ]; then
   python3 "${EXTRACT_IMAGES_PY}" < "$VPC_CNI_MANIFEST" | sort -u >> "${IMAGE_LIST}"
 fi
 
+# aws-iam-authenticator image (auto-deployed by k3s from /var/lib/rancher/k3s/server/manifests/)
+echo "${AWS_IAM_AUTHENTICATOR_IMAGE:-public.ecr.aws/eks-distro/kubernetes-sigs/aws-iam-authenticator:v0.7.13-eks-1-35-9}" >> "${IMAGE_LIST}"
+
 # ECP Workload Identity images
 if [[ "${INSTALL_ECP:-false}" == "true" ]]; then
   echo "${ECP_GHCR_REGISTRY}/express-compute-auth-proxy:${ECP_CONTROL_PLANE_VERSION}" >> "${IMAGE_LIST}"

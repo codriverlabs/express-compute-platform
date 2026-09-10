@@ -36,6 +36,7 @@ CLOUDWATCH_AGENT_VERSION=${CLOUDWATCH_AGENT_VERSION}
 ECP_CONTROL_PLANE_VERSION=${ECP_CONTROL_PLANE_VERSION}
 INSTALL_ECP=${INSTALL_ECP}
 K3S_DISABLE=${K3S_DISABLE}
+KARPENTER_VERSION=${KARPENTER_VERSION}
 EOF
 
 # ── 2. Detect architecture ────────────────────────────────────────────────────
@@ -219,6 +220,13 @@ if [[ "${INSTALL_ECP:-false}" == "true" ]]; then
   fi
   rm -rf /tmp/eks-pod-identity-agent
 fi
+
+# Karpenter chart
+echo "  Pulling Karpenter chart (${KARPENTER_VERSION})..."
+helm registry logout public.ecr.aws 2>/dev/null || true
+helm pull "oci://public.ecr.aws/karpenter/karpenter" \
+  --version "${KARPENTER_VERSION}" --destination /tmp || true
+sudo mv /tmp/karpenter-*.tgz /opt/k3s-xpress/charts/ 2>/dev/null || true
 
 # ── 10b. VPC CNI manifest + binaries ──────────────────────────────────────────
 # Same as EKS-D vpc-cni.sh — download manifest, patch for prefix delegation,
