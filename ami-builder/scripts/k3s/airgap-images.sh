@@ -52,6 +52,9 @@ fi
 # aws-iam-authenticator image (auto-deployed by k3s from /var/lib/rancher/k3s/server/manifests/)
 echo "${AWS_IAM_AUTHENTICATOR_IMAGE:-public.ecr.aws/eks-distro/kubernetes-sigs/aws-iam-authenticator:v0.7.13-eks-1-35-9}" >> "${IMAGE_LIST}"
 
+# kubelet-csr-approver image
+echo "public.ecr.aws/chainguard/kubectl:latest" >> "${IMAGE_LIST}"
+
 # AWS Cloud Controller Manager images
 CCM_CHART=$(ls "${CHARTS_DIR}"/aws-cloud-controller-manager-*.tgz 2>/dev/null | head -1)
 if [ -n "$CCM_CHART" ]; then
