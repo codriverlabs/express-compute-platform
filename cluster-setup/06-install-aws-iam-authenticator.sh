@@ -61,7 +61,7 @@ if [ -z "$AWS_ACCOUNT_ID" ] || [ -z "$AWS_REGION" ]; then
 fi
 
 _ARCH="$(uname -m | sed 's/aarch64/arm64/')"
-NODE_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/express-compute-tenant-${TENANT_ID}-instance-role"
+NODE_ROLE_ARN="${NODE_ROLE_ARN:-arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecp-tenant-${TENANT_ID}-ir}"
 
 # ── EKS-D image registry ──────────────────────────────────────────────────────
 if [ ! -f /opt/eks-d/manifests/eks-d-versions.env ]; then
