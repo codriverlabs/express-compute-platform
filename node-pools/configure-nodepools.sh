@@ -62,7 +62,7 @@ echo "  EKS-Optimized AMI : $AMI_ID (k8s 1.${K8S_MINOR} ${ARCH})"
 
 # Discover AWS resources
 # Instance profile follows the naming convention from TenantIamService
-INSTANCE_PROFILE="express-compute-tenant-${TENANT_ID}-instance-role"
+INSTANCE_PROFILE="ecp-tenant-${TENANT_ID}-ir"
 
 # Check if NAT gateway is available (infra layer publishes this to SSM)
 NAT_ENABLED=$(aws ssm get-parameter \
