@@ -49,6 +49,26 @@ else
   echo "  ✓ cert-manager installed"
 fi
 
+# ── 1b. kubelet CSR auto-approver ─────────────────────────────────────────────
+# Auto-approves kubelet serving cert CSRs from worker nodes.
+# Without this, Karpenter-launched workers stay NotReady (no serving cert).
+echo "  [1b] Deploying kubelet-csr-approver..."
+KUBECTL_IMAGE="public.ecr.aws/chainguard/kubectl:latest"
+CSR_MANIFEST="${SCRIPT_DIR}/../manifests/kubelet-csr-approver.yaml"
+if [ -f "$CSR_MANIFEST" ]; then
+  sed "s|KUBECTL_IMAGE_PLACEHOLDER|${KUBECTL_IMAGE}|" "$CSR_MANIFEST" | kubectl apply -f -
+  echo "  ✓ kubelet-csr-approver deployed"
+else
+  # Fallback: check the shared cluster-setup location
+  CSR_FALLBACK="/opt/k3s-xpress/cluster-setup/manifests/kubelet-csr-approver.yaml"
+  if [ -f "$CSR_FALLBACK" ]; then
+    sed "s|KUBECTL_IMAGE_PLACEHOLDER|${KUBECTL_IMAGE}|" "$CSR_FALLBACK" | kubectl apply -f -
+    echo "  ✓ kubelet-csr-approver deployed (fallback)"
+  else
+    echo "  Warning: kubelet-csr-approver manifest not found"
+  fi
+fi
+
 # ── 2. ECP Workload Identity ─────────────────────────────────────────────────
 # Must be installed BEFORE CloudWatch and EBS CSI — those add-ons use
 # ECP Workload Identity (EKS Pod Identity equivalent) for AWS credentials.

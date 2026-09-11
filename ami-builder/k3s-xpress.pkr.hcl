@@ -150,6 +150,11 @@ build {
   }
 
   provisioner "file" {
+    source      = "${path.root}/../cluster-setup/manifests"
+    destination = "/tmp/cluster-setup-k3s/manifests"
+  }
+
+  provisioner "file" {
     source      = "${path.root}/../node-pools"
     destination = "/tmp/node-pools"
   }
