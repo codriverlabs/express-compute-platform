@@ -320,6 +320,7 @@ echo "==> Staging Karpenter node-pools..."
 sudo mkdir -p /opt/k3s-xpress/cluster-setup/karpenter
 sudo cp -r /tmp/node-pools/chart /opt/k3s-xpress/cluster-setup/karpenter/
 sudo cp /tmp/node-pools/configure-nodepools.sh /opt/k3s-xpress/cluster-setup/karpenter/
+sudo cp /tmp/node-pools/*.yaml /opt/k3s-xpress/cluster-setup/karpenter/ 2>/dev/null || true
 sudo chmod +x /opt/k3s-xpress/cluster-setup/karpenter/configure-nodepools.sh
 
 # ── 13. Install ecp-boot.service (k3s variant) ───────────────────────────────
