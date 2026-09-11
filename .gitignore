@@ -2,6 +2,7 @@
 ami-builder/output/
 
 # Packer build logs
+packer-*-build-*.log
 packer-build-*.log
 
 # CDK build artifacts
