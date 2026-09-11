@@ -348,7 +348,7 @@ WorkingDirectory=/opt/k3s-xpress/cluster-setup
 ExecStart=/bin/bash /opt/k3s-xpress/cluster-setup/setup-k3s-xpress.sh
 StandardOutput=journal+console
 StandardError=journal+console
-TimeoutStartSec=180
+TimeoutStartSec=300
 
 [Install]
 WantedBy=multi-user.target
