@@ -228,6 +228,14 @@ helm pull "oci://public.ecr.aws/karpenter/karpenter" \
   --version "${KARPENTER_VERSION}" --destination /tmp || true
 sudo mv /tmp/karpenter-*.tgz /opt/k3s-xpress/charts/ 2>/dev/null || true
 
+# AWS Cloud Controller Manager chart
+echo "  Pulling AWS Cloud Controller Manager chart..."
+helm repo add aws-cloud-controller-manager \
+  https://kubernetes.github.io/cloud-provider-aws 2>/dev/null || true
+helm repo update aws-cloud-controller-manager
+helm pull aws-cloud-controller-manager/aws-cloud-controller-manager --destination /tmp
+sudo mv /tmp/aws-cloud-controller-manager-*.tgz /opt/k3s-xpress/charts/
+
 # ── 10b. VPC CNI manifest + binaries ──────────────────────────────────────────
 # Same as EKS-D vpc-cni.sh — download manifest, patch for prefix delegation,
 # pull images, and pre-bake CNI binaries from the init container.

@@ -162,8 +162,12 @@ done
 
 update_progress "k3s-ready" "k3s server running" 35
 
-# ── Step 5: Install VPC CNI + wait for system pods ────────────────────────────
-echo "Step 5/8: Installing VPC CNI and waiting for system pods..."
+# ── Step 5: Install Cloud Controller Manager + VPC CNI ────────────────────────
+echo "Step 5/8: Installing AWS Cloud Controller Manager..."
+update_progress "provisioning" "Installing cloud provider" 36
+bash "${SCRIPT_DIR}/install-cloud-provider.sh"
+
+echo "  Installing VPC CNI and waiting for system pods..."
 update_progress "provisioning" "Installing VPC CNI" 38
 bash "${SCRIPT_DIR}/install-vpc-cni.sh"
 
