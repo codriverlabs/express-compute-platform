@@ -28,7 +28,7 @@ fi
 
 helm upgrade --install aws-cloud-controller-manager "$CHART" \
   --namespace kube-system \
-  --set nodeSelector."node-role\.kubernetes\.io/control-plane"="true" \
+  --set-string nodeSelector."node-role\.kubernetes\.io/control-plane"="true" \
   --set tolerations[0].key="node-role.kubernetes.io/control-plane" \
   --set tolerations[0].effect="NoSchedule" \
   --set tolerations[1].key="node.cloudprovider.kubernetes.io/uninitialized" \
