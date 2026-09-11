@@ -62,6 +62,12 @@ echo "    Instance: ${INSTANCE_ID}"
 echo "    Region: ${AWS_REGION}"
 update_progress "provisioning" "Instance metadata resolved" 8
 
+# Resolve AWS provider ID for kubelet (same format as EKS)
+AZ=$(curl -sf -H "X-aws-ec2-metadata-token: ${TOKEN}" \
+  http://169.254.169.254/latest/meta-data/placement/availability-zone)
+PROVIDER_ID="aws:///${AZ}/${INSTANCE_ID}"
+echo "    Provider ID: ${PROVIDER_ID}"
+
 # ── Step 1b: Prepare data volume ──────────────────────────────────────────────
 # Dedicated EBS volume for k3s SQLite state — same pattern as EKS-D etcd volume.
 # Must mount before k3s starts so state.db lands on the data volume.
@@ -91,6 +97,7 @@ tls-san:
   - "${CLUSTER_NAME}"
 disable:
 $(echo "${K3S_DISABLE}" | tr ',' '\n' | sed 's/^/  - /')
+disable-cloud-controller: true
 flannel-backend: "none"
 disable-network-policy: true
 write-kubeconfig-mode: "0644"
@@ -102,6 +109,7 @@ kubelet-arg:
   - "image-credential-provider-bin-dir=/usr/bin"
   - "image-credential-provider-config=/var/lib/rancher/k3s/agent/etc/credential-provider-config.yaml"
   - "cloud-provider=external"
+  - "provider-id=${PROVIDER_ID}"
 node-label:
   - "express-compute.io/cluster-name=${CLUSTER_NAME}"
   - "express-compute.io/tenant-id=${TENANT_ID}"
