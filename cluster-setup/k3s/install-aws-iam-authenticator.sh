@@ -29,22 +29,11 @@ if [ -z "${TENANT_ID}" ] || [ -z "${CLUSTER_NAME}" ]; then
   exit 1
 fi
 
-if [ -z "${AWS_ACCOUNT_ID:-}" ]; then
-  # Resolve from IMDS
-  TOKEN=$(curl -sf -X PUT -H "X-aws-ec2-metadata-token-ttl-seconds: 60" \
-    http://169.254.169.254/latest/api/token)
-  AWS_ACCOUNT_ID=$(curl -sf -H "X-aws-ec2-metadata-token: ${TOKEN}" \
-    http://169.254.169.254/latest/meta-data/identity-credentials/ec2/info | \
-    python3 -c "import sys,json; print(json.load(sys.stdin)['AccountId'])" 2>/dev/null || \
-    aws sts get-caller-identity --query Account --output text 2>/dev/null || true)
-fi
-
-if [ -z "${AWS_ACCOUNT_ID}" ]; then
-  echo "Error: Could not determine AWS_ACCOUNT_ID"
+# NODE_ROLE_ARN is already set in cluster.env by TenantEc2Service
+if [ -z "${NODE_ROLE_ARN:-}" ]; then
+  echo "Error: NODE_ROLE_ARN not set in cluster.env"
   exit 1
 fi
-
-NODE_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/express-compute-tenant-${TENANT_ID}-instance-role"
 
 # The aws-iam-authenticator image — use the same image from EKS-D release
 # manifests or fall back to public ECR
