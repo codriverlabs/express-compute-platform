@@ -40,12 +40,18 @@ helm upgrade --install aws-cloud-controller-manager "$CHART" \
   --set hostNetworking=true \
   --wait --timeout=60s
 
+# CCM may briefly deregister/re-register the node — retry until it appears
 echo "  Waiting for CCM to initialize node..."
-sleep 10
+NODE_NAME=""
+for i in $(seq 1 30); do
+  NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+  [ -n "$NODE_NAME" ] && break
+  sleep 2
+done
 
-# Remove the uninitialized taint so system pods can schedule
-NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
-if kubectl get node "$NODE_NAME" -o jsonpath='{.spec.taints[*].key}' | grep -q "node.cloudprovider.kubernetes.io/uninitialized"; then
+if [ -z "$NODE_NAME" ]; then
+  echo "  Warning: node not found after 60s — continuing without taint check"
+elif kubectl get node "$NODE_NAME" -o jsonpath='{.spec.taints[*].key}' 2>/dev/null | grep -q "node.cloudprovider.kubernetes.io/uninitialized"; then
   echo "  Removing cloud provider uninitialized taint..."
   kubectl taint nodes "$NODE_NAME" node.cloudprovider.kubernetes.io/uninitialized- || true
   echo "  ✓ Cloud provider taint removed"
