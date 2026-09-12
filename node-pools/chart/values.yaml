@@ -29,7 +29,7 @@ nodeConfig:
 nodePool:
   capacityType: "spot"
   arch: "arm64"
-  instanceGenerationGt: "5"
+  instanceGenerationGt: "3"
   cpuLimit: "100"
   memoryLimit: "100Gi"
   consolidateAfter: "1m"

@@ -26,6 +26,7 @@ spec:
             - "inf"
             - "trn"
             {{- else }}
+            - "t"
             - "m"
             - "c"
             - "r"
