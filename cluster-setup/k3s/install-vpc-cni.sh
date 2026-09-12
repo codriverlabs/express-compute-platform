@@ -66,6 +66,16 @@ fi
 
 kubectl apply -f "$MANIFEST"
 
+# Patch aws-node to use the API server's direct IP instead of ClusterIP (10.43.0.1).
+# On non-EKS clusters, kube-proxy on worker nodes may not be ready when aws-node starts,
+# so the IPAMD can't reach the API server via ClusterIP. This is the standard fix for
+# VPC CNI on kubeadm/k3s clusters.
+API_SERVER_IP=$(kubectl get endpoints kubernetes -n default -o jsonpath='{.subsets[0].addresses[0].ip}')
+echo "  Patching aws-node to use API server ${API_SERVER_IP}:6443 directly..."
+kubectl set env daemonset/aws-node -n kube-system \
+  KUBERNETES_SERVICE_HOST="${API_SERVER_IP}" \
+  KUBERNETES_SERVICE_PORT="6443"
+
 echo "  Waiting for VPC CNI pods to be ready..."
 kubectl rollout status daemonset aws-node -n kube-system --timeout=120s || {
   echo "  Warning: aws-node not fully rolled out within 120s"
