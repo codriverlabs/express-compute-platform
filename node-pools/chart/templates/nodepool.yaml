@@ -16,31 +16,32 @@ spec:
         - key: kubernetes.io/arch
           operator: In
           values: [{{ .Values.nodePool.arch | quote }}]
+        {{- if hasSuffix "-gpu" .Values.nodeVariant }}
         - key: karpenter.k8s.aws/instance-category
           operator: In
           values:
-            {{- if hasSuffix "-gpu" .Values.nodeVariant }}
             - "p"
             - "g"
-            {{- else if hasSuffix "-neuron" .Values.nodeVariant }}
-            - "inf"
-            - "trn"
-            {{- else }}
-            - "t"
-            - "m"
-            - "c"
-            - "r"
-            {{- end }}
         - key: karpenter.k8s.aws/instance-generation
           operator: Gt
+          values: ["2"]
+        {{- else if hasSuffix "-neuron" .Values.nodeVariant }}
+        - key: karpenter.k8s.aws/instance-category
+          operator: In
           values:
-            {{- if hasSuffix "-gpu" .Values.nodeVariant }}
-            - "2"
-            {{- else if hasSuffix "-neuron" .Values.nodeVariant }}
-            - "0"
-            {{- else }}
-            - {{ .Values.nodePool.instanceGenerationGt | quote }}
-            {{- end }}
+            - "inf"
+            - "trn"
+        - key: karpenter.k8s.aws/instance-generation
+          operator: Gt
+          values: ["0"]
+        {{- else }}
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values:
+          {{- range .Values.nodePool.instanceTypes }}
+            - {{ . | quote }}
+          {{- end }}
+        {{- end }}
   limits:
     cpu: {{ .Values.nodePool.cpuLimit | quote }}
     memory: {{ .Values.nodePool.memoryLimit | quote }}
