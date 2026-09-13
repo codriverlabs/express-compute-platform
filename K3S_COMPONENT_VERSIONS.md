@@ -27,8 +27,8 @@ Pinned versions from the official [k3s release notes](https://docs.k3s.io/releas
 |-----------|---------|--------|
 | cert-manager | v1.20.2 | quay.io/jetstack |
 | CloudWatch Agent | v1.300048.1 | public.ecr.aws/cloudwatch-agent |
-| ECP Workload Identity | 1.1.6 | ghcr.io/codriverlabs |
-| ecp CLI | 1.1.6 | ghcr.io/codriverlabs |
+| ECP Workload Identity | 1.2.0 | ghcr.io/codriverlabs |
+| ecp CLI | 1.2.0 | ghcr.io/codriverlabs |
 | ECR credential provider | (shared with EKS-D) | — |
 | syft | 1.22.0 | github.com/anchore/syft |
 
