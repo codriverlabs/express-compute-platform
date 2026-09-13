@@ -23,6 +23,13 @@ variable "build_type" {
   # "release"  — direct upstream registries (no pull-through cache); used for GitHub releases
   # "internal" — pull-through cache in private ECR; used for internal/customer builds
 }
+variable "release_stage" {
+  type    = string
+  default = "development"
+  # "development" — local dev builds (default for build-k3s-amis.sh)
+  # "staging"     — pre-release validation
+  # "ga"          — production release (set by k3s-release.yml)
+}
 
 source "amazon-ebs" "x86_64" {
   region        = var.aws_region
@@ -72,6 +79,7 @@ source "amazon-ebs" "x86_64" {
     Distribution      = "k3s"
     KubernetesVersion = var.k3s_kubernetes_version
     ManagedBy         = "Packer"
+    Release           = var.release_stage
   }
 }
 
@@ -123,6 +131,7 @@ source "amazon-ebs" "arm64" {
     Distribution      = "k3s"
     KubernetesVersion = var.k3s_kubernetes_version
     ManagedBy         = "Packer"
+    Release           = var.release_stage
   }
 }
 

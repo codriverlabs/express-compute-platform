@@ -23,6 +23,13 @@ variable "build_type" {
   # "release"  — direct upstream registries (no pull-through cache); used for GitHub releases
   # "internal" — pull-through cache in private ECR; used for internal/customer builds
 }
+variable "release_stage" {
+  type    = string
+  default = "development"
+  # "development" — local dev builds
+  # "staging"     — pre-release validation
+  # "ga"          — production release (set by release.yml)
+}
 
 source "amazon-ebs" "x86_64" {
   region        = var.aws_region
@@ -71,6 +78,7 @@ source "amazon-ebs" "x86_64" {
     Project           = var.project_name
     KubernetesVersion = var.kubernetes_version
     ManagedBy         = "Packer"
+    Release           = var.release_stage
   }
 }
 
@@ -121,6 +129,7 @@ source "amazon-ebs" "arm64" {
     Project           = var.project_name
     KubernetesVersion = var.kubernetes_version
     ManagedBy         = "Packer"
+    Release           = var.release_stage
   }
 }
 

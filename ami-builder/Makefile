@@ -3,6 +3,7 @@ KUBERNETES_VERSION ?= 1.35
 AMI_VERSION        ?= $(shell date +%Y%m%d-%H%M)
 ARCH               ?= arm64
 BUILD_TYPE         ?= internal
+RELEASE_STAGE      ?= development
 
 DIR  := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 ROOT := $(abspath $(DIR)/..)
@@ -29,6 +30,7 @@ build: packer-init
 	  -var "kubernetes_version=$(KUBERNETES_VERSION)" \
 	  -var "ami_version=$(AMI_VERSION)" \
 	  -var "build_type=$(BUILD_TYPE)" \
+	  -var "release_stage=$(RELEASE_STAGE)" \
 	  "$(DIR)ecp-golden-ami.pkr.hcl"
 
 stage:
@@ -63,6 +65,7 @@ k3s-build: k3s-packer-init
 	  -var "k3s_kubernetes_version=$(KUBERNETES_VERSION)" \
 	  -var "ami_version=$(AMI_VERSION)" \
 	  -var "build_type=$(BUILD_TYPE)" \
+	  -var "release_stage=$(RELEASE_STAGE)" \
 	  "$(DIR)k3s-xpress.pkr.hcl"
 
 k3s-stage:

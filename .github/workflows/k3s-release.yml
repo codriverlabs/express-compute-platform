@@ -80,6 +80,7 @@ jobs:
             -var "k3s_kubernetes_version=${{ matrix.k8s_version }}" \
             -var "ami_version=$(date +%Y%m%d-%H%M)" \
             -var "build_type=release" \
+            -var "release_stage=ga" \
             ami-builder/k3s-xpress.pkr.hcl
           cp ami-builder/output/ami-manifest-k3s-entries.json \
              ami-manifest-k3s-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
