@@ -156,8 +156,8 @@ Aligned with the EKS-D version matrix (1.35 / 1.36).
 |-----------|---------|--------|
 | cert-manager | v1.20.2 | quay.io/jetstack |
 | CloudWatch Agent | v1.300048.1 | public.ecr.aws/cloudwatch-agent |
-| ECP Workload Identity | 1.1.6 | ghcr.io/codriverlabs |
-| ecp CLI | 1.1.6 | ghcr.io/codriverlabs |
+| ECP Workload Identity | 1.2.0 | ghcr.io/codriverlabs |
+| ecp CLI | 1.2.0 | ghcr.io/codriverlabs |
 | ECR credential provider | (shared with EKS-D) | — |
 | syft | 1.22.0 | github.com/anchore/syft |
 
