@@ -5,42 +5,52 @@ set -e
 # Deletes Express Compute AMIs owned by the current account.
 #
 # Usage:
-#   ./cleanup-amis.sh              # k3s AMIs (default)
-#   ./cleanup-amis.sh k3s          # k3s AMIs
-#   ./cleanup-amis.sh eks-d        # EKS-D AMIs
-#   ./cleanup-amis.sh all          # Both distributions
+#   ./cleanup-amis.sh                    # development k3s AMIs (default)
+#   ./cleanup-amis.sh k3s                # development k3s AMIs
+#   ./cleanup-amis.sh eks-d              # development EKS-D AMIs
+#   ./cleanup-amis.sh all                # development AMIs (both distributions)
+#   ./cleanup-amis.sh k3s ga             # GA k3s AMIs
+#   ./cleanup-amis.sh all all            # ALL AMIs regardless of release stage
 
 DISTRIBUTION="${1:-k3s}"
+RELEASE_STAGE="${2:-development}"
 
 case "$DISTRIBUTION" in
-  k3s)    FILTER="k3s-xpress-*"; LABEL="k3s-Xpress" ;;
-  eks-d)  FILTER="express-compute-*"; LABEL="EKS-D" ;;
-  all)    FILTER=""; LABEL="All Express Compute" ;;
-  *)      echo "Usage: $0 [k3s|eks-d|all]"; exit 1 ;;
+  k3s)    NAME_FILTER="k3s-xpress-*"; LABEL="k3s-Xpress" ;;
+  eks-d)  NAME_FILTER="express-compute-*"; LABEL="EKS-D" ;;
+  all)    NAME_FILTER=""; LABEL="All Express Compute" ;;
+  *)      echo "Usage: $0 [k3s|eks-d|all] [development|staging|ga|all]"; exit 1 ;;
 esac
+
+LABEL="${LABEL} (${RELEASE_STAGE})"
 
 echo "=========================================="
 echo "${LABEL} AMI Cleanup"
 echo "=========================================="
 
-# Get AMIs — "all" mode matches both naming patterns
+# Build filters
+FILTERS=()
 if [ "$DISTRIBUTION" = "all" ]; then
-  AMIS=$(aws ec2 describe-images --owners self \
-    --filters "Name=name,Values=express-compute-*,k3s-xpress-*" \
-    --query "Images[*].{ImageId:ImageId,Name:Name,CreationDate:CreationDate}" --output json)
+  FILTERS+=("Name=name,Values=express-compute-*,k3s-xpress-*")
 else
-  AMIS=$(aws ec2 describe-images --owners self \
-    --filters "Name=name,Values=${FILTER}" \
-    --query "Images[*].{ImageId:ImageId,Name:Name,CreationDate:CreationDate}" --output json)
+  FILTERS+=("Name=name,Values=${NAME_FILTER}")
 fi
+
+if [ "$RELEASE_STAGE" != "all" ]; then
+  FILTERS+=("Name=tag:Release,Values=${RELEASE_STAGE}")
+fi
+
+AMIS=$(aws ec2 describe-images --owners self \
+  --filters "${FILTERS[@]}" \
+  --query "Images[*].{ImageId:ImageId,Name:Name,CreationDate:CreationDate,Release:Tags[?Key=='Release']|[0].Value}" --output json)
 
 if [ "$(echo "$AMIS" | jq length)" -eq 0 ]; then
   echo "No ${LABEL} AMIs found to delete."
   exit 0
 fi
 
-echo "Found ${LABEL} AMIs:"
-echo "$AMIS" | jq -r '.[] | "\(.ImageId) - \(.Name) (\(.CreationDate))"'
+echo "Found AMIs:"
+echo "$AMIS" | jq -r '.[] | "\(.ImageId) - \(.Name) [Release=\(.Release // "untagged")] (\(.CreationDate))"'
 echo ""
 
 # Confirm deletion
