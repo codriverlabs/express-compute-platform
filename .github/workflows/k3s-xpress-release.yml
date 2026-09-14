@@ -68,7 +68,8 @@ jobs:
           AWS_REGION: ${{ vars.AWS_REGION }}
         run: |
           ONLY=$([[ "${{ matrix.arch }}" == "arm64" ]] && echo "-only=amazon-ebs.arm64" || echo "-only=amazon-ebs.x86_64")
-          mkdir -p ami-builder/output
+          cd ami-builder
+          mkdir -p output
           packer build \
             ${ONLY} \
             -var "aws_region=${AWS_REGION}" \
@@ -76,22 +77,23 @@ jobs:
             -var "ami_version=$(date +%Y%m%d-%H%M)" \
             -var "build_type=release" \
             -var "release_stage=ga" \
-            ami-builder/k3s-xpress.pkr.hcl
-          cp ami-builder/output/ami-manifest-k3s-entries.json \
-             ami-manifest-k3s-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
+            k3s-xpress.pkr.hcl
+          cp output/ami-manifest-k3s-entries.json \
+             ../ami-manifest-k3s-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
 
       - name: Sign AMI
         env:
           AWS_REGION: ${{ vars.AWS_REGION }}
         run: |
-          AMI_ID=$(jq -r '.[0].ami_id' ami-builder/output/ami-manifest-k3s-entries.json)
+          cd ami-builder
+          AMI_ID=$(jq -r '.[0].ami_id' output/ami-manifest-k3s-entries.json)
           AMI_VERSION=$(date +%Y%m%d-%H%M)
-          # Reuse the shared signing script
-          MANIFEST_FILE="ami-builder/output/packer-manifest-k3s.json" \
+          MANIFEST_FILE="output/ami-manifest-k3s-entries.json" \
+          AMI_VERSION="${AMI_VERSION}" \
           AWS_REGION="${AWS_REGION}" \
-          bash ami-builder/scripts/sign-ami.sh
-          cp ami-builder/output/ami-signatures-entries.json \
-             ami-builder/output/ami-signatures-k3s-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
+          bash scripts/sign-ami.sh
+          cp output/ami-signatures-entries.json \
+             output/ami-signatures-k3s-${{ matrix.k8s_version }}-${{ matrix.arch }}.json
 
       - name: Make AMI public
         env:
