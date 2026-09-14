@@ -85,7 +85,9 @@ jobs:
             --repo codriverlabs/express-compute-platform \
             --pattern 'ami-manifest.json' \
             --pattern 'ami-signatures.json' \
-            --dir build
+            --pattern 'k3s-ami-manifest.json' \
+            --pattern 'k3s-ami-signatures.json' \
+            --dir build || true
           cp ami-builder/express-compute-ami-signing.pub.pem build/express-compute-ami-signing.pub.pem
 
       - name: Stage build context

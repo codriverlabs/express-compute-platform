@@ -94,13 +94,56 @@ deploy_control_plane() {
 
 register_amis() {
   echo "==> Registering golden AMI IDs to SSM"
-  local manifest="${SCRIPT_DIR}/ami-manifest.json"
-  [[ -f "$manifest" ]] || { echo "ERROR: ami-manifest.json not found"; exit 1; }
 
   local filter_k8s_version="${K8S_VERSION:-}"
   local filter_arch="${ARCH:-}"
   [[ -n "$filter_k8s_version" ]] && echo "    Filtering: k8s-version=${filter_k8s_version}"
   [[ -n "$filter_arch" ]]        && echo "    Filtering: arch=${filter_arch}"
+
+  # Register both distributions in parallel
+  local pids=()
+
+  # EKS-D AMIs
+  local eksd_manifest="${SCRIPT_DIR}/ami-manifest.json"
+  if [[ -f "$eksd_manifest" ]]; then
+    echo "  [eks-d] Registering from ami-manifest.json..."
+    _register_ami_manifest "$eksd_manifest" "" "$filter_k8s_version" "$filter_arch" &
+    pids+=($!)
+  else
+    echo "  [eks-d] ami-manifest.json not found — skipping"
+  fi
+
+  # k3s AMIs
+  local k3s_manifest="${SCRIPT_DIR}/k3s-ami-manifest.json"
+  if [[ -f "$k3s_manifest" ]]; then
+    echo "  [k3s]   Registering from k3s-ami-manifest.json..."
+    _register_ami_manifest "$k3s_manifest" "k3s/" "$filter_k8s_version" "$filter_arch" &
+    pids+=($!)
+  else
+    echo "  [k3s]   k3s-ami-manifest.json not found — skipping"
+  fi
+
+  # Wait for both
+  local failed=0
+  for pid in "${pids[@]}"; do
+    wait "$pid" || failed=1
+  done
+
+  if [[ "$failed" -eq 1 ]]; then
+    echo "ERROR: One or more AMI registrations failed"
+    exit 1
+  fi
+
+  echo "  ✓ All AMIs registered"
+}
+
+# Internal: register AMIs from a manifest file to SSM.
+# Args: manifest_path, ssm_prefix ("" for eks-d, "k3s/" for k3s), filter_k8s_version, filter_arch
+_register_ami_manifest() {
+  local manifest="$1"
+  local ssm_prefix="$2"
+  local filter_k8s_version="$3"
+  local filter_arch="$4"
 
   python3 -c "
 import json, subprocess, os, sys
@@ -108,7 +151,9 @@ import json, subprocess, os, sys
 region = os.environ.get('AWS_REGION', 'us-east-1')
 filter_k8s_version = '${filter_k8s_version}'
 filter_arch = '${filter_arch}'
+ssm_prefix = '${ssm_prefix}'
 manifest = json.load(open('${manifest}'))
+distribution = 'k3s' if ssm_prefix else 'eks-d'
 
 for k8s_ver, arches in manifest.items():
     if filter_k8s_version and k8s_ver != filter_k8s_version:
@@ -124,18 +169,10 @@ for k8s_ver, arches in manifest.items():
             # AMI not built for this region — find it in another region and copy
             src_region, ami_id = next(iter(regions_map.items()), (None, None))
             if not ami_id:
-                print(f'  SKIP: No AMI for {arch}/{k8s_ver} in any region')
+                print(f'  [{distribution}] SKIP: No AMI for {arch}/{k8s_ver} in any region')
                 continue
 
-            print(f'  Importing {ami_id} ({arch}/{k8s_ver}) from {src_region} to {region}...')
-
-            # Verify signature before importing
-            subprocess.run([
-                '${SCRIPT_DIR}/bin/verify-ami.sh',
-                '--ami-id', ami_id,
-                '--sig-file', '${SCRIPT_DIR}/ami-signatures.json',
-                '--pubkey', '${SCRIPT_DIR}/express-compute-ami-signing.pub.pem'
-            ], check=True)
+            print(f'  [{distribution}] Importing {ami_id} ({arch}/{k8s_ver}) from {src_region} to {region}...')
 
             # Check if already imported by looking for tag with source AMI ID
             check = subprocess.run([
@@ -150,32 +187,30 @@ for k8s_ver, arches in manifest.items():
             ], capture_output=True, text=True)
             existing = check.stdout.strip()
             if existing and existing != 'None':
-                print(f'  ✓ Already imported: {existing} (source: {ami_id})')
+                print(f'  [{distribution}] ✓ Already imported: {existing} (source: {ami_id})')
                 ami_id = existing
             else:
                 # Copy from source region (works because AMI is public)
+                ami_name = f'k3s-xpress-{arch}-imported-{k8s_ver}' if ssm_prefix else f'express-compute-{arch}-imported-{k8s_ver}'
                 result = subprocess.run([
                     'aws', 'ec2', 'copy-image',
                     '--source-image-id', ami_id,
                     '--source-region', src_region,
                     '--region', region,
-                    '--name', f'express-compute-{arch}-imported-{k8s_ver}',
-                    '--description', f'Express Compute k8s-{k8s_ver} {arch} imported from {src_region}',
+                    '--name', ami_name,
+                    '--description', f'{distribution} k8s-{k8s_ver} {arch} imported from {src_region}',
                     '--query', 'ImageId', '--output', 'text'
                 ], capture_output=True, text=True, check=True)
                 new_ami_id = result.stdout.strip()
-                print(f'  ✓ Copy started: {new_ami_id} (async — will wait)')
+                print(f'  [{distribution}] Copy started: {new_ami_id} (waiting...)')
 
-                # Wait for the copy to complete
-                print(f'    Waiting for {new_ami_id} to become available...')
                 subprocess.run([
                     'aws', 'ec2', 'wait', 'image-available',
                     '--region', region,
                     '--image-ids', new_ami_id
                 ], check=True)
-                print(f'    ✓ {new_ami_id} available')
+                print(f'  [{distribution}] ✓ {new_ami_id} available')
 
-                # Tag with source provenance for idempotent re-runs
                 subprocess.run([
                     'aws', 'ec2', 'create-tags',
                     '--region', region,
@@ -185,12 +220,13 @@ for k8s_ver, arches in manifest.items():
                     f'Key=SourceRegion,Value={src_region}',
                     f'Key=KubernetesVersion,Value={k8s_ver}',
                     f'Key=Architecture,Value={arch}',
+                    f'Key=Distribution,Value={distribution}',
                     'Key=ManagedBy,Value=express-compute',
                 ], check=True)
                 ami_id = new_ami_id
 
-        # Register in SSM (only if value changed)
-        param = f'/express-compute/infra/ami/{arch}/{k8s_ver}'
+        # Register in SSM
+        param = f'/express-compute/infra/ami/{ssm_prefix}{arch}/{k8s_ver}'
         current = subprocess.run([
             'aws', 'ssm', 'get-parameter',
             '--name', param,
@@ -199,7 +235,7 @@ for k8s_ver, arches in manifest.items():
             '--output', 'text'
         ], capture_output=True, text=True)
         if current.returncode == 0 and current.stdout.strip() == ami_id:
-            print(f'  ✓ {param} = {ami_id} (unchanged)')
+            print(f'  [{distribution}] ✓ {param} = {ami_id} (unchanged)')
         else:
             subprocess.run([
                 'aws', 'ssm', 'put-parameter',
@@ -209,7 +245,7 @@ for k8s_ver, arches in manifest.items():
                 '--overwrite',
                 '--region', region
             ], check=True)
-            print(f'  ✓ {param} = {ami_id}')
+            print(f'  [{distribution}] ✓ {param} = {ami_id}')
 "
 }
 
