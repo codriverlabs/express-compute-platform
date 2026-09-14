@@ -3,12 +3,21 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# All values sourced from cluster.env written at boot time by setup-eks-d.sh
-if [ ! -f /opt/eks-d/cluster.env ]; then
-  echo "ERROR: /opt/eks-d/cluster.env not found. Run this script on the control plane EC2." >&2
+# All values sourced from cluster.env written at boot time.
+# Supports both EKS-D (/opt/eks-d/) and k3s (/opt/k3s-xpress/) layouts.
+if [ -f /opt/k3s-xpress/cluster.env ]; then
+  source /opt/k3s-xpress/cluster.env
+  [ -f /opt/k3s-xpress/version.env ] && source /opt/k3s-xpress/version.env
+  OUTPUT_DIR="/opt/k3s-xpress/karpenter_runtime_configuration"
+  DISTRIBUTION="k3s"
+elif [ -f /opt/eks-d/cluster.env ]; then
+  source /opt/eks-d/cluster.env
+  OUTPUT_DIR="/opt/eks-d/karpenter_runtime_configuration"
+  DISTRIBUTION="eks-d"
+else
+  echo "ERROR: No cluster.env found (/opt/k3s-xpress/ or /opt/eks-d/). Run this on the control plane EC2." >&2
   exit 1
 fi
-source /opt/eks-d/cluster.env
 
 REGION="${AWS_REGION:-us-east-1}"
 ARCH="${ARCH:-arm64}"
@@ -23,7 +32,6 @@ CLUSTER_NAME="${CLUSTER_NAME:-${TENANT_ID}-ecp-${ARCH}}"
 #   bottlerocket-gpu  - Bottlerocket + NVIDIA GPU
 #   bottlerocket-neuron - Bottlerocket + AWS Inferentia/Trainium
 NODE_VARIANT="${1:-al2023}"
-OUTPUT_DIR="/opt/eks-d/karpenter_runtime_configuration"
 
 echo "Discovering Karpenter configuration for $TENANT_ID (cluster: $CLUSTER_NAME)..."
 
@@ -54,7 +62,7 @@ echo "  EKS-Optimized AMI : $AMI_ID (k8s 1.${K8S_MINOR} ${ARCH})"
 
 # Discover AWS resources
 # Instance profile follows the naming convention from TenantIamService
-INSTANCE_PROFILE="express-compute-tenant-${TENANT_ID}-instance-role"
+INSTANCE_PROFILE="ecp-tenant-${TENANT_ID}-ir"
 
 # Check if NAT gateway is available (infra layer publishes this to SSM)
 NAT_ENABLED=$(aws ssm get-parameter \
@@ -88,10 +96,24 @@ fi
 
 # Discover cluster details
 API_SERVER="https://$(kubectl get endpoints kubernetes -n default -o jsonpath='{.subsets[0].addresses[0].ip}'):6443"
-CA_BUNDLE=$(sudo cat /etc/kubernetes/pki/ca.crt 2>/dev/null | base64 -w0 || \
-            kubectl get configmap kube-root-ca.crt -n kube-system -o jsonpath='{.data.ca\.crt}' | base64 -w0)
-SERVICE_CIDR=$(kubectl get configmap kubeadm-config -n kube-system \
-  -o jsonpath='{.data.ClusterConfiguration}' | grep serviceSubnet | awk '{print $2}')
+
+# CA certificate — different paths for kubeadm vs k3s
+if [ -f /etc/kubernetes/pki/ca.crt ]; then
+  CA_BUNDLE=$(sudo cat /etc/kubernetes/pki/ca.crt | base64 -w0)
+elif [ -f /var/lib/rancher/k3s/server/tls/server-ca.crt ]; then
+  CA_BUNDLE=$(sudo cat /var/lib/rancher/k3s/server/tls/server-ca.crt | base64 -w0)
+else
+  CA_BUNDLE=$(kubectl get configmap kube-root-ca.crt -n kube-system -o jsonpath='{.data.ca\.crt}' | base64 -w0)
+fi
+
+# Service CIDR — kubeadm stores in kubeadm-config; k3s uses a known default or cluster.env
+if kubectl get configmap kubeadm-config -n kube-system &>/dev/null; then
+  SERVICE_CIDR=$(kubectl get configmap kubeadm-config -n kube-system \
+    -o jsonpath='{.data.ClusterConfiguration}' | grep serviceSubnet | awk '{print $2}')
+else
+  # k3s default service CIDR; can be overridden by POD_SUBNET in cluster.env
+  SERVICE_CIDR="10.43.0.0/16"
+fi
 # Compute cluster DNS IP: 10th IP of service CIDR (e.g. 10.96.0.0/12 → 10.96.0.10)
 CLUSTER_DNS_IP=$(python3 -c "
 import ipaddress, sys

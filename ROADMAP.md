@@ -1,12 +1,28 @@
-# Roadmap — August 2026
+# Roadmap — November 2026
 
-Express Compute Platform development priorities for August 2026.
+Express Compute Platform development priorities for November 2026.
 
 ---
 
-## 🎯 August 2026 Priorities
+## ✅ Shipped (September 2026)
 
-### 1. EKS Add-Ons for EKS-D-Xpress and Self-Managed Distributions
+### k3s-Xpress GA
+
+Production-ready k3s distribution with full feature parity to EKS-D-Xpress:
+
+- `ecp create-cluster --distribution k3s` — sub-4-minute boot, golden AMI
+- VPC CNI (always-on), Karpenter with EKS Optimized AMI workers
+- aws-iam-authenticator, ECP Workload Identity, CloudWatch, EBS CSI
+- AWS Cloud Controller Manager with correct providerID (`aws:///`)
+- Dedicated data volume for SQLite state (consistent with EKS-D etcd)
+- kubelet-csr-approver for worker node serving certs
+- Acceptance-tested end-to-end: cluster → add-ons → Karpenter worker → EBS PVCs
+
+---
+
+## 🎯 November 2026 Priorities
+
+### 1. EKS Add-Ons for EKS-D-Xpress and k3s-Xpress
 
 Bring the EKS Add-On lifecycle model to all supported distributions — managed
 and self-managed clusters on EC2, and golden AMI builds.
@@ -17,16 +33,34 @@ and self-managed clusters on EC2, and golden AMI builds.
 - **Self-managed support**: `ecp install-addon` / `ecp upgrade-addon` for k3s, microk8s, EKS-D clusters
 - **Declarative config**: add-on versions pinned in cluster spec, drift detection on reconciliation
 
-### 2. Faster Startup — Parallel Add-On Installation
+### 2. Per-Component Workload Identity (Least-Privilege)
+
+Move from broad instance role to per-component IAM via ECP Workload Identity.
+
+- **Indexed from EKS Add-Ons**: IAM policies per component extracted from `eks describe-addon-configuration`
+- **Stored in repo**: `docs/reference/addon-iam-policies/` — updated by periodic CI job
+- **Per-component associations**: VPC CNI, EBS CSI, Karpenter, CloudWatch each get scoped IAM roles
+- **Instance role stripped**: SSM + ECR only — everything else via pod-level credentials
+- **Same model for both distributions**: EKS-D and k3s use identical association pattern
+
+### 3. Worker Node Image Caching
+
+Eliminate internet dependency for Karpenter workers.
+
+- **ECR pull-through cache** (short-term): workers pull from private ECR via VPC endpoint, first pull cached
+- **Spegel peer-to-peer** (medium-term): control plane serves images to workers over VPC network
+- **Dual-arch airgap** (long-term): single tarball with arm64 + x86_64 for fully airgapped workers
+
+### 4. Faster Startup — Parallel Add-On Installation
 
 Reduce cluster boot time by parallelizing independent add-on installations.
 
 - **Dependency graph**: model add-on dependencies (cert-manager → webhooks, CNI → everything)
 - **Parallel execution**: install independent add-ons concurrently (EBS CSI ∥ metrics-server ∥ CloudWatch)
-- **Target**: sub-3-minute boot for standard cluster profile
+- **Target**: sub-2-minute boot for k3s, sub-3-minute for EKS-D
 - **Progress streaming**: `ecp create-cluster --wait` shows parallel progress per add-on
 
-### 3. OpenTelemetry for Managed Clusters
+### 5. OpenTelemetry for Managed Clusters
 
 Built-in observability for managed clusters using OTEL Collector + ADOT.
 
@@ -36,26 +70,16 @@ Built-in observability for managed clusters using OTEL Collector + ADOT.
 - **Cluster metrics**: control plane, node, pod, container metrics via OTLP
 - **Zero-config default**: works out of the box, opt-out per namespace
 
-### 4. Official Guides for k3s and microk8s
+### 6. k3s HA Mode (3-Node Embedded etcd)
 
-Dedicated, tested quick start guides for each distribution.
+Multi-server k3s clusters for production HA.
 
-- **k3s guide**: single-node and HA (embedded etcd), Workload Identity, add-on installation
-- **microk8s guide**: snap-based, addons enable pattern, WI integration
-- **Tested in CI**: Robot Framework UAT per distribution
-- **Distribution-specific notes**: storage classes, CNI differences, upgrade paths
+- **3-node embedded etcd**: automatic leader election, no external datastore
+- **Karpenter-compatible**: workers join any server node
+- **Rolling upgrades**: one server at a time with drain + cordon
+- **Shared data volume**: EBS for etcd WAL (same DLM snapshot policy)
 
-### 5. Managed k3s and microk8s Support
-
-Extend managed cluster provisioning beyond EKS-D to k3s and microk8s.
-
-- `ecp create-cluster my-k3s --distribution k3s --arch=arm64 --wait`
-- `ecp create-cluster my-micro --distribution microk8s --arch=arm64 --wait`
-- **Golden AMIs per distribution**: k3s and microk8s variants with pre-baked components
-- **Same lifecycle**: create, stop, resume, delete, get-cluster-access
-- **Same Workload Identity**: identical pod identity experience across distributions
-
-### 6. OpenShift Support via OLM (Operator Lifecycle Manager)
+### 7. OpenShift Support via OLM (Operator Lifecycle Manager)
 
 Package Express Compute Workload Identity as an OLM-managed operator for OpenShift.
 
@@ -76,7 +100,7 @@ Package Express Compute Workload Identity as an OLM-managed operator for OpenShi
 | **Cost Visibility** | `ecp cluster-cost` — show EC2/EBS/network spend per cluster | PRO: optimization recommendations, idle detection |
 | **Health Checks** | `ecp health-check` — validate cluster state, add-on versions, certificate expiry | PRO: continuous monitoring + auto-remediation |
 | **Addon CLI** | `ecp install-addon` / `ecp list-addons` — core add-on management | PRO: enterprise add-on catalog + approval workflows |
-| **Backup (manual)** | `ecp backup-cluster` — etcd snapshot to S3 | PRO: scheduled backups + cross-region DR |
+| **Backup (manual)** | `ecp backup-cluster` — etcd/SQLite snapshot to S3 | PRO: scheduled backups + cross-region DR |
 | **Hybrid Workload Identity** | Validated guides for accessing AWS services from clusters on Azure VMs, developer laptops, and on-premises infrastructure | PRO: priority support + advanced troubleshooting |
 | **Security scan** | `ecp scan-cluster` — CIS benchmark, outdated images, exposed services | Enterprise: continuous compliance + audit trail |
 
@@ -112,10 +136,10 @@ Package Express Compute Workload Identity as an OLM-managed operator for OpenShi
 
 | Week | Focus |
 |------|-------|
-| Aug 4–8 | EKS Add-On registry + lifecycle CLI, parallel boot prototype |
-| Aug 11–15 | OTEL collector integration, k3s/microk8s golden AMI variants |
-| Aug 18–22 | OLM operator bundle, official distribution guides + UAT |
-| Aug 25–29 | Managed k3s/microk8s launch, community blueprint + cost CLI |
+| Nov 3–7 | EKS Add-On registry + lifecycle CLI, per-component WI |
+| Nov 10–14 | Worker image caching (ECR pull-through), parallel boot |
+| Nov 17–21 | OTEL collector integration, k3s HA mode prototype |
+| Nov 24–28 | OLM operator bundle, community blueprint + cost CLI |
 
 ---
 

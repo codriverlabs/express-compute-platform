@@ -7,12 +7,12 @@ packer {
   }
 }
 
-variable "aws_region"         { type = string }
-variable "kubernetes_version" {
+variable "aws_region" { type = string }
+variable "k3s_kubernetes_version" {
   type    = string
   default = "1.35"
 }
-variable "ami_version"        { type = string }
+variable "ami_version" { type = string }
 variable "project_name" {
   type    = string
   default = "express-compute-managed-k8s-infra"
@@ -26,9 +26,9 @@ variable "build_type" {
 variable "release_stage" {
   type    = string
   default = "development"
-  # "development" — local dev builds
+  # "development" — local dev builds (default for build-k3s-amis.sh)
   # "staging"     — pre-release validation
-  # "ga"          — production release (set by release.yml)
+  # "ga"          — production release (set by k3s-release.yml)
 }
 
 source "amazon-ebs" "x86_64" {
@@ -47,8 +47,8 @@ source "amazon-ebs" "x86_64" {
     most_recent = true
   }
 
-  ami_name        = "express-compute-x86_64-${var.ami_version}"
-  ami_description = "Express Compute ${var.kubernetes_version} x86_64 - ${var.ami_version}"
+  ami_name        = "k3s-xpress-x86_64-${var.ami_version}"
+  ami_description = "k3s-Xpress ${var.k3s_kubernetes_version} x86_64 - ${var.ami_version}"
   ssh_username    = "ec2-user"
 
   iam_instance_profile = "express-compute-packer-builder"
@@ -62,21 +62,22 @@ source "amazon-ebs" "x86_64" {
   launch_block_device_mappings {
     device_name           = "/dev/xvda"
     volume_type           = "gp3"
-    volume_size           = 20
+    volume_size           = 15
     delete_on_termination = true
   }
 
   run_tags = {
-    Name     = "express-compute-builder-x86_64"
-    Platform = "express-compute"
+    Name      = "k3s-xpress-builder-x86_64"
+    Platform  = "k3s-xpress"
     ManagedBy = "Packer"
   }
 
   tags = {
-    Name              = "express-compute-x86_64-${var.ami_version}"
-    Platform          = "express-compute"
+    Name              = "k3s-xpress-x86_64-${var.ami_version}"
+    Platform          = "k3s-xpress"
     Project           = var.project_name
-    KubernetesVersion = var.kubernetes_version
+    Distribution      = "k3s"
+    KubernetesVersion = var.k3s_kubernetes_version
     ManagedBy         = "Packer"
     Release           = var.release_stage
   }
@@ -98,8 +99,8 @@ source "amazon-ebs" "arm64" {
     most_recent = true
   }
 
-  ami_name        = "express-compute-arm64-${var.ami_version}"
-  ami_description = "Express Compute ${var.kubernetes_version} arm64 - ${var.ami_version}"
+  ami_name        = "k3s-xpress-arm64-${var.ami_version}"
+  ami_description = "k3s-Xpress ${var.k3s_kubernetes_version} arm64 - ${var.ami_version}"
   ssh_username    = "ec2-user"
 
   iam_instance_profile = "express-compute-packer-builder"
@@ -113,21 +114,22 @@ source "amazon-ebs" "arm64" {
   launch_block_device_mappings {
     device_name           = "/dev/xvda"
     volume_type           = "gp3"
-    volume_size           = 20
+    volume_size           = 15
     delete_on_termination = true
   }
 
   run_tags = {
-    Name      = "express-compute-builder-arm64"
-    Platform  = "express-compute"
+    Name      = "k3s-xpress-builder-arm64"
+    Platform  = "k3s-xpress"
     ManagedBy = "Packer"
   }
 
   tags = {
-    Name              = "express-compute-arm64-${var.ami_version}"
-    Platform          = "express-compute"
+    Name              = "k3s-xpress-arm64-${var.ami_version}"
+    Platform          = "k3s-xpress"
     Project           = var.project_name
-    KubernetesVersion = var.kubernetes_version
+    Distribution      = "k3s"
+    KubernetesVersion = var.k3s_kubernetes_version
     ManagedBy         = "Packer"
     Release           = var.release_stage
   }
@@ -137,18 +139,43 @@ build {
   sources = ["source.amazon-ebs.x86_64", "source.amazon-ebs.arm64"]
 
   provisioner "file" {
-    source      = "${path.root}/../cluster-setup"
-    destination = "/tmp/cluster-setup"
+    source      = "${path.root}/../cluster-setup/k3s"
+    destination = "/tmp/cluster-setup-k3s"
   }
 
   provisioner "file" {
-    source      = "${path.root}/scripts"
-    destination = "/tmp/scripts"
+    source      = "${path.root}/../cluster-setup/progress.sh"
+    destination = "/tmp/cluster-setup-k3s/progress.sh"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/../cluster-setup/install-ecp-workload-identity.sh"
+    destination = "/tmp/cluster-setup-k3s/install-ecp-workload-identity.sh"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/../cluster-setup/install-ecp-karpenter-support.sh"
+    destination = "/tmp/cluster-setup-k3s/install-ecp-karpenter-support.sh"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/../cluster-setup/manifests"
+    destination = "/tmp/cluster-setup-k3s/manifests"
   }
 
   provisioner "file" {
     source      = "${path.root}/../node-pools"
     destination = "/tmp/node-pools"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/scripts/k3s"
+    destination = "/tmp/scripts-k3s"
+  }
+
+  provisioner "file" {
+    source      = "${path.root}/scripts/extract-images.py"
+    destination = "/tmp/extract-images.py"
   }
 
   provisioner "file" {
@@ -158,10 +185,10 @@ build {
 
   provisioner "shell" {
     inline = [
-      "chmod +x /tmp/scripts/*.sh /tmp/scripts/components/*.sh",
-      "export KUBERNETES_VERSION=${var.kubernetes_version}",
+      "chmod +x /tmp/scripts-k3s/*.sh",
+      "export K3S_KUBERNETES_VERSION=${var.k3s_kubernetes_version}",
       "export BUILD_TYPE=${var.build_type}",
-      "sudo -E bash /tmp/scripts/install.sh"
+      "sudo -E bash /tmp/scripts-k3s/install-k3s.sh"
     ]
   }
 
@@ -175,22 +202,18 @@ build {
 
   provisioner "file" {
     source      = "/tmp/sbom.spdx.json"
-    destination = "${path.root}/output/sbom-${source.name}-${var.ami_version}.spdx.json"
+    destination = "${path.root}/output/sbom-k3s-${source.name}-${var.ami_version}.spdx.json"
     direction   = "download"
   }
 
   post-processor "manifest" {
-    output     = "output/packer-manifest.json"
+    output     = "output/packer-manifest-k3s.json"
     strip_path = true
   }
 
   post-processor "shell-local" {
     inline = [
-      # Push AMI IDs to SSM and write a clean manifest entry per build.
-      # Filter builds by last_run_uuid so previous runs accumulated in
-      # packer-manifest.json (which is cumulative by design) don't pollute
-      # ami-manifest-entries.json with deregistered AMI IDs.
-      "python3 -c \"\nimport json, sys, os\nos.makedirs('output', exist_ok=True)\ndata = json.load(open('output/packer-manifest.json'))\nlast_uuid = data['last_run_uuid']\nbuilds = [b for b in data['builds'] if b.get('packer_run_uuid') == last_uuid]\nentries = []\nfor b in builds:\n    region, ami_id = b['artifact_id'].split(':')\n    arch = b['name']\n    entries.append({'kubernetes_version': '${var.kubernetes_version}', 'arch': arch, 'region': region, 'ami_id': ami_id})\n    import subprocess\n    subprocess.run(['aws','ssm','put-parameter','--name',f'/express-compute/infra/ami/{arch}/${var.kubernetes_version}','--value',ami_id,'--type','String','--overwrite','--region',region], check=True)\n    print(f'Stored /express-compute/infra/ami/{arch}/${var.kubernetes_version} -> {ami_id}')\njson.dump(entries, open('output/ami-manifest-entries.json','w'), indent=2)\n\""
+      "python3 -c \"\nimport json, sys, os\nos.makedirs('output', exist_ok=True)\ndata = json.load(open('output/packer-manifest-k3s.json'))\nlast_uuid = data['last_run_uuid']\nbuilds = [b for b in data['builds'] if b.get('packer_run_uuid') == last_uuid]\nentries = []\nfor b in builds:\n    region, ami_id = b['artifact_id'].split(':')\n    arch = b['name']\n    entries.append({'kubernetes_version': '${var.k3s_kubernetes_version}', 'arch': arch, 'region': region, 'ami_id': ami_id, 'distribution': 'k3s'})\n    import subprocess\n    subprocess.run(['aws','ssm','put-parameter','--name',f'/express-compute/infra/ami/k3s/{arch}/${var.k3s_kubernetes_version}','--value',ami_id,'--type','String','--overwrite','--region',region], check=True)\n    print(f'Stored /express-compute/infra/ami/k3s/{arch}/${var.k3s_kubernetes_version} -> {ami_id}')\njson.dump(entries, open('output/ami-manifest-k3s-entries.json','w'), indent=2)\n\""
     ]
   }
 }
