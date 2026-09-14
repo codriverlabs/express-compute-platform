@@ -1,4 +1,4 @@
-name: k3s Release
+name: k3s-Xpress Release
 
 on:
   push:
