@@ -3,12 +3,7 @@ name: k3s-Xpress Release
 on:
   push:
     tags:
-      - 'k3s-v*'
-    paths:
-      - 'ami-builder/k3s-xpress.pkr.hcl'
-      - 'ami-builder/scripts/k3s/**'
-      - 'cluster-setup/k3s/**'
-      - 'K3S_COMPONENT_VERSIONS.md'
+      - 'v*'
   workflow_dispatch:
     inputs:
       k8s_versions:
