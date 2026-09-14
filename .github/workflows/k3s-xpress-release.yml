@@ -128,6 +128,16 @@ jobs:
         with:
           merge-multiple: true
 
+      - name: Flatten downloaded artifacts
+        run: |
+          # download-artifact with merge-multiple may preserve subdirectory paths
+          # Move all SBOM and signature files to the working directory
+          find . -name "sbom-k3s-*.spdx.json" -not -path "./.git/*" -exec cp {} . \;
+          find . -name "ami-signatures-k3s-*.json" -not -path "./.git/*" -exec cp {} . \;
+          find . -name "ami-manifest-k3s-*.json" -not -path "./.git/*" -exec cp {} . \;
+          echo "=== Downloaded artifacts ==="
+          ls -la sbom-k3s-* ami-signatures-k3s-* ami-manifest-k3s-* 2>/dev/null || echo "WARNING: some files missing"
+
       - name: Prepare release assets
         run: |
           cp ami-builder/scripts/verify-ami.sh verify-ami.sh
