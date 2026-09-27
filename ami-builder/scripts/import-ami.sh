@@ -41,11 +41,11 @@ echo "==> Verifying AMI signature..."
 "${SCRIPT_DIR}/verify-ami.sh" --ami-id "${AMI_ID}" --sig-file "${SIG_FILE}"
 
 # ── Step 2: read metadata from sig file ──────────────────────────────────
-read -r ARCH K8S_VERSION AMI_VERSION < <(python3 - <<PYEOF
+read -r ARCH K8S_VERSION AMI_VERSION DISTRIBUTION < <(python3 - <<PYEOF
 import json, sys
 e = json.load(open("${SIG_FILE}")).get("${AMI_ID}")
 if not e: sys.exit(1)
-print(e["arch"], e["kubernetes_version"], e["ami_version"])
+print(e["arch"], e["kubernetes_version"], e["ami_version"], e.get("distribution", "eks-d"))
 PYEOF
 )
 
@@ -65,12 +65,12 @@ for REGION in "${TARGET_REGIONS[@]}"; do
 
   aws ssm put-parameter \
     --region "${REGION}" \
-    --name "/express-compute/infra/ami/${ARCH}/${K8S_VERSION}" \
+    --name "/express-compute/infra/ami/${DISTRIBUTION}/${ARCH}/${K8S_VERSION}" \
     --value "${NEW_AMI}" \
     --type String --overwrite \
     --description "Imported from ${AMI_ID} (${SRC_REGION})" \
     --no-cli-pager
-  echo "  ✓ SSM /express-compute/infra/ami/${ARCH}/${K8S_VERSION} = ${NEW_AMI}"
+  echo "  ✓ SSM /express-compute/infra/ami/${DISTRIBUTION}/${ARCH}/${K8S_VERSION} = ${NEW_AMI}"
 done
 
 echo ""

@@ -9,21 +9,23 @@ and the SSM parameter contract between this repository and the control plane.
 ## 1. SSM Parameter Contract
 
 The `express-compute-platform` repo (this repo) publishes SSM parameters that
-the control plane components consume at runtime. The k3s-Xpress distribution
-adds a parallel set of parameters under the `/express-compute/infra/ami/k3s/` prefix.
+the control plane components consume at runtime. **All parameters use a
+distribution-prefixed path** — there is no unprefixed "legacy EKS-D" path.
+This was a breaking change (see migration note below); it was accepted
+given the low number of production users at the time.
 
 ### Parameters Published by This Repo
 
 | SSM Path | Written By | Value | Purpose |
 |----------|-----------|-------|---------|
-| `/express-compute/infra/ami/{arch}/{k8s-version}` | EKS-D Packer build | AMI ID (e.g. `ami-0abc123`) | EKS-D AMI lookup for tenant provisioning |
-| `/express-compute/infra/ami/{arch}/{k8s-version}/signature` | `sign-ami.sh` | Base64 KMS signature | EKS-D AMI attestation verification |
-| `/express-compute/infra/ami/k3s/{arch}/{k8s-version}` | **k3s Packer build** | AMI ID (e.g. `ami-0def456`) | **k3s AMI lookup for tenant provisioning** |
-| `/express-compute/infra/ami/k3s/{arch}/{k8s-version}/signature` | `sign-ami.sh` | Base64 KMS signature | **k3s AMI attestation verification** |
+| `/express-compute/infra/ami/eks-d/{arch}/{k8s-version}` | EKS-D Packer build | AMI ID (e.g. `ami-0abc123`) | EKS-D AMI lookup for tenant provisioning |
+| `/express-compute/infra/ami/eks-d/{arch}/{k8s-version}/signature` | `sign-ami.sh` | Base64 KMS signature | EKS-D AMI attestation verification |
+| `/express-compute/infra/ami/k3s/{arch}/{k8s-version}` | k3s Packer build | AMI ID (e.g. `ami-0def456`) | k3s AMI lookup for tenant provisioning |
+| `/express-compute/infra/ami/k3s/{arch}/{k8s-version}/signature` | `sign-ami.sh` | Base64 KMS signature | k3s AMI attestation verification |
 | `/express-compute/infra/kms/ami-signing-key-arn` | CDK stack | KMS key ARN | Shared signing key (both distributions) |
 | `/express-compute/infra/network/vpc-id` | Infra CDK stack | VPC ID | Shared by both distributions |
-| `/express-compute/infra/launch-template/{arch}/{pricing}` | Infra CDK stack | Launch template ID | EKS-D only (k3s uses own template) |
-| `/express-compute/infra/launch-template/k3s/{arch}/{pricing}` | **Infra CDK stack** | Launch template ID | **k3s launch template** |
+| `/express-compute/infra/launch-template/eks-d/{arch}/{pricing}` | Infra CDK stack | Launch template ID | EKS-D launch template |
+| `/express-compute/infra/launch-template/k3s/{arch}/{pricing}` | Infra CDK stack | Launch template ID | k3s launch template |
 | `/express-compute/infra/network/nat-gateway-enabled` | Infra CDK stack | `true`/`false` | Shared by both distributions |
 
 ### Per-Cluster Parameters (published at boot when Karpenter enabled)
@@ -41,17 +43,14 @@ adds a parallel set of parameters under the `/express-compute/infra/ami/k3s/` pr
                             │              │      │
                             │              │      └── "1.35" or "1.36"
                             │              └── "arm64" or "x86_64"
-                            └── omitted for EKS-D (legacy), "k3s" for k3s-Xpress
+                            └── "eks-d" or "k3s" -- always present
 ```
 
 **Examples:**
 ```
-# EKS-D (existing, unchanged)
-/express-compute/infra/ami/arm64/1.35           → ami-0abc123def
-/express-compute/infra/ami/arm64/1.35/signature → <base64 sig>
-/express-compute/infra/ami/x86_64/1.35          → ami-0xyz789abc
-
-# k3s-Xpress (new)
+/express-compute/infra/ami/eks-d/arm64/1.35           → ami-0abc123def
+/express-compute/infra/ami/eks-d/arm64/1.35/signature → <base64 sig>
+/express-compute/infra/ami/eks-d/x86_64/1.35          → ami-0xyz789abc
 /express-compute/infra/ami/k3s/arm64/1.35           → ami-0def456ghi
 /express-compute/infra/ami/k3s/arm64/1.35/signature → <base64 sig>
 /express-compute/infra/ami/k3s/x86_64/1.35          → ami-0jkl012mno
@@ -153,15 +152,13 @@ k3s provisioning:
 
 ### 3.1 AMI Resolution
 
-```python
-# Current (EKS-D only)
-ssm_path = f"/express-compute/infra/ami/{arch}/{k8s_version}"
+All AMI lookups use the distribution-prefixed path, with no unprefixed
+fallback:
 
-# New (distribution-aware)
-if distribution == "k3s":
-    ssm_path = f"/express-compute/infra/ami/k3s/{arch}/{k8s_version}"
-else:
-    ssm_path = f"/express-compute/infra/ami/{arch}/{k8s_version}"
+```python
+ssm_path = f"/express-compute/infra/ami/{distribution}/{arch}/{k8s_version}"
+# e.g. /express-compute/infra/ami/eks-d/arm64/1.35
+#      /express-compute/infra/ami/k3s/arm64/1.35
 ```
 
 ### 3.2 User Data / cluster.env Seeding

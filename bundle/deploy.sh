@@ -107,7 +107,7 @@ register_amis() {
   local eksd_manifest="${SCRIPT_DIR}/ami-manifest.json"
   if [[ -f "$eksd_manifest" ]]; then
     echo "  [eks-d] Registering from ami-manifest.json..."
-    _register_ami_manifest "$eksd_manifest" "" "$filter_k8s_version" "$filter_arch" &
+    _register_ami_manifest "$eksd_manifest" "eks-d" "eks-d/" "$filter_k8s_version" "$filter_arch" &
     pids+=($!)
   else
     echo "  [eks-d] ami-manifest.json not found — skipping"
@@ -117,7 +117,7 @@ register_amis() {
   local k3s_manifest="${SCRIPT_DIR}/k3s-ami-manifest.json"
   if [[ -f "$k3s_manifest" ]]; then
     echo "  [k3s]   Registering from k3s-ami-manifest.json..."
-    _register_ami_manifest "$k3s_manifest" "k3s/" "$filter_k8s_version" "$filter_arch" &
+    _register_ami_manifest "$k3s_manifest" "k3s" "k3s/" "$filter_k8s_version" "$filter_arch" &
     pids+=($!)
   else
     echo "  [k3s]   k3s-ami-manifest.json not found — skipping"
@@ -138,12 +138,14 @@ register_amis() {
 }
 
 # Internal: register AMIs from a manifest file to SSM.
-# Args: manifest_path, ssm_prefix ("" for eks-d, "k3s/" for k3s), filter_k8s_version, filter_arch
+# Args: manifest_path, distribution ("eks-d" or "k3s"), ssm_prefix ("eks-d/" or "k3s/"),
+#       filter_k8s_version, filter_arch
 _register_ami_manifest() {
   local manifest="$1"
-  local ssm_prefix="$2"
-  local filter_k8s_version="$3"
-  local filter_arch="$4"
+  local distribution="$2"
+  local ssm_prefix="$3"
+  local filter_k8s_version="$4"
+  local filter_arch="$5"
 
   python3 -c "
 import json, subprocess, os, sys
@@ -152,8 +154,8 @@ region = os.environ.get('AWS_REGION', 'us-east-1')
 filter_k8s_version = '${filter_k8s_version}'
 filter_arch = '${filter_arch}'
 ssm_prefix = '${ssm_prefix}'
+distribution = '${distribution}'
 manifest = json.load(open('${manifest}'))
-distribution = 'k3s' if ssm_prefix else 'eks-d'
 
 for k8s_ver, arches in manifest.items():
     if filter_k8s_version and k8s_ver != filter_k8s_version:
@@ -191,7 +193,7 @@ for k8s_ver, arches in manifest.items():
                 ami_id = existing
             else:
                 # Copy from source region (works because AMI is public)
-                ami_name = f'k3s-xpress-{arch}-imported-{k8s_ver}' if ssm_prefix else f'express-compute-{arch}-imported-{k8s_ver}'
+                ami_name = f'k3s-xpress-{arch}-imported-{k8s_ver}' if distribution == 'k3s' else f'express-compute-{arch}-imported-{k8s_ver}'
                 result = subprocess.run([
                     'aws', 'ec2', 'copy-image',
                     '--source-image-id', ami_id,

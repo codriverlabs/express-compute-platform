@@ -169,7 +169,7 @@ The orchestrator (`deploy.sh`) enforces the correct order:
 ```
 1. CDK Bootstrap (idempotent)
 2. ExpressComputeManagedK8sInfraStack   → VPC, LTs, ECR cache, SSM params
-3. Register AMI IDs to SSM             → /express-compute/infra/ami/{arch}/{k8s-version}
+3. Register AMI IDs to SSM             → /express-compute/infra/ami/{eks-d|k3s}/{arch}/{k8s-version}
 4. ExpressComputeControlPlaneStack     → Lambdas read SSM params from steps 2+3
 ```
 
@@ -188,8 +188,8 @@ Steps 2 and 3 write SSM parameters that step 4 reads at deploy time:
 | SSM Path | Written By | Read By |
 |----------|-----------|---------|
 | `/express-compute/infra/network/vpc-id` | Infra stack | Control plane |
-| `/express-compute/infra/launch-template/{arch}/{pricing}` | Infra stack | Control plane |
-| `/express-compute/infra/ami/{arch}/{k8s-version}` | `register-amis` | Control plane (tenant-service) |
+| `/express-compute/infra/launch-template/{eks-d\|k3s}/{arch}/{pricing}` | Infra stack | Control plane |
+| `/express-compute/infra/ami/{eks-d\|k3s}/{arch}/{k8s-version}` | `register-amis` | Control plane (tenant-service) |
 
 ## Configuration
 

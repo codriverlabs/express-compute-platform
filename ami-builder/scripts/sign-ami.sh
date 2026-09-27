@@ -29,6 +29,7 @@ entries = json.load(open(manifest_path))
 sig_entries = []
 
 for e in entries:
+    distribution = e.get("distribution", "eks-d")
     attestation_obj = {
         "ami_id":             e["ami_id"],
         "arch":               e["arch"],
@@ -60,16 +61,20 @@ for e in entries:
     subprocess.run([
         "aws", "ssm", "put-parameter",
         "--region", e["region"],
-        "--name", f"/express-compute/infra/ami/{e['arch']}/{e['kubernetes_version']}/signature",
+        "--name", f"/express-compute/infra/ami/{distribution}/{e['arch']}/{e['kubernetes_version']}/signature",
         "--value", sig,
         "--type", "String", "--overwrite",
     ], check=True)
 
-    # Write to local sig entries file for bundling in the release artifact
+    # Write to local sig entries file for bundling in the release artifact.
+    # "distribution" is bookkeeping only -- it is NOT part of the signed
+    # attestation content, so adding it here does not change what
+    # verify-ami.sh must reconstruct to check the signature.
     sig_entries.append({
         "ami_id":             e["ami_id"],
         "arch":               e["arch"],
         "kubernetes_version": e["kubernetes_version"],
+        "distribution":       distribution,
         "ami_version":        ami_version,
         "timestamp":          attestation_obj["timestamp"],
         "signature":          sig,

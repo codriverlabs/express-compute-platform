@@ -12,7 +12,7 @@ GitHub Actions (OIDC)
        ├─ Packer builds EC2 builder instance
        │    └─ temporary instance profile (ECR pull-through access)
        ├─ syft generates SBOM → downloaded as artifact
-       ├─ AMI ID written to SSM /express-compute/infra/ami/{arch}/{version}
+       ├─ AMI ID written to SSM /express-compute/infra/ami/eks-d/{arch}/{version}
        └─ KMS signs attestation → signature in SSM + AMI tag
 ```
 
@@ -100,7 +100,7 @@ pipeline implements it via KMS attestation:
 
 3. Stores the base64 signature in SSM:
    ```
-   /express-compute/infra/ami/{arch}/{k8s_version}/signature
+   /express-compute/infra/ami/eks-d/{arch}/{k8s_version}/signature
    ```
 
 4. Tags the AMI:
@@ -126,7 +126,7 @@ ATTESTATION=$(aws ec2 describe-images --region "$REGION" \
 
 # 2. Retrieve signature and key ARN
 SIG=$(aws ssm get-parameter --region "$REGION" \
-  --name "/express-compute/infra/ami/${ARCH}/${K8S_VERSION}/signature" \
+  --name "/express-compute/infra/ami/eks-d/${ARCH}/${K8S_VERSION}/signature" \
   --query 'Parameter.Value' --output text)
 
 KEY_ARN=$(aws ec2 describe-images --region "$REGION" \
