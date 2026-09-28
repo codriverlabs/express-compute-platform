@@ -259,7 +259,7 @@ make -C ami-builder ami \
 
 ```bash
 AMI_ID=$(aws ssm get-parameter \
-  --name /express-compute/infra/ami/arm64/1.35 \
+  --name /express-compute/infra/ami/eks-d/arm64/1.35 \
   --query Parameter.Value --output text)
 
 aws ec2 run-instances \

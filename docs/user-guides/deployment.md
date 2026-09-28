@@ -141,7 +141,7 @@ What gets deployed:
 | Stack | What it creates |
 |-------|----------------|
 | `ExpressComputeManagedK8sInfraStack` | VPC, launch templates, ECR pull-through cache, S3 endpoint, SSM params |
-| AMI registration | `/express-compute/infra/ami/{arch}/{k8s-version}` SSM parameters |
+| AMI registration | `/express-compute/infra/ami/{eks-d\|k3s}/{arch}/{k8s-version}` SSM parameters |
 | `ExpressComputeControlPlaneStack` | Lambdas, API Gateway, DynamoDB, Workload Identity webhook |
 
 ---

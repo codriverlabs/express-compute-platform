@@ -224,7 +224,7 @@ The `import-ami.sh` script verifies the signature first, then copies the AMI:
 This:
 1. Verifies the AMI signature (fails fast if invalid)
 2. Copies the AMI to each target region
-3. Registers the new AMI ID in SSM (`/express-compute/infra/ami/{arch}/{version}`)
+3. Registers the new AMI ID in SSM (`/express-compute/infra/ami/{eks-d|k3s}/{arch}/{version}`)
 
 ---
 
