@@ -96,16 +96,24 @@ Set via Helm: `--set dnsPolicy=Default`
 
 ## SQS Interruption Queue
 
-Must be created before Karpenter starts. Queue name must match `settings.interruptionQueue`.
+Created dynamically per-tenant by the control-plane Lambda provisioner
+(`express-compute-control-plane`, `TenantProvisioningService.createInterruptionQueue()`)
+during cluster provisioning — not a prerequisite step here, and not a
+shared/static resource.
+
+Queue name is `ecp-tenant-{tenantId}` (via `TenantNaming.queueName()`), **not**
+the cluster's display name. `settings.interruptionQueue` passed to the
+Karpenter Helm chart must match this exactly:
 
 ```bash
-aws sqs create-queue \
-  --queue-name <cluster-name> \
-  --attributes MessageRetentionPeriod=300 \
-  --tags "kubernetes.io/cluster/<cluster-name>=owned"
+--set settings.interruptionQueue="ecp-tenant-${TENANT_ID}"
 ```
 
-Created by the `EcpSharedInfraStack` CDK stack (previously Terraform `aws_sqs_queue.karpenter_interruption`).
+`TENANT_ID` is available in `cluster.env` on both the k3s and EKS-D boot
+paths. See `docs/design/fixes/karpenter-interruption-queue-name-mismatch.md`
+for the history of this (previously both install scripts incorrectly used
+`${CLUSTER_NAME}` with no prefix, causing the interruption controller to
+fail with `NonExistentQueue` on every cluster).
 
 ## EC2NodeClass Requirements
 
