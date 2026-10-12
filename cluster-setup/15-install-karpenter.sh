@@ -44,7 +44,7 @@ helm upgrade --install karpenter oci://public.ecr.aws/karpenter/karpenter \
   --namespace kube-system \
   --set settings.clusterName=${CLUSTER_NAME} \
   --set settings.clusterEndpoint=${CLUSTER_ENDPOINT} \
-  --set settings.interruptionQueue=${CLUSTER_NAME} \
+  --set settings.interruptionQueue="ecp-tenant-${TENANT_ID}" \
   --set settings.eksControlPlane=false \
   --set replicas=1 \
   --set controller.resources.requests.cpu=200m \
