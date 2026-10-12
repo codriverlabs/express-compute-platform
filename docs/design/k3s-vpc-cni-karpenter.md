@@ -227,7 +227,7 @@ systemctl start kubelet
 | Karpenter | Node autoscaling controller | ✓ identical (settings.eksControlPlane=false) |
 | ecp-karpenter-support | EC2NodeClass webhook + validation | ✓ identical |
 | Bootstrap token + RBAC | Kubelet TLS bootstrap for workers | ✓ same mechanism |
-| CSR auto-approver | Auto-approve worker node CSRs | ✓ same (kubelet-csr-approver) |
+| CSR auto-approver | Auto-approve worker node CSRs | ✓ shared manifest (kubelet-csr-approver) — uses `nodeAffinity: Exists` to tolerate k3s's `control-plane=true` vs EKS-D's `control-plane=""` label values |
 
 ### 5.3 k3s-agent systemd unit (pre-baked in AMI)
 

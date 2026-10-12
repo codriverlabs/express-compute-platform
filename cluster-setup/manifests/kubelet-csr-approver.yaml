@@ -64,8 +64,18 @@ spec:
       tolerations:
         - operator: Exists
           effect: NoSchedule
-      nodeSelector:
-        node-role.kubernetes.io/control-plane: ""
+      # Use `Exists` rather than a plain nodeSelector so this schedules on
+      # both EKS-D (kubeadm labels control-plane nodes with an empty value,
+      # node-role.kubernetes.io/control-plane="") and k3s (which labels
+      # server/control-plane nodes with value "true"). A plain nodeSelector
+      # requires an exact value match and silently never schedules on k3s.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
       initContainers:
         - name: copy-busybox
           image: public.ecr.aws/docker/library/busybox:musl
