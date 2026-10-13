@@ -95,7 +95,10 @@ ecp delete-cluster my-k3s
 
 ### AWS VPC CNI
 
-k3s-Xpress uses the same AWS VPC CNI as EKS-D-Xpress. Pods get IPs directly
+k3s-Xpress uses the same AWS VPC CNI as EKS-D-Xpress. The CNI binaries,
+container images, and patched manifest are pre-baked into the golden AMI —
+there is no runtime download or install step. At boot, `setup-k3s-xpress.sh`
+simply `kubectl apply`s the pre-staged manifest. Pods get IPs directly
 from the VPC subnet (prefix delegation), enabling VPC-native networking:
 
 - Pod-to-pod traffic is direct (no overlay, no encapsulation)
@@ -121,10 +124,32 @@ LoadBalancer (NLB), or NodePort for simple dev access.
 
 ## Storage
 
-### Default: local-path-provisioner
+### Default: EBS CSI Driver (pre-installed)
 
-k3s includes `local-path-provisioner` which creates PersistentVolumes backed
-by local node storage. Suitable for single-node and dev/staging.
+The EBS CSI Driver is installed automatically at boot — the Helm chart and
+all images are pre-baked into the golden AMI, so there's nothing to download
+or install manually. It ships with a `gp3` StorageClass marked as the
+cluster default, giving persistent volumes that survive node replacement:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-data
+spec:
+  storageClassName: gp3
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+```
+
+### Alternative: local-path-provisioner
+
+k3s also includes the built-in `local-path-provisioner`, which creates
+PersistentVolumes backed by local node storage. Useful for ephemeral,
+single-node, or dev/staging workloads where EBS durability isn't needed —
+note that volumes are lost if the node is replaced.
 
 ```yaml
 apiVersion: v1
@@ -137,16 +162,6 @@ spec:
   resources:
     requests:
       storage: 5Gi
-```
-
-### Optional: EBS CSI Driver
-
-For persistent volumes that survive node replacement:
-
-```bash
-# EBS CSI images are pre-loaded in the airgap tarball
-helm upgrade --install aws-ebs-csi-driver /opt/k3s-xpress/charts/aws-ebs-csi-*.tgz \
-  --namespace kube-system
 ```
 
 ---
