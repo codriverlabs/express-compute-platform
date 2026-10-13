@@ -1,5 +1,12 @@
 # k3s-Xpress — CLI & Control Plane Integration
 
+> ⚠️ **Known-stale design doc.** The 120s boot-timeout figure in §2.1/§3.5 is
+> wrong — the shipped `k3s-xpress-boot.service` systemd unit uses
+> `TimeoutStartSec=300` (same as EKS-D). §3.3's "k3s needs no VPC CNI/ENI
+> permissions" claim is also wrong — k3s-Xpress always installs VPC CNI (see
+> `cluster-setup/k3s/install-vpc-cni.sh`). Verify SSM parameter names/paths
+> against the actual install scripts before relying on this doc.
+
 This document describes the changes required in the **control plane repo**
 (`express-compute-control-plane`) to support the k3s-Xpress distribution,
 and the SSM parameter contract between this repository and the control plane.

@@ -154,7 +154,6 @@ aws iam tag-role \
 aws iam attach-role-policy \
   --role-name ecp-test-s3-role \
   --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/ecp-test-s3-access"
-  --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/ecp-test-s3-access"
 ```
 
 ---

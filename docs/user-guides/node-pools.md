@@ -95,7 +95,7 @@ helm upgrade --install node-pools /opt/cluster-setup/karpenter/chart \
   --set amiId=ami-0abc123 \
   --set subnetId=subnet-xxx \
   --set securityGroupId=sg-xxx \
-  --set workerRole=my-tenant-eks-d-worker-node-role
+  --set instanceProfile=my-tenant-ir
 ```
 
 ---
@@ -187,7 +187,10 @@ kind: EC2NodeClass
 metadata:
   name: default
 spec:
-  role: <tenant-id>-eks-d-worker-node-role
+  instanceProfile: <tenant-id>-ir   # resolved at runtime by configure-nodepools.sh (NOT role: — no IAM VPC endpoint)
+  # Custom amiFamily avoids a Karpenter v1.10 bug where ResolveClusterCIDR always
+  # runs for AL2023 regardless of eksControlPlane=false. userData handles bootstrap.
+  amiFamily: Custom
   amiSelectorTerms:
     - id: <ami-id>    # EKS-optimized AMI resolved at runtime
   subnetSelectorTerms:
@@ -198,11 +201,27 @@ spec:
     - deviceName: /dev/xvda
       ebs:
         volumeType: gp3
-        volumeSize: 20Gi
+        volumeSize: 50Gi
         deleteOnTermination: true
+  # nodeadm NodeConfig (not /etc/eks/bootstrap.sh — that's the legacy AL2 bootstrap path)
   userData: |
-    #!/bin/bash
-    /etc/eks/bootstrap.sh <cluster-name>
+    MIME-Version: 1.0
+    Content-Type: multipart/mixed; boundary="//"
+
+    --//
+    Content-Type: application/node.eks.aws
+
+    ---
+    apiVersion: node.eks.aws/v1alpha1
+    kind: NodeConfig
+    spec:
+      cluster:
+        name: <cluster-name>
+        apiServerEndpoint: <api-server-endpoint>
+        certificateAuthority: <ca-bundle>
+        cidr: 10.96.0.0/12
+
+    --//--
 ```
 
 ---

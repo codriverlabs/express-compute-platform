@@ -23,8 +23,9 @@ Tag push (v*)  ──→  build-ecr-credential-provider  ──→  build-ami (m
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `.github/workflows/release.yml` | Tag `v*` or `workflow_dispatch` | Full release: build binaries → build AMIs → create GitHub release |
-| `.github/workflows/build-ecr-credential-provider.yml` | Called by `release.yml` | Cross-compile the ECR credential provider binary |
+| `.github/workflows/eks-d-xpress-release.yml` | Tag `v*` (paths: `ami-builder/**`, `cluster-setup/**`, `COMPONENT_VERSIONS.md`) or `workflow_dispatch` | Full EKS-D release: build binaries → build AMIs → create GitHub release |
+| `.github/workflows/k3s-xpress-release.yml` | Tag `v*` or `workflow_dispatch` | Full k3s release: build binaries → build AMIs → create GitHub release |
+| `.github/workflows/build-ecr-credential-provider.yml` | Called by the release workflows | Cross-compile the ECR credential provider binary |
 | `.github/workflows/bundle-release.yml` | `workflow_dispatch` only | Build and push the deployment Docker bundle to GHCR |
 
 ---
@@ -175,7 +176,7 @@ Creates a GitHub Release with:
 
 ### Adding a New Kubernetes Version
 
-1. Update the matrix in `release.yml`:
+1. Update the matrix in `eks-d-xpress-release.yml` (or `k3s-xpress-release.yml` for k3s):
    ```yaml
    matrix:
      k8s_version: ['1.35', '1.36']  # ← add new version
@@ -191,7 +192,7 @@ Creates a GitHub Release with:
 
 ### Adding a Build Step
 
-Add steps between "Build AMI" and "Sign AMI" in `release.yml`:
+Add steps between "Build AMI" and "Sign AMI" in `eks-d-xpress-release.yml` (or `k3s-xpress-release.yml`):
 
 ```yaml
 - name: Run custom validation

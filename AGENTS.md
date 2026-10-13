@@ -18,7 +18,7 @@ express-compute/
 ```
 
 ### Key Entry Points
-- **`ami-builder/express-compute.pkr.hcl`**: Packer configuration for golden AMI
+- **`ami-builder/ecp-golden-ami.pkr.hcl`**: Packer configuration for golden AMI (EKS-D). `ami-builder/k3s-xpress.pkr.hcl` is the k3s equivalent.
 - **`cluster-setup/setup-eks-d.sh`**: Master installation orchestrator (~135 lines)
 - **`ami-builder/scripts/install.sh`**: Comprehensive AMI provisioning (~257 lines)
 - **`DEPLOYMENT_GUIDE.md`**: Redirect — see `docs/user-guides/deployment.md`
@@ -105,7 +105,7 @@ The system uses a three-phase approach:
 - AWS CDK v2 constructs for infrastructure
 
 ### HCL (Packer)
-- **`express-compute.pkr.hcl`**: Packer configuration with provisioners
+- **`ecp-golden-ami.pkr.hcl`** / **`k3s-xpress.pkr.hcl`**: Packer configurations with provisioners
 - Shell script provisioning chain
 - AMI metadata and tagging
 
@@ -120,7 +120,7 @@ The system uses a three-phase approach:
 ### Kubernetes Components
 - EKS-D versions: 1.35.4 (eks-1-35-9) or 1.36.0 (eks-1-36-2)
 - etcd 3.5.21 (shared across versions)
-- AWS VPC CNI v1.19.0
+- AWS VPC CNI v1.22.3 (see `COMPONENT_VERSIONS.md` for the full pinned matrix)
 - Karpenter for node autoscaling
 
 ## Quick Start for Development

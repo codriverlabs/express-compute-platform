@@ -243,7 +243,7 @@ This removes AMIs tagged with `Platform=express-compute` that are older than the
 All add-on versions are pinned in `ami-builder/scripts/component-versions.env`:
 
 ```bash
-ECP_CONTROL_PLANE_VERSION=1.0.0-rc7
+ECP_CONTROL_PLANE_VERSION=1.3.1
 INSTALL_ECP=true
 CERT_MANAGER_VERSION=v1.20.2
 KARPENTER_VERSION=1.13.0

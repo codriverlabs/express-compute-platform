@@ -45,8 +45,11 @@ The file `/opt/eks-d/cluster.env` must be present. It's written by the TenantEc2
 TENANT_ID=alice
 CLUSTER_NAME=alice-ecp-arm64
 NODE_IP=10.0.1.42
+POD_SUBNET=10.244.0.0/16
 AWS_REGION=us-east-1
+AWS_ACCOUNT_ID=123456789012
 ECP_ENDPOINT=https://api.express-compute.example.com   # optional — enables Workload Identity
+INSTALL_ECP=true                                        # required alongside ECP_ENDPOINT for step 12 to run
 ```
 
 | Variable | Required | Description |
@@ -54,8 +57,11 @@ ECP_ENDPOINT=https://api.express-compute.example.com   # optional — enables Wo
 | `TENANT_ID` | Yes | Owner identifier (used for IAM role names, tagging) |
 | `CLUSTER_NAME` | Yes | Kubernetes cluster name |
 | `NODE_IP` | Yes | Private IP of this instance (used for apiserver advertise address) |
+| `POD_SUBNET` | Yes | Pod CIDR passed to kubeadm as `networking.podSubnet` |
 | `AWS_REGION` | Yes | AWS region |
-| `ECP_ENDPOINT` | No | Express Compute API endpoint. If unset, step 12 is skipped (dev mode) |
+| `AWS_ACCOUNT_ID` | Yes | Required by the EBS CSI and Karpenter install steps |
+| `ECP_ENDPOINT` | No | Express Compute API endpoint |
+| `INSTALL_ECP` | No | Must be `true` **and** `ECP_ENDPOINT` set for step 12 (Workload Identity) to run; otherwise it's skipped (dev mode) |
 
 ### AMI-baked software
 
@@ -183,13 +189,15 @@ sudo tee /opt/eks-d/cluster.env <<EOF
 TENANT_ID=dev
 CLUSTER_NAME=dev-cluster
 NODE_IP=$(hostname -I | awk '{print $1}')
+POD_SUBNET=10.244.0.0/16
 AWS_REGION=us-east-1
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 EOF
 
 sudo bash /opt/cluster-setup/setup-eks-d.sh
 ```
 
-With `ECP_ENDPOINT` omitted, step 12 (Workload Identity) is skipped, and the cluster operates standalone.
+With `ECP_ENDPOINT`/`INSTALL_ECP` omitted, step 12 (Workload Identity) is skipped, and the cluster operates standalone.
 
 ---
 

@@ -4,6 +4,14 @@
 **Target:** General Availability (v1.0.0) of k3s-Xpress — Golden AMI + managed cluster lifecycle  
 **Date:** August 2026  
 
+> ⚠️ **Historical planning document — superseded by the shipped implementation.**
+> k3s-Xpress GA has shipped (see `ROADMAP.md`, "Shipped (September 2026)") and several
+> decisions below were changed during implementation. Notably: VPC CNI is the only
+> supported CNI (Flannel is always disabled, not the default), Karpenter autoscaling
+> **is** included at GA (not deferred), and EBS CSI/`gp3` is the default StorageClass
+> (not `local-path-provisioner`). For current, accurate behavior see
+> `docs/user-guides/k3s-xpress.md` and `K3S_COMPONENT_VERSIONS.md`.
+
 ---
 
 ## 1. Vision
@@ -156,8 +164,8 @@ Aligned with the EKS-D version matrix (1.35 / 1.36).
 |-----------|---------|--------|
 | cert-manager | v1.20.2 | quay.io/jetstack |
 | CloudWatch Agent | v1.300048.1 | public.ecr.aws/cloudwatch-agent |
-| ECP Workload Identity | 1.2.0 | ghcr.io/codriverlabs |
-| ecp CLI | 1.2.0 | ghcr.io/codriverlabs |
+| ECP Workload Identity | 1.3.1 | ghcr.io/codriverlabs |
+| ecp CLI | 1.3.1 | ghcr.io/codriverlabs |
 | ECR credential provider | (shared with EKS-D) | — |
 | syft | 1.22.0 | github.com/anchore/syft |
 

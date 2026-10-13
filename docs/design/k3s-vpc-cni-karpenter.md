@@ -5,6 +5,15 @@
 single-binary simplicity (~2 min boot, 300MB overhead) with enterprise
 networking and autoscaling — lighter than EKS-D, more capable than stock k3s.
 
+> ⚠️ **Partially stale.** The §5.3 "k3s-agent.service pre-baked" worker-join
+> design was not implemented — workers use standard kubelet bootstrap, not
+> `k3s agent`. The §8 "Flannel" comparison column does not reflect shipped
+> behavior: k3s-Xpress always disables Flannel and always installs VPC CNI
+> (no Flannel mode ships). §7's claim that `k3s-url`/`k3s-token` are
+> published by the control plane (TenantEc2Service) is also wrong — they're
+> published by `cluster-setup/k3s/install-karpenter.sh`. See
+> `docs/user-guides/k3s-xpress.md` for current, accurate behavior.
+
 ---
 
 ## 1. Why VPC CNI Works on k3s

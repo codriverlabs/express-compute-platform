@@ -35,8 +35,11 @@ kind: EC2NodeClass
 metadata:
   name: default
 spec:
-  amiFamily: AL2023
-  role: <tenant-id>-eks-d-worker-node-role
+  # Custom amiFamily avoids a Karpenter v1.10 bug (ResolveClusterCIDR runs for AL2023
+  # regardless of eksControlPlane=false). instanceProfile is required — role: cannot be
+  # used because there's no IAM VPC endpoint in this network setup.
+  amiFamily: Custom
+  instanceProfile: <tenant-id>-ir
   subnetSelectorTerms:
     - id: <private-subnet-id>
   securityGroupSelectorTerms:
