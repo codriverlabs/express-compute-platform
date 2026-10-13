@@ -33,9 +33,9 @@ boot script.
 
 ```bash
 ecp create-cluster my-k3s \
-  --distribution k3s \
-  --arch arm64 \
-  --pricing spot \
+  --distribution=k3s \
+  --arch=arm64 \
+  --pricing=spot \
   --wait
 ```
 

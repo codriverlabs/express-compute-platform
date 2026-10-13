@@ -101,7 +101,7 @@ dev/staging, edge, single-node, and cost-sensitive production workloads.
 
 ### 3.3 CLI Integration
 
-- [ ] `ecp create-cluster my-k3s --distribution k3s --arch arm64 --wait`
+- [ ] `ecp create-cluster my-k3s --distribution=k3s --arch=arm64 --wait`
 - [ ] `ecp delete-cluster my-k3s`
 - [ ] `ecp get-cluster-access my-k3s` (kubeconfig retrieval)
 - [ ] `ecp describe-cluster my-k3s` (shows k3s version, node count, status)
@@ -224,7 +224,7 @@ express-compute-platform/
    - Install add-ons (cert-manager, WI, CloudWatch)
    - Register with ECP control plane
 5. End-to-end boot test: AMI → running cluster with `kubectl get nodes`
-6. Integrate with `ecp create-cluster --distribution k3s`
+6. Integrate with `ecp create-cluster --distribution=k3s`
 
 ### Phase 3: Add-Ons & Identity (Days 7–9)
 
@@ -300,7 +300,7 @@ the install script compared to EKS-D's multi-binary approach.
 
 ## 9. Success Criteria
 
-- [ ] `ecp create-cluster my-k3s --distribution k3s --arch arm64 --wait` boots in < 2 minutes
+- [ ] `ecp create-cluster my-k3s --distribution=k3s --arch=arm64 --wait` boots in < 2 minutes
 - [ ] Workload Identity works identically to EKS-D variant
 - [ ] Golden AMI is signed and verifiable offline
 - [ ] SBOM generated for every build

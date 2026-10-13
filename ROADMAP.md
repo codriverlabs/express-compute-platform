@@ -10,7 +10,7 @@ Express Compute Platform development priorities for November 2026.
 
 Production-ready k3s distribution with full feature parity to EKS-D-Xpress:
 
-- `ecp create-cluster --distribution k3s` — sub-4-minute boot, golden AMI
+- `ecp create-cluster --distribution=k3s` — sub-4-minute boot, golden AMI
 - VPC CNI (always-on), Karpenter with EKS Optimized AMI workers
 - aws-iam-authenticator, ECP Workload Identity, CloudWatch, EBS CSI
 - AWS Cloud Controller Manager with correct providerID (`aws:///`)
