@@ -23,14 +23,11 @@ Pinned versions from the official [k3s release notes](https://docs.k3s.io/releas
 
 ## Add-On Versions (shared across k3s 1.35/1.36)
 
-| Component | Version |
-|---|---|
-| Karpenter | 1.13.0 |
-
 | Component | Version | Source |
 |-----------|---------|--------|
 | cert-manager | v1.20.2 | quay.io/jetstack |
 | CloudWatch Agent | v1.300048.1 | public.ecr.aws/cloudwatch-agent |
+| Karpenter | 1.13.0 | public.ecr.aws/karpenter |
 | ECP Workload Identity | 1.3.1 | ghcr.io/codriverlabs |
 | ecp CLI | 1.3.1 | ghcr.io/codriverlabs |
 | ECR credential provider | (shared with EKS-D) | — |

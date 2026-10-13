@@ -1,10 +1,10 @@
 # AMI Builder — `install.sh` Modularization
 
-## Status: Accepted, pending implementation
+## Status: Implemented
 
 ## Problem
 
-`ami-builder/scripts/install.sh` is a 517-line monolith with two very different halves:
+`ami-builder/scripts/install.sh` was originally a 517-line monolith with two very different halves. It has since been refactored into the structure proposed below (`install.sh` is now 275 lines using a component-loop pattern, with per-component scripts under `ami-builder/scripts/components/`):
 
 - **Lines 1–~200**: Instance configuration — binary installs, system config, tool setup.
   Already partially modular (calls 00/01/02/04 sub-scripts).
