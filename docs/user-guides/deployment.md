@@ -166,7 +166,7 @@ ecp create-cluster my-cluster \
   --distribution=eks-d \
   --arch=arm64 \
   --pricing=spot \
-  --ssh-cidr "$(curl -s https://checkip.amazonaws.com/)/32" \
+  --ssh-cidr "$(curl -s https://checkip.amazonaws.com/ | tr -d '\n')/32" \
   --wait
 
 # Get SSH access details (saves key to local .pem file)

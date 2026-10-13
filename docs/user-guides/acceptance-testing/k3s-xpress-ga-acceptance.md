@@ -14,10 +14,10 @@
 **Action:**
 ```bash
 ecp create-cluster k3s-acceptance \
-  --distribution k3s \
-  --arch arm64 \
-  --pricing ondemand \
-  --k8s-version 1.35 \
+  --distribution=k3s \
+  --arch=arm64 \
+  --pricing=ondemand \
+  --k8s-version=1.35 \
   --wait
 ```
 

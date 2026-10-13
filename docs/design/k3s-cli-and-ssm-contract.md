@@ -84,7 +84,7 @@ Flags:
 ```
 
 **Behavioral changes:**
-- When `--distribution k3s`:
+- When `--distribution=k3s`:
   - AMI lookup reads from `/express-compute/infra/ami/k3s/{arch}/{version}` (not the EKS-D path)
   - Launch template from `/express-compute/infra/launch-template/k3s/{arch}/{pricing}`
   - Same add-on stack as EKS-D: VPC CNI, Karpenter, Workload Identity, CloudWatch, EBS CSI

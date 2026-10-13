@@ -374,14 +374,14 @@ When using VPC CNI mode with Karpenter:
 
 ```
 ecp create-cluster my-k3s \
-  --distribution k3s \
-  --arch arm64 \
-  --pricing spot \
+  --distribution=k3s \
+  --arch=arm64 \
+  --pricing=spot \
   --wait
 ```
 
 VPC CNI and Karpenter are always enabled — no flags needed. The only
-difference from EKS-D is `--distribution k3s`.
+difference from EKS-D is `--distribution=k3s`.
 
 ---
 

@@ -33,9 +33,10 @@ boot script.
 
 ```bash
 ecp create-cluster my-k3s \
-  --distribution k3s \
-  --arch arm64 \
-  --pricing spot \
+  --distribution=k3s \
+  --arch=arm64 \
+  --pricing=spot \
+  --ssh-cidr "$(curl -s https://checkip.amazonaws.com/ | tr -d '\n')/32" \
   --wait
 ```
 
