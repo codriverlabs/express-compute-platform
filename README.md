@@ -1,15 +1,25 @@
 # Express Compute Platform
 
-Production-ready, EKS-compatible Kubernetes clusters with Karpenter autoscaling — deployed in under 4 minutes.
+Production-ready Kubernetes clusters with Karpenter autoscaling — deployed in under 4 minutes.
 
-Express Compute uses EKS-D (Amazon EKS Distro) on EC2 with a golden AMI strategy to eliminate runtime provisioning delays. Every component is pre-baked: binaries, container images, Helm charts, and system configuration. At boot time, the cluster simply starts what's already there.
+Express Compute runs on EC2 with a golden AMI strategy to eliminate runtime provisioning delays. Every component is pre-baked: binaries, container images, Helm charts, and system configuration. At boot time, the cluster simply starts what's already there.
+
+Two Kubernetes distributions are supported, selected via `ecp create-cluster --distribution <eks-d|k3s>`:
+
+| Distribution | Boot time | Best for |
+|---|---|---|
+| **EKS-D-Xpress** (default) | < 4 min | Full EKS API compatibility, etcd HA control planes |
+| **k3s-Xpress** | < 2 min | Dev/staging, edge, single-node, cost-sensitive workloads |
+
+Both distributions share the same `ecp` CLI lifecycle, VPC CNI networking, Karpenter autoscaling, Workload Identity, and CloudWatch observability — all pre-baked into the golden AMI. See [k3s-Xpress](docs/user-guides/k3s-xpress.md) for the lightweight distribution's details and tradeoffs.
 
 ---
 
 ## Key Features
 
-- **Sub-4-minute cluster boot** — all components pre-installed in the golden AMI
-- **EKS compatibility** — runs the same EKS-D binaries as Amazon EKS
+- **Sub-4-minute cluster boot** (sub-2-minute for k3s-Xpress) — all components pre-installed in the golden AMI
+- **Two distributions** — EKS-D for full EKS API compatibility, or k3s for a lightweight footprint
+- **EKS compatibility** — EKS-D-Xpress runs the same EKS-D binaries as Amazon EKS
 - **Karpenter autoscaling** — Spot-first worker node provisioning with right-sizing
 - **Multi-architecture** — ARM64 (Graviton) and x86_64 AMIs built in parallel
 - **Cryptographic AMI signing** — KMS-backed attestation with offline verification
