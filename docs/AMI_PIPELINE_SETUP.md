@@ -21,14 +21,13 @@ GitHub Actions (OIDC)
 Run once per AWS account. Requires `AdministratorAccess` or equivalent.
 
 ```bash
-export AWS_REGION=us-east-1
-export GITHUB_ORG=codriverlabs
-export GITHUB_REPO=express-compute   # optional, defaults to express-compute
-
-./ami-builder/setup-iam.sh
+cd ami-builder/cdk
+mvn -q compile
+./deploy.sh deploy -c githubOrg=codriverlabs -c githubOrgId=<org-id> \
+  -c githubRepo=express-compute-platform -c githubRepoId=<repo-id>
 ```
 
-The script creates:
+The CDK stack (`ExpressComputePackerIamGithubStack`) creates:
 
 | Resource | Name/Path |
 |---|---|
@@ -72,7 +71,7 @@ Narrow to a specific branch for production accounts:
 }
 ```
 
-### Builder instance profile (inline in `express-compute.pkr.hcl`)
+### Builder instance profile (`ecp-golden-ami.pkr.hcl`)
 
 The temporary EC2 instance that packer SSHes into only receives:
 - ECR pull-through cache access (read-only)
@@ -163,7 +162,10 @@ software installed on the AMI at build time.
 
 ```bash
 # One-time setup (if not done)
-AWS_REGION=us-east-1 GITHUB_ORG=codriverlabs ./ami-builder/setup-iam.sh
+cd ami-builder/cdk
+mvn -q compile
+./deploy.sh deploy -c githubOrg=codriverlabs -c githubOrgId=<org-id> \
+  -c githubRepo=express-compute-platform -c githubRepoId=<repo-id>
 
 # Build + sign
 ARCH=arm64 AWS_REGION=us-east-1 ./ami-builder/build-golden-amis.sh

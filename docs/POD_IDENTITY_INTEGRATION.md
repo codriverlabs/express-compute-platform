@@ -107,7 +107,7 @@ fi
 
 | Variable | Example | Purpose |
 |----------|---------|---------|
-| `ECP_CONTROL_PLANE_VERSION` | `1.0.0-rc11` | Version for CLI + charts |
+| `ECP_CONTROL_PLANE_VERSION` | `1.3.1` | Version for CLI + charts |
 | `INSTALL_ECP` | `true` | Gate for ECP component caching |
 | `ECP_GHCR_REGISTRY` | `ghcr.io/codriverlabs` | OCI registry for charts + images |
 

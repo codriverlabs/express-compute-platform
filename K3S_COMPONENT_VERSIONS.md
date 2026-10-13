@@ -23,6 +23,10 @@ Pinned versions from the official [k3s release notes](https://docs.k3s.io/releas
 
 ## Add-On Versions (shared across k3s 1.35/1.36)
 
+| Component | Version |
+|---|---|
+| Karpenter | 1.13.0 |
+
 | Component | Version | Source |
 |-----------|---------|--------|
 | cert-manager | v1.20.2 | quay.io/jetstack |

@@ -187,7 +187,7 @@ cd ami-builder
 
 ### CI/CD
 
-Push a tag matching `k3s-v*` to trigger the `k3s-release.yml` workflow.
+Push a tag matching `v*` to trigger the `k3s-xpress-release.yml` workflow (the same tag convention used for EKS-D-Xpress releases).
 
 ---
 
@@ -275,7 +275,10 @@ sudo journalctl -u k3s-xpress-boot.service
 ### Reset cluster
 
 ```bash
-sudo /usr/local/bin/k3s-uninstall.sh
+sudo systemctl stop k3s
+sudo rm -rf /var/lib/rancher/k3s/server/db /var/lib/rancher/k3s/agent/containerd
+sudo rm -rf /etc/rancher/k3s/config.yaml
+sudo rm -f /opt/k3s-xpress/.installation_complete
 # Then re-run setup:
 sudo bash /opt/k3s-xpress/cluster-setup/setup-k3s-xpress.sh
 ```
