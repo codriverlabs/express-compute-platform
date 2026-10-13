@@ -15,9 +15,15 @@ full EKS compatibility for dramatically reduced complexity and cost.
 **Best for:** dev/staging environments, edge deployments, single-node clusters,
 CI runners, and cost-sensitive production workloads.
 
-**Use EKS-D-Xpress instead when:** you need full EKS API compatibility,
-VPC-native pod networking (ENI per pod), Karpenter autoscaling, or multi-AZ
-HA control planes.
+k3s-Xpress ships with the same VPC-native pod networking (ENI per pod via AWS
+VPC CNI) and Karpenter autoscaling as EKS-D-Xpress — these are not
+differentiators between the two distributions.
+
+**Use EKS-D-Xpress instead when:** you need full EKS API compatibility, or a
+multi-AZ HA control plane. k3s-Xpress currently ships as a single-node server
+(SQLite datastore) — k3s itself supports HA via embedded etcd or an external
+datastore, but that mode isn't wired into the current `setup-k3s-xpress.sh`
+boot script.
 
 ---
 
