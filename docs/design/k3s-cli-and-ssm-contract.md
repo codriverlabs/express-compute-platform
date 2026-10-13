@@ -75,7 +75,7 @@ Add `--distribution` flag to select cluster type.
 ecp create-cluster <name> [flags]
 
 Flags:
-  --distribution string   Cluster distribution: "eks-d" (default) or "k3s"
+  --distribution string   Required. Cluster distribution: "eks-d" or "k3s" — no default, must be passed explicitly
   --arch string           Instance architecture: "arm64" (default) or "x86_64"
   --pricing string        Pricing model: "spot" (default) or "on-demand"
   --instance-type string  Override instance type (default: auto-select based on distribution)

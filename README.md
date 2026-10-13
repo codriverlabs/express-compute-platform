@@ -47,6 +47,7 @@ docker run --rm -it \
 
 # Create your first cluster (arm64, spot, ~4 min)
 ecp create-cluster my-cluster \
+  --distribution=eks-d \
   --arch=arm64 \
   --pricing=spot \
   --ssh-cidr "$(curl -s https://checkip.amazonaws.com/)/32" \

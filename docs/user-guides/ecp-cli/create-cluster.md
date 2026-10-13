@@ -18,7 +18,8 @@ ecp create-cluster [OPTIONS] <name>
 
 | Option | Description |
 |--------|-------------|
-| `--arch=<arch>` | CPU architecture: `arm64` or `x86_64` |
+| `--arch=<arch>` | CPU architecture: `arm64` (default) or `x86_64` |
+| `--distribution=<distribution>` | **Required.** Cluster distribution: `eks-d` or `k3s` |
 | `--disk-size=<diskSizeGb>` | Root disk size in GB |
 | `--eip` | Assign Elastic IP |
 | `--issuer=<issuer>` | SA token issuer URL (required with `--jwks-uri`/`--jwks-file`) |
@@ -31,6 +32,11 @@ ecp create-cluster [OPTIONS] <name>
 | `--region=<region>` | AWS region |
 | `--ssh-cidr=<sshCidr>` | CIDR for SSH access (restricts security group) |
 | `--wait` | Stream progress and wait for completion |
+
+> **Note:** `--distribution` is a required CLI option regardless of mode — it must
+> be passed even for self-managed registration via `--kubeconfig`/`--jwks-*`,
+> since picocli validates required options before dispatching to managed vs.
+> self-managed logic.
 
 ## Modes
 
@@ -48,15 +54,24 @@ Triggered by providing `--jwks-file`, `--jwks-uri`, or `--kubeconfig`.
 ## Examples
 
 ```bash
-# Managed cluster — arm64, spot, SSH locked to your IP, wait for ready
+# Managed cluster — EKS-D, arm64, spot, SSH locked to your IP, wait for ready
 ecp create-cluster my-cluster \
+  --distribution=eks-d \
   --arch=arm64 \
   --pricing=spot \
   --ssh-cidr "$(curl -s https://checkip.amazonaws.com/)/32" \
   --wait
 
-# Managed cluster — x86_64, on-demand, with Elastic IP
+# Managed cluster — k3s, arm64, spot
+ecp create-cluster my-k3s-cluster \
+  --distribution=k3s \
+  --arch=arm64 \
+  --pricing=spot \
+  --wait
+
+# Managed cluster — EKS-D, x86_64, on-demand, with Elastic IP
 ecp create-cluster prod-cluster \
+  --distribution=eks-d \
   --arch=x86_64 \
   --pricing=ondemand \
   --eip \
@@ -65,11 +80,15 @@ ecp create-cluster prod-cluster \
   --wait
 
 # Self-managed — register existing k3s cluster via kubeconfig
+# (--distribution is still required by the CLI even in this mode; the value
+# is ignored server-side for self-managed registration)
 ecp create-cluster my-k3s \
+  --distribution=k3s \
   --kubeconfig ~/.kube/k3s-config
 
 # Self-managed — register with explicit JWKS
 ecp create-cluster external-cluster \
+  --distribution=k3s \
   --issuer https://my-cluster.example.com \
   --jwks-uri https://my-cluster.example.com/.well-known/openid-configuration/jwks
 ```
