@@ -42,7 +42,7 @@ Pinned versions from the official [k3s release notes](https://docs.k3s.io/releas
 | CNI | AWS VPC CNI | AWS VPC CNI |
 | Autoscaling | Karpenter | Karpenter |
 | Binaries | ~12 (kubeadm, kubelet, kubectl, etcd, etc.) | 1 (k3s) + kubectl symlink |
-| Boot time target | < 4 min | < 2 min |
+| Boot time target | < 4 min | < 4 min (~220s typical) |
 | Image size | ~3.5 GB | ~2 GB |
 | Cost profile | Same instance class (full add-on stack) | Same instance class (full add-on stack) |
 
