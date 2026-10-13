@@ -38,6 +38,7 @@ ecp configure --endpoint https://ecp.codriverlabs.ai --region eu-west-1
 
 # Create a cluster (blocks until ready, SSH locked to your IP)
 ecp create-cluster my-cluster \
+  --distribution=eks-d \
   --arch=arm64 \
   --pricing=spot \
   --ssh-cidr "$(curl -s https://checkip.amazonaws.com/)/32" \

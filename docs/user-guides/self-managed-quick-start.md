@@ -41,7 +41,9 @@ publishes the cluster's OIDC/JWKS configuration so AWS STS can validate pod toke
 
 ```bash
 # Auto-discover JWKS from kubeconfig (recommended)
-ecp create-cluster my-k3s --kubeconfig ~/.kube/config
+# --distribution is required by the CLI even for self-managed registration
+# (the value isn't used server-side here, but the flag must be present)
+ecp create-cluster my-k3s --distribution=k3s --kubeconfig ~/.kube/config
 ```
 
 Verify registration:
