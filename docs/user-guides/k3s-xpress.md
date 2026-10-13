@@ -1,8 +1,8 @@
 # k3s-Xpress User Guide
 
 k3s-Xpress delivers production-ready k3s clusters on AWS with a golden AMI
-strategy: sub-2-minute boot, zero runtime downloads, full Workload Identity
-support, and the same `ecp` CLI lifecycle as EKS-D-Xpress.
+strategy: sub-4-minute boot (~220s typical), zero runtime downloads, full
+Workload Identity support, and the same `ecp` CLI lifecycle as EKS-D-Xpress.
 
 ---
 
@@ -83,7 +83,7 @@ ecp delete-cluster my-k3s
 └────────────────────────────────────────────────────────────────┘
 ```
 
-### Boot Sequence (< 2 minutes target)
+### Boot Sequence (~220s / sub-4-minute target)
 
 1. **Instance starts** — golden AMI with everything pre-installed
 2. **k3s-xpress-boot.service** triggers `setup-k3s-xpress.sh`
@@ -265,7 +265,7 @@ provides enough headroom for system components plus light server-node workloads.
 
 | Feature | k3s-Xpress | EKS-D-Xpress |
 |---------|-----------|-------------|
-| Boot time | < 2 min | < 4 min |
+| Boot time | < 4 min (~220s) | < 4 min |
 | Min instance | c6g.large (2 vCPU, 4GB) | c6g.large (2 vCPU, 4GB) |
 | CNI | VPC CNI (ENI per pod) | VPC CNI (ENI per pod) |
 | Datastore | SQLite (2 GB EBS) | etcd (20 GB EBS) |

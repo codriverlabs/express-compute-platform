@@ -9,7 +9,7 @@ Two Kubernetes distributions are supported, selected via `ecp create-cluster --d
 | Distribution | Boot time | Best for |
 |---|---|---|
 | **EKS-D-Xpress** (default) | < 4 min | Full EKS API compatibility, etcd HA control planes |
-| **k3s-Xpress** | < 2 min | Dev/staging, edge, single-node, cost-sensitive workloads |
+| **k3s-Xpress** | < 4 min (~220s) | Dev/staging, edge, single-node, cost-sensitive workloads |
 
 Both distributions share the same `ecp` CLI lifecycle, VPC CNI networking, Karpenter autoscaling, Workload Identity, and CloudWatch observability — all pre-baked into the golden AMI. See [k3s-Xpress](docs/user-guides/k3s-xpress.md) for the lightweight distribution's details and tradeoffs.
 
@@ -17,7 +17,7 @@ Both distributions share the same `ecp` CLI lifecycle, VPC CNI networking, Karpe
 
 ## Key Features
 
-- **Sub-4-minute cluster boot** (sub-2-minute for k3s-Xpress) — all components pre-installed in the golden AMI
+- **Sub-4-minute cluster boot** (both distributions — k3s-Xpress typically ~220s, EKS-D-Xpress up to 4 min) — all components pre-installed in the golden AMI
 - **Two distributions** — EKS-D for full EKS API compatibility, or k3s for a lightweight footprint
 - **EKS compatibility** — EKS-D-Xpress runs the same EKS-D binaries as Amazon EKS
 - **Karpenter autoscaling** — Spot-first worker node provisioning with right-sizing
